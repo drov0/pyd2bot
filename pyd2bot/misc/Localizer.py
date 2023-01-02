@@ -1,4 +1,5 @@
 import json
+import os
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
 from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
 from pydofus2.com.ankamagames.dofus.datacenter.world.Phoenix import Phoenix
@@ -28,7 +29,8 @@ class BankInfos:
 
 class Localizer:
     _phenixesByAreaId = dict[int, list]()
-    with open(BotConstants.PERSISTENCE_DIR / "areaInfos.json", "r") as f:
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(base_dir,  "areaInfos.json"), "r") as f:
         AREAINFOS: dict = json.load(f)
 
     @classmethod
