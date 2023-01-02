@@ -1,1 +1,0 @@
-c:/Users/majdoub/botdev/dofusBotDev/.venv/Scripts/python.exe c:/Users/majdoub/botdev/dofusBotDev/MyTests/Bot_sessions/test_run_fight_group_session.py

@@ -1,3 +1,0 @@
-thrift
-cx-Freeze
-wheel
