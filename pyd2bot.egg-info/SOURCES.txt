@@ -3,6 +3,7 @@ README.md
 pyproject.toml
 setup.py
 pyd2bot/BotConstants.py
+pyd2bot/PyD2Bot.py
 pyd2bot/__init__.py
 pyd2bot/pyd2bot.py
 pyd2bot.egg-info/PKG-INFO

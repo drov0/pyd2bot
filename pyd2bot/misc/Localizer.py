@@ -29,8 +29,8 @@ class BankInfos:
 
 class Localizer:
     _phenixesByAreaId = dict[int, list]()
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    with open(os.path.join(base_dir,  "areaInfos.json"), "r") as f:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(base_dir, "areaInfos.json"), "r") as f:
         AREAINFOS: dict = json.load(f)
 
     @classmethod

@@ -10,7 +10,6 @@ setup(
     # Application author details:
     author="majdoub khalid",
     author_email="majdoub.khalid@gmail.com",
-    
     # Packages
     packages=find_packages(),
     
@@ -18,14 +17,20 @@ setup(
     include_package_data=True,
     
     # Details
-    url="http://pypi.python.org/pypi/pyd2bot_v100/",
+    url="https://github.com/kmajdoub/pyd2bot",
     
     #
     # license="LICENSE.txt",
     description="Light python client for dofus2 offi.",
     
-    # long_description=open("README.txt").read(),
+    long_description=open("README.md").read(),
     
     # Dependent packages (distributions)
-    install_requires=open("./requirements.txt").readlines()
+    install_requires=open("./requirements.txt").readlines(),
+    classifiers=[
+        "Programming Language :: Python :: 3.9.11",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: Windows",
+    ],
+    python_requires='<=3.9.13',
 )
