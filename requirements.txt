@@ -1,2 +1,2 @@
 thrift
-cx-Freeze
+pydofus2
