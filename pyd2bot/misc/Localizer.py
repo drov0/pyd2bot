@@ -1,13 +1,10 @@
 import json
 import os
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
-from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
-from pydofus2.com.ankamagames.dofus.datacenter.world.Phoenix import Phoenix
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import AStar
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import WorldPathFinder
-from pyd2bot.BotConstants import BotConstants
 
 
 class BankInfos:

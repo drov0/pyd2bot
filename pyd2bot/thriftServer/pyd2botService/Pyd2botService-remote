@@ -17,7 +17,6 @@ from thrift.transport import TTransport, TSocket, TSSLSocket, THttpClient
 from thrift.protocol.TBinaryProtocol import TBinaryProtocol
 
 from pyd2botService import Pyd2botService
-from pyd2botService.ttypes import *
 
 if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('')

@@ -25,8 +25,7 @@ from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import RoleplayMovementFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import RoleplayInteractivesFrame
+    pass
 from pyd2bot.logic.roleplay.messages.AutoTripEndedMessage import AutoTripEndedMessage
 
 logger = Logger()

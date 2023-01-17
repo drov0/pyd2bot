@@ -3,7 +3,6 @@ from threading import Timer
 from time import perf_counter
 from types import FunctionType
 from typing import TYPE_CHECKING, Tuple
-from pydofus2.com.DofusClient import DofusClient
 from pydofus2.com.ankamagames.atouin.AtouinConstants import AtouinConstants
 from pydofus2.com.ankamagames.atouin.messages.MapLoadedMessage import MapLoadedMessage
 from pydofus2.com.ankamagames.atouin.utils.DataMapProvider import DataMapProvider
@@ -12,13 +11,11 @@ from pydofus2.com.ankamagames.dofus.internalDatacenter.spells.SpellWrapper impor
 from pydofus2.com.ankamagames.dofus.internalDatacenter.stats.EntityStats import EntityStats
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionType import ConnectionType
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.fight.frames.FightEntitiesFrame import FightEntitiesFrame
 from pydofus2.com.ankamagames.dofus.logic.game.fight.managers.CurrentPlayedFighterManager import CurrentPlayedFighterManager
 from pydofus2.com.ankamagames.dofus.logic.game.fight.miscs.FightReachableCellsMaker import FightReachableCellsMaker
 from pydofus2.com.ankamagames.dofus.network.enums.FightOptionsEnum import FightOptionsEnum
-from pydofus2.com.ankamagames.dofus.network.messages.common.basic.BasicPingMessage import BasicPingMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.actions.fight.GameActionFightCastRequestMessage import (
     GameActionFightCastRequestMessage,
 )
@@ -49,7 +46,6 @@ from pydofus2.com.ankamagames.dofus.network.types.game.context.fight.GameFightMo
     GameFightMonsterInformations,
 )
 from pydofus2.com.ankamagames.dofus.network.types.game.context.GameContextActorInformations import GameContextActorInformations
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.entities.interfaces.IInteractive import IInteractive
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.map.LosDetector import LosDetector
@@ -61,7 +57,7 @@ from pydofus2.com.ankamagames.jerakine.types.zones.Cross import Cross
 from pydofus2.com.ankamagames.jerakine.types.zones.IZone import IZone
 from pydofus2.com.ankamagames.jerakine.types.zones.Lozenge import Lozenge
 from pydofus2.com.ankamagames.jerakine.utils.display.spellZone.SpellShapeEnum import SpellShapeEnum
-from pydofus2.damageCalculation.tools import StatIds
+from pydofus2.damageCalculation.tools.StatIds import StatIds
 from pyd2bot.logic.fight.frames.BotFightTurnFrame import BotFightTurnFrame
 from pyd2bot.logic.managers.SessionManager import SessionManager
 

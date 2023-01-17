@@ -6,8 +6,6 @@ from pydofus2.com.DofusClient import DofusClient
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 from pyd2bot.logic.managers.PathManager import PathManager
-from pydofus2.com.ankamagames.haapi.Haapi import Haapi
-
     
 logger = Logger()
 
@@ -49,8 +47,6 @@ class SessionManager(metaclass=Singleton):
     def __init__(self) -> None:
         pass
     
-    def generateLoginToken(self, login, password, certId, certHash):
-        self.loginToken = Haapi().getLoginToken(login, password, certId, certHash)
         
     def load(self, sessionstr: str):
         sessionJson = json.loads(sessionstr)

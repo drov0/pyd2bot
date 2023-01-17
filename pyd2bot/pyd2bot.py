@@ -1,4 +1,3 @@
-import queue
 import threading
 import time
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger

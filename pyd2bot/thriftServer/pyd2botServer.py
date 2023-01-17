@@ -1,7 +1,5 @@
 import json
-import logging
 import threading
-from time import perf_counter, sleep
 from pyd2bot.apis.PlayerAPI import PlayerAPI
 
 from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import \
@@ -29,8 +27,6 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition i
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
     Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import WorldPathFinder
-from pydofus2.com.ankamagames.dofus.network.enums.ServerStatusEnum import \
-    ServerStatusEnum
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
 lock = threading.Lock()
@@ -47,7 +43,7 @@ class Pyd2botServer:
         def onServersList(event):
             KernelEventsManager().remove_listener(KernelEventsManager.SERVERS_LIST, onServersList)
             ssf : 'ServerSelectionFrame' = Kernel().getWorker().getFrame('ServerSelectionFrame')        
-            result = [server.to_json() for server in ssf.usedServers]
+            [server.to_json() for server in ssf.usedServers]
             gotres.set()
         KernelEventsManager().add_listener(KernelEventsManager.SERVERS_LIST, onServersList)
         gotres.wait(20)

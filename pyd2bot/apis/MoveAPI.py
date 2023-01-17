@@ -2,7 +2,6 @@ import random
 from threading import Timer
 from time import perf_counter, sleep
 from typing import TYPE_CHECKING
-from pydofus2.com.ankamagames.dofus.datacenter.items.criterion.CriterionUtils import CriterionUtils
 from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import InteractiveElementData
@@ -14,16 +13,13 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTy
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import (
     WorldPathFinder,
 )
-from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 
 if TYPE_CHECKING:
-    from pydofus2.com.ankamagames.atouin.data.map.Map import Map
     from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
         RoleplayInteractivesFrame,
     )
     from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import RoleplayMovementFrame
 
-import pydofus2.com.ankamagames.atouin.managers.MapDisplayManager as mdm
 from pydofus2.com.ankamagames.atouin.messages.AdjacentMapClickMessage import (
     AdjacentMapClickMessage,
 )
