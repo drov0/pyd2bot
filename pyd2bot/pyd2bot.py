@@ -3,12 +3,14 @@ import time
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pyd2bot.thriftServer.pyd2botServer import Pyd2botServer
 from thrift.protocol.THeaderProtocol import THeaderProtocolFactory
+from thrift.protocol.TJSONProtocol import TJSONProtocolFactory
 import pyd2bot.thriftServer.pyd2botService.Pyd2botService as Pyd2botService
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 from thrift.transport import TTransport
 from thrift.transport.TSocket import TSocket, TServerSocket
 from thrift.protocol import TBinaryProtocol
-
+from thrift.server import THttpServer
+ 
 class PyD2Bot(metaclass=Singleton):
     _stop = threading.Event()
     id: str
@@ -33,6 +35,11 @@ class PyD2Bot(metaclass=Singleton):
         self.inputProtocolFactory = self.outputProtocolFactory = TBinaryProtocol.TBinaryProtocolFactory()
     
     def runServer(self):
+        server = THttpServer.THttpServer(self.processor, (self.host, self.port), TJSONProtocolFactory())
+        self.logger.info(f"[Server - {self.id}] Started serving on {self.host}:{self.port}")
+        server.serve()
+        
+    def runSocketServer(self):
         self._stop.clear()
         self.serverTransport = TServerSocket(host=self.host, port=self.port)
         self.logger.info(f"[Server - {self.id}] Threads started")

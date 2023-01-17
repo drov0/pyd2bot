@@ -13,18 +13,22 @@ struct Character {
     6:int serverId,
     7:string serverName
 }
+exception DofusError {
+    1: int code,
+    2: string message
+}
 service Pyd2botService {
-    list<Character> fetchCharacters(1: string token, 2: int serverId),
-    string fetchUsedServers(1: string token),
-    oneway void runSession(1: string token, 6:string sessionJson),
-    list<Spell> fetchBreedSpells(1: int breedId),
-    string fetchJobsInfosJson(),
-    oneway void moveToVertex(1: string vertex)
-    oneway void followTransition(1: string transition)
-    string getStatus()
-    oneway void comeToBankToCollectResources(1: string bankInfos, 3: string guestInfos)
-    string getCurrentVertex()
-    int getInventoryKamas()
+    list<Character> fetchCharacters(1: string token, 2: int serverId) throws (1: DofusError error),
+    string fetchUsedServers(1: string token) throws (1: DofusError error),
+    void runSession(1: string token, 6:string sessionJson) throws (1: DofusError error),
+    list<Spell> fetchBreedSpells(1: int breedId) throws (1: DofusError error),
+    string fetchJobsInfosJson() throws (1: DofusError error),
+    void moveToVertex(1: string vertex),
+    void followTransition(1: string transition),
+    string getStatus() throws (1: DofusError error),
+    void comeToBankToCollectResources(1: string bankInfos, 3: string guestInfos) throws (1: DofusError error),
+    string getCurrentVertex() throws (1: DofusError error),
+    int getInventoryKamas() throws (1: DofusError error),
 }
        
     

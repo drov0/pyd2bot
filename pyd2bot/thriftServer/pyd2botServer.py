@@ -12,15 +12,13 @@ from pyd2bot.logic.roleplay.messages.LeaderPosMessage import LeaderPosMessage
 from pyd2bot.logic.roleplay.messages.LeaderTransitionMessage import \
     LeaderTransitionMessage
 from pyd2bot.misc.Localizer import BankInfos
-from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Spell
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
+from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Spell, DofusError
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager, KernelEvts
 from pydofus2.com.ankamagames.dofus.datacenter.breeds.Breed import Breed
 from pydofus2.com.ankamagames.dofus.datacenter.jobs.Skill import Skill
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import \
     PlayerManager
-from pydofus2.com.ankamagames.dofus.logic.connection.frames.ServerSelectionFrame import \
-    ServerSelectionFrame
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import InventoryManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
     Transition
@@ -35,43 +33,33 @@ class Pyd2botServer:
         self.id = id
         self.logger = Logger()
     
-    def fetchServersList(self, token:str) -> list[dict]:
-        dofus2 = DofusClient()
-        dofus2.login(token)
-        gotres = threading.Event()
-        result = list()
-        def onServersList(event):
-            KernelEventsManager().remove_listener(KernelEventsManager.SERVERS_LIST, onServersList)
-            ssf : 'ServerSelectionFrame' = Kernel().getWorker().getFrame('ServerSelectionFrame')        
-            [server.to_json() for server in ssf.usedServers]
-            gotres.set()
-        KernelEventsManager().add_listener(KernelEventsManager.SERVERS_LIST, onServersList)
-        gotres.wait(20)
-        dofus2.shutdown()
+    def fetchUsedServers(self, token:str) -> list[dict]:
+        DofusClient().login(token)
+        servers = KernelEventsManager().wait(KernelEvts.SERVERS_LIST)
+        if servers is None:
+            raise DofusError(code=0, message="Unable to fetch servers list.")
+        result = [server.to_json() for server in servers['used']]
+        DofusClient().shutdown()
         return result
     
     def fetchCharacters(self, token:str, serverId: int) -> list[Character]:
         result = list()
-        dofus2 = DofusClient()
-        dofus2.login(token, serverId)
-        gotres = threading.Event()
-        def onCharactersList(event):
-            KernelEventsManager().remove_listener(KernelEventsManager.CHARACTERS_LIST, onCharactersList)
-            for character in PlayerManager().charactersList:
-                chkwrgs = {
-                    "name": character.name, 
-                    "id": character.id, 
-                    "level": character.level, 
-                    "breedId": character.breedId, 
-                    "breedName": character.breed.name, 
-                    "serverId": serverId, 
-                    "serverName": PlayerManager().server.name
-                }
-                result.append(Character(**chkwrgs))
-            gotres.set()
-        KernelEventsManager().add_listener(KernelEventsManager.CHARACTERS_LIST, onCharactersList)
-        gotres.wait(20)
-        dofus2.shutdown()
+        DofusClient().login(token, serverId)
+        charactersList = KernelEventsManager().wait(KernelEvts.CHARACTERS_LIST, 30)
+        if charactersList is None:
+            raise DofusError(code=0, message="Unable to fetch characters list.")
+        for character in charactersList:
+            chkwrgs = {
+                "name": character.name, 
+                "id": character.id, 
+                "level": character.level, 
+                "breedId": character.breedId, 
+                "breedName": character.breed.name, 
+                "serverId": serverId, 
+                "serverName": PlayerManager().server.name
+            }
+            result.append(Character(**chkwrgs))
+        DofusClient().shutdown()
         return result
         
     def runSession(self, login:str, password:str, certId:str, certHash:str, apiKey: str, sessionJson:str) -> None:

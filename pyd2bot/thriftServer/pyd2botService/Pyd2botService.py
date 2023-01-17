@@ -122,6 +122,8 @@ class Client(Iface):
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
+        if result.error is not None:
+            raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchCharacters failed: unknown result")
 
     def fetchUsedServers(self, token):
@@ -154,6 +156,8 @@ class Client(Iface):
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
+        if result.error is not None:
+            raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchUsedServers failed: unknown result")
 
     def runSession(self, token, sessionJson):
@@ -164,15 +168,31 @@ class Client(Iface):
 
         """
         self.send_runSession(token, sessionJson)
+        self.recv_runSession()
 
     def send_runSession(self, token, sessionJson):
-        self._oprot.writeMessageBegin('runSession', TMessageType.ONEWAY, self._seqid)
+        self._oprot.writeMessageBegin('runSession', TMessageType.CALL, self._seqid)
         args = runSession_args()
         args.token = token
         args.sessionJson = sessionJson
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
+
+    def recv_runSession(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = runSession_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.error is not None:
+            raise result.error
+        return
 
     def fetchBreedSpells(self, breedId):
         """
@@ -204,6 +224,8 @@ class Client(Iface):
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
+        if result.error is not None:
+            raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchBreedSpells failed: unknown result")
 
     def fetchJobsInfosJson(self):
@@ -230,6 +252,8 @@ class Client(Iface):
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
+        if result.error is not None:
+            raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchJobsInfosJson failed: unknown result")
 
     def moveToVertex(self, vertex):
@@ -239,14 +263,28 @@ class Client(Iface):
 
         """
         self.send_moveToVertex(vertex)
+        self.recv_moveToVertex()
 
     def send_moveToVertex(self, vertex):
-        self._oprot.writeMessageBegin('moveToVertex', TMessageType.ONEWAY, self._seqid)
+        self._oprot.writeMessageBegin('moveToVertex', TMessageType.CALL, self._seqid)
         args = moveToVertex_args()
         args.vertex = vertex
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
+
+    def recv_moveToVertex(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = moveToVertex_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        return
 
     def followTransition(self, transition):
         """
@@ -255,14 +293,28 @@ class Client(Iface):
 
         """
         self.send_followTransition(transition)
+        self.recv_followTransition()
 
     def send_followTransition(self, transition):
-        self._oprot.writeMessageBegin('followTransition', TMessageType.ONEWAY, self._seqid)
+        self._oprot.writeMessageBegin('followTransition', TMessageType.CALL, self._seqid)
         args = followTransition_args()
         args.transition = transition
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
+
+    def recv_followTransition(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = followTransition_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        return
 
     def getStatus(self):
         self.send_getStatus()
@@ -288,6 +340,8 @@ class Client(Iface):
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
+        if result.error is not None:
+            raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "getStatus failed: unknown result")
 
     def comeToBankToCollectResources(self, bankInfos, guestInfos):
@@ -298,15 +352,31 @@ class Client(Iface):
 
         """
         self.send_comeToBankToCollectResources(bankInfos, guestInfos)
+        self.recv_comeToBankToCollectResources()
 
     def send_comeToBankToCollectResources(self, bankInfos, guestInfos):
-        self._oprot.writeMessageBegin('comeToBankToCollectResources', TMessageType.ONEWAY, self._seqid)
+        self._oprot.writeMessageBegin('comeToBankToCollectResources', TMessageType.CALL, self._seqid)
         args = comeToBankToCollectResources_args()
         args.bankInfos = bankInfos
         args.guestInfos = guestInfos
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
+
+    def recv_comeToBankToCollectResources(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = comeToBankToCollectResources_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.error is not None:
+            raise result.error
+        return
 
     def getCurrentVertex(self):
         self.send_getCurrentVertex()
@@ -332,6 +402,8 @@ class Client(Iface):
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
+        if result.error is not None:
+            raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "getCurrentVertex failed: unknown result")
 
     def getInventoryKamas(self):
@@ -358,6 +430,8 @@ class Client(Iface):
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
+        if result.error is not None:
+            raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "getInventoryKamas failed: unknown result")
 
 
@@ -408,6 +482,9 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
         except TApplicationException as ex:
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
@@ -431,6 +508,9 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
         except TApplicationException as ex:
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
@@ -448,12 +528,27 @@ class Processor(Iface, TProcessor):
         args = runSession_args()
         args.read(iprot)
         iprot.readMessageEnd()
+        result = runSession_result()
         try:
             self._handler.runSession(args.token, args.sessionJson)
+            msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
         except Exception:
-            logging.exception('Exception in oneway handler')
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("runSession", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
 
     def process_fetchBreedSpells(self, seqid, iprot, oprot):
         args = fetchBreedSpells_args()
@@ -465,6 +560,9 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
         except TApplicationException as ex:
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
@@ -488,6 +586,9 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
         except TApplicationException as ex:
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
@@ -505,23 +606,47 @@ class Processor(Iface, TProcessor):
         args = moveToVertex_args()
         args.read(iprot)
         iprot.readMessageEnd()
+        result = moveToVertex_result()
         try:
             self._handler.moveToVertex(args.vertex)
+            msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
         except Exception:
-            logging.exception('Exception in oneway handler')
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("moveToVertex", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
 
     def process_followTransition(self, seqid, iprot, oprot):
         args = followTransition_args()
         args.read(iprot)
         iprot.readMessageEnd()
+        result = followTransition_result()
         try:
             self._handler.followTransition(args.transition)
+            msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
         except Exception:
-            logging.exception('Exception in oneway handler')
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("followTransition", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
 
     def process_getStatus(self, seqid, iprot, oprot):
         args = getStatus_args()
@@ -533,6 +658,9 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
         except TApplicationException as ex:
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
@@ -550,12 +678,27 @@ class Processor(Iface, TProcessor):
         args = comeToBankToCollectResources_args()
         args.read(iprot)
         iprot.readMessageEnd()
+        result = comeToBankToCollectResources_result()
         try:
             self._handler.comeToBankToCollectResources(args.bankInfos, args.guestInfos)
+            msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
         except Exception:
-            logging.exception('Exception in oneway handler')
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("comeToBankToCollectResources", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
 
     def process_getCurrentVertex(self, seqid, iprot, oprot):
         args = getCurrentVertex_args()
@@ -567,6 +710,9 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
         except TApplicationException as ex:
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
@@ -590,6 +736,9 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
         except TApplicationException as ex:
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
@@ -684,12 +833,14 @@ class fetchCharacters_result(object):
     """
     Attributes:
      - success
+     - error
 
     """
 
 
-    def __init__(self, success=None,):
+    def __init__(self, success=None, error=None,):
         self.success = success
+        self.error = error
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -711,6 +862,11 @@ class fetchCharacters_result(object):
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -727,6 +883,10 @@ class fetchCharacters_result(object):
             for iter6 in self.success:
                 iter6.write(oprot)
             oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -747,6 +907,7 @@ class fetchCharacters_result(object):
 all_structs.append(fetchCharacters_result)
 fetchCharacters_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [Character, None], False), None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 
 
@@ -816,12 +977,14 @@ class fetchUsedServers_result(object):
     """
     Attributes:
      - success
+     - error
 
     """
 
 
-    def __init__(self, success=None,):
+    def __init__(self, success=None, error=None,):
         self.success = success
+        self.error = error
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -837,6 +1000,11 @@ class fetchUsedServers_result(object):
                     self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -850,6 +1018,10 @@ class fetchUsedServers_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.STRING, 0)
             oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -870,6 +1042,7 @@ class fetchUsedServers_result(object):
 all_structs.append(fetchUsedServers_result)
 fetchUsedServers_result.thrift_spec = (
     (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 
 
@@ -951,6 +1124,68 @@ runSession_args.thrift_spec = (
 )
 
 
+class runSession_result(object):
+    """
+    Attributes:
+     - error
+
+    """
+
+
+    def __init__(self, error=None,):
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('runSession_result')
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(runSession_result)
+runSession_result.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
 class fetchBreedSpells_args(object):
     """
     Attributes:
@@ -1017,12 +1252,14 @@ class fetchBreedSpells_result(object):
     """
     Attributes:
      - success
+     - error
 
     """
 
 
-    def __init__(self, success=None,):
+    def __init__(self, success=None, error=None,):
         self.success = success
+        self.error = error
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1044,6 +1281,11 @@ class fetchBreedSpells_result(object):
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1060,6 +1302,10 @@ class fetchBreedSpells_result(object):
             for iter13 in self.success:
                 iter13.write(oprot)
             oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1080,6 +1326,7 @@ class fetchBreedSpells_result(object):
 all_structs.append(fetchBreedSpells_result)
 fetchBreedSpells_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [Spell, None], False), None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 
 
@@ -1130,12 +1377,14 @@ class fetchJobsInfosJson_result(object):
     """
     Attributes:
      - success
+     - error
 
     """
 
 
-    def __init__(self, success=None,):
+    def __init__(self, success=None, error=None,):
         self.success = success
+        self.error = error
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1151,6 +1400,11 @@ class fetchJobsInfosJson_result(object):
                     self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1164,6 +1418,10 @@ class fetchJobsInfosJson_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.STRING, 0)
             oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1184,6 +1442,7 @@ class fetchJobsInfosJson_result(object):
 all_structs.append(fetchJobsInfosJson_result)
 fetchJobsInfosJson_result.thrift_spec = (
     (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 
 
@@ -1249,6 +1508,49 @@ moveToVertex_args.thrift_spec = (
 )
 
 
+class moveToVertex_result(object):
+
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('moveToVertex_result')
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(moveToVertex_result)
+moveToVertex_result.thrift_spec = (
+)
+
+
 class followTransition_args(object):
     """
     Attributes:
@@ -1311,6 +1613,49 @@ followTransition_args.thrift_spec = (
 )
 
 
+class followTransition_result(object):
+
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('followTransition_result')
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(followTransition_result)
+followTransition_result.thrift_spec = (
+)
+
+
 class getStatus_args(object):
 
 
@@ -1358,12 +1703,14 @@ class getStatus_result(object):
     """
     Attributes:
      - success
+     - error
 
     """
 
 
-    def __init__(self, success=None,):
+    def __init__(self, success=None, error=None,):
         self.success = success
+        self.error = error
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1379,6 +1726,11 @@ class getStatus_result(object):
                     self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1392,6 +1744,10 @@ class getStatus_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.STRING, 0)
             oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1412,6 +1768,7 @@ class getStatus_result(object):
 all_structs.append(getStatus_result)
 getStatus_result.thrift_spec = (
     (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 
 
@@ -1490,6 +1847,68 @@ comeToBankToCollectResources_args.thrift_spec = (
 )
 
 
+class comeToBankToCollectResources_result(object):
+    """
+    Attributes:
+     - error
+
+    """
+
+
+    def __init__(self, error=None,):
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('comeToBankToCollectResources_result')
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(comeToBankToCollectResources_result)
+comeToBankToCollectResources_result.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
 class getCurrentVertex_args(object):
 
 
@@ -1537,12 +1956,14 @@ class getCurrentVertex_result(object):
     """
     Attributes:
      - success
+     - error
 
     """
 
 
-    def __init__(self, success=None,):
+    def __init__(self, success=None, error=None,):
         self.success = success
+        self.error = error
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1558,6 +1979,11 @@ class getCurrentVertex_result(object):
                     self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1571,6 +1997,10 @@ class getCurrentVertex_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.STRING, 0)
             oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1591,6 +2021,7 @@ class getCurrentVertex_result(object):
 all_structs.append(getCurrentVertex_result)
 getCurrentVertex_result.thrift_spec = (
     (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 
 
@@ -1641,12 +2072,14 @@ class getInventoryKamas_result(object):
     """
     Attributes:
      - success
+     - error
 
     """
 
 
-    def __init__(self, success=None,):
+    def __init__(self, success=None, error=None,):
         self.success = success
+        self.error = error
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1662,6 +2095,11 @@ class getInventoryKamas_result(object):
                     self.success = iprot.readI32()
                 else:
                     iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1675,6 +2113,10 @@ class getInventoryKamas_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.I32, 0)
             oprot.writeI32(self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1695,6 +2137,7 @@ class getInventoryKamas_result(object):
 all_structs.append(getInventoryKamas_result)
 getInventoryKamas_result.thrift_spec = (
     (0, TType.I32, 'success', None, None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 fix_spec(all_structs)
 del all_structs
