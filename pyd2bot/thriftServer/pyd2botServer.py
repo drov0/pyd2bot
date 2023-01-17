@@ -15,6 +15,7 @@ from pyd2bot.logic.roleplay.messages.LeaderTransitionMessage import \
     LeaderTransitionMessage
 from pyd2bot.misc.Localizer import BankInfos
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Spell
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.breeds.Breed import Breed
 from pydofus2.com.ankamagames.dofus.datacenter.jobs.Skill import Skill
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -30,7 +31,6 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import WorldPathFinder
 from pydofus2.com.ankamagames.dofus.network.enums.ServerStatusEnum import \
     ServerStatusEnum
-from pydofus2.com.ankamagames.haapi.Haapi import Haapi
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
 lock = threading.Lock()
@@ -39,53 +39,42 @@ class Pyd2botServer:
         self.id = id
         self.logger = Logger()
     
-    def fetchAccountCharacters(self, login:str, password:str, certId:str, certHash:str, apiKey:str) -> list[Character]:
-        rate = 2.
-        timeout = 20.
-        Haapi().APIKEY = apiKey
-        loginToken = Haapi().getLoginToken(login, password, certId, certHash)
+    def fetchServersList(self, token:str) -> list[dict]:
+        dofus2 = DofusClient()
+        dofus2.login(token)
+        gotres = threading.Event()
+        result = list()
+        def onServersList(event):
+            KernelEventsManager().remove_listener(KernelEventsManager.SERVERS_LIST, onServersList)
+            ssf : 'ServerSelectionFrame' = Kernel().getWorker().getFrame('ServerSelectionFrame')        
+            result = [server.to_json() for server in ssf.usedServers]
+            gotres.set()
+        KernelEventsManager().add_listener(KernelEventsManager.SERVERS_LIST, onServersList)
+        gotres.wait(20)
+        dofus2.shutdown()
+        return result
+    
+    def fetchCharacters(self, token:str, serverId: int) -> list[Character]:
         result = list()
         dofus2 = DofusClient()
-        dofus2.login(loginToken)
-        start = perf_counter()
-        while not PlayerManager().serversList:
-            sleep(1/rate)
-            if perf_counter() - start > timeout:
-                raise TimeoutError("timeout")
-        start = perf_counter()
-        ssf = None
-        while True:
-            ssf : 'ServerSelectionFrame' = Kernel().getWorker().getFrame('ServerSelectionFrame')
-            if ssf:
-                break
-            sleep(1/rate)
-            if perf_counter() - start > timeout:
-                raise TimeoutError("timeout")
-        usedServers = ssf._serversUsedList.copy()
-        for server in usedServers:
-            if ServerStatusEnum(server.status) == ServerStatusEnum.ONLINE or ServerStatusEnum(server.status) == ServerStatusEnum.NOJOIN:
-                dofus2._lastLoginTime = None
-                dofus2._loginToken = Haapi().getLoginToken(login, password, certId, certHash)
-                dofus2._serverId = server.id
-                dofus2.restart()
-                start = perf_counter()
-                while not PlayerManager().charactersList:
-                    sleep(1/rate)
-                    if perf_counter() - start > timeout:
-                        raise TimeoutError("timeout")
-                for character in PlayerManager().charactersList:
-                    chkwrgs = {
-                        "name": character.name, 
-                        "id": character.id, 
-                        "level": character.level, 
-                        "breedId": character.breedId, 
-                        "breedName": character.breed.name, 
-                        "serverId": server.id, 
-                        "serverName": PlayerManager().server.name
-                    }
-                    result.append(Character(**chkwrgs))
-            else:
-                logging.debug(f"Server {server.id} not online but has status {ServerStatusEnum(server.status).name}.")
+        dofus2.login(token, serverId)
+        gotres = threading.Event()
+        def onCharactersList(event):
+            KernelEventsManager().remove_listener(KernelEventsManager.CHARACTERS_LIST, onCharactersList)
+            for character in PlayerManager().charactersList:
+                chkwrgs = {
+                    "name": character.name, 
+                    "id": character.id, 
+                    "level": character.level, 
+                    "breedId": character.breedId, 
+                    "breedName": character.breed.name, 
+                    "serverId": serverId, 
+                    "serverName": PlayerManager().server.name
+                }
+                result.append(Character(**chkwrgs))
+            gotres.set()
+        KernelEventsManager().add_listener(KernelEventsManager.CHARACTERS_LIST, onCharactersList)
+        gotres.wait(20)
         dofus2.shutdown()
         return result
         

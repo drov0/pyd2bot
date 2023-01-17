@@ -19,37 +19,27 @@ all_structs = []
 
 
 class Iface(object):
-    def getApiKey(self, login, password, certId, certHash):
+    def fetchCharacters(self, token, serverId):
         """
         Parameters:
-         - login
-         - password
-         - certId
-         - certHash
+         - token
+         - serverId
 
         """
         pass
 
-    def fetchAccountCharacters(self, login, password, certId, certHash, apiKey):
+    def fetchUsedServers(self, token):
         """
         Parameters:
-         - login
-         - password
-         - certId
-         - certHash
-         - apiKey
+         - token
 
         """
         pass
 
-    def runSession(self, login, password, certId, certHash, apiKey, sessionJson):
+    def runSession(self, token, sessionJson):
         """
         Parameters:
-         - login
-         - password
-         - certId
-         - certHash
-         - apiKey
+         - token
          - sessionJson
 
         """
@@ -108,30 +98,26 @@ class Client(Iface):
             self._oprot = oprot
         self._seqid = 0
 
-    def getApiKey(self, login, password, certId, certHash):
+    def fetchCharacters(self, token, serverId):
         """
         Parameters:
-         - login
-         - password
-         - certId
-         - certHash
+         - token
+         - serverId
 
         """
-        self.send_getApiKey(login, password, certId, certHash)
-        return self.recv_getApiKey()
+        self.send_fetchCharacters(token, serverId)
+        return self.recv_fetchCharacters()
 
-    def send_getApiKey(self, login, password, certId, certHash):
-        self._oprot.writeMessageBegin('getApiKey', TMessageType.CALL, self._seqid)
-        args = getApiKey_args()
-        args.login = login
-        args.password = password
-        args.certId = certId
-        args.certHash = certHash
+    def send_fetchCharacters(self, token, serverId):
+        self._oprot.writeMessageBegin('fetchCharacters', TMessageType.CALL, self._seqid)
+        args = fetchCharacters_args()
+        args.token = token
+        args.serverId = serverId
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
 
-    def recv_getApiKey(self):
+    def recv_fetchCharacters(self):
         iprot = self._iprot
         (fname, mtype, rseqid) = iprot.readMessageBegin()
         if mtype == TMessageType.EXCEPTION:
@@ -139,39 +125,31 @@ class Client(Iface):
             x.read(iprot)
             iprot.readMessageEnd()
             raise x
-        result = getApiKey_result()
+        result = fetchCharacters_result()
         result.read(iprot)
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
-        raise TApplicationException(TApplicationException.MISSING_RESULT, "getApiKey failed: unknown result")
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchCharacters failed: unknown result")
 
-    def fetchAccountCharacters(self, login, password, certId, certHash, apiKey):
+    def fetchUsedServers(self, token):
         """
         Parameters:
-         - login
-         - password
-         - certId
-         - certHash
-         - apiKey
+         - token
 
         """
-        self.send_fetchAccountCharacters(login, password, certId, certHash, apiKey)
-        return self.recv_fetchAccountCharacters()
+        self.send_fetchUsedServers(token)
+        return self.recv_fetchUsedServers()
 
-    def send_fetchAccountCharacters(self, login, password, certId, certHash, apiKey):
-        self._oprot.writeMessageBegin('fetchAccountCharacters', TMessageType.CALL, self._seqid)
-        args = fetchAccountCharacters_args()
-        args.login = login
-        args.password = password
-        args.certId = certId
-        args.certHash = certHash
-        args.apiKey = apiKey
+    def send_fetchUsedServers(self, token):
+        self._oprot.writeMessageBegin('fetchUsedServers', TMessageType.CALL, self._seqid)
+        args = fetchUsedServers_args()
+        args.token = token
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
 
-    def recv_fetchAccountCharacters(self):
+    def recv_fetchUsedServers(self):
         iprot = self._iprot
         (fname, mtype, rseqid) = iprot.readMessageBegin()
         if mtype == TMessageType.EXCEPTION:
@@ -179,34 +157,26 @@ class Client(Iface):
             x.read(iprot)
             iprot.readMessageEnd()
             raise x
-        result = fetchAccountCharacters_result()
+        result = fetchUsedServers_result()
         result.read(iprot)
         iprot.readMessageEnd()
         if result.success is not None:
             return result.success
-        raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchAccountCharacters failed: unknown result")
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchUsedServers failed: unknown result")
 
-    def runSession(self, login, password, certId, certHash, apiKey, sessionJson):
+    def runSession(self, token, sessionJson):
         """
         Parameters:
-         - login
-         - password
-         - certId
-         - certHash
-         - apiKey
+         - token
          - sessionJson
 
         """
-        self.send_runSession(login, password, certId, certHash, apiKey, sessionJson)
+        self.send_runSession(token, sessionJson)
 
-    def send_runSession(self, login, password, certId, certHash, apiKey, sessionJson):
+    def send_runSession(self, token, sessionJson):
         self._oprot.writeMessageBegin('runSession', TMessageType.ONEWAY, self._seqid)
         args = runSession_args()
-        args.login = login
-        args.password = password
-        args.certId = certId
-        args.certHash = certHash
-        args.apiKey = apiKey
+        args.token = token
         args.sessionJson = sessionJson
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
@@ -403,8 +373,8 @@ class Processor(Iface, TProcessor):
     def __init__(self, handler):
         self._handler = handler
         self._processMap = {}
-        self._processMap["getApiKey"] = Processor.process_getApiKey
-        self._processMap["fetchAccountCharacters"] = Processor.process_fetchAccountCharacters
+        self._processMap["fetchCharacters"] = Processor.process_fetchCharacters
+        self._processMap["fetchUsedServers"] = Processor.process_fetchUsedServers
         self._processMap["runSession"] = Processor.process_runSession
         self._processMap["fetchBreedSpells"] = Processor.process_fetchBreedSpells
         self._processMap["fetchJobsInfosJson"] = Processor.process_fetchJobsInfosJson
@@ -436,13 +406,13 @@ class Processor(Iface, TProcessor):
             self._processMap[name](self, seqid, iprot, oprot)
         return True
 
-    def process_getApiKey(self, seqid, iprot, oprot):
-        args = getApiKey_args()
+    def process_fetchCharacters(self, seqid, iprot, oprot):
+        args = fetchCharacters_args()
         args.read(iprot)
         iprot.readMessageEnd()
-        result = getApiKey_result()
+        result = fetchCharacters_result()
         try:
-            result.success = self._handler.getApiKey(args.login, args.password, args.certId, args.certHash)
+            result.success = self._handler.fetchCharacters(args.token, args.serverId)
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
@@ -454,18 +424,18 @@ class Processor(Iface, TProcessor):
             logging.exception('Unexpected exception in handler')
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("getApiKey", msg_type, seqid)
+        oprot.writeMessageBegin("fetchCharacters", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
 
-    def process_fetchAccountCharacters(self, seqid, iprot, oprot):
-        args = fetchAccountCharacters_args()
+    def process_fetchUsedServers(self, seqid, iprot, oprot):
+        args = fetchUsedServers_args()
         args.read(iprot)
         iprot.readMessageEnd()
-        result = fetchAccountCharacters_result()
+        result = fetchUsedServers_result()
         try:
-            result.success = self._handler.fetchAccountCharacters(args.login, args.password, args.certId, args.certHash, args.apiKey)
+            result.success = self._handler.fetchUsedServers(args.token)
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
@@ -477,7 +447,7 @@ class Processor(Iface, TProcessor):
             logging.exception('Unexpected exception in handler')
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("fetchAccountCharacters", msg_type, seqid)
+        oprot.writeMessageBegin("fetchUsedServers", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -487,7 +457,7 @@ class Processor(Iface, TProcessor):
         args.read(iprot)
         iprot.readMessageEnd()
         try:
-            self._handler.runSession(args.login, args.password, args.certId, args.certHash, args.apiKey, args.sessionJson)
+            self._handler.runSession(args.token, args.sessionJson)
         except TTransport.TTransportException:
             raise
         except Exception:
@@ -644,22 +614,18 @@ class Processor(Iface, TProcessor):
 # HELPER FUNCTIONS AND STRUCTURES
 
 
-class getApiKey_args(object):
+class fetchCharacters_args(object):
     """
     Attributes:
-     - login
-     - password
-     - certId
-     - certHash
+     - token
+     - serverId
 
     """
 
 
-    def __init__(self, login=None, password=None, certId=None, certHash=None,):
-        self.login = login
-        self.password = password
-        self.certId = certId
-        self.certHash = certHash
+    def __init__(self, token=None, serverId=None,):
+        self.token = token
+        self.serverId = serverId
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -672,22 +638,12 @@ class getApiKey_args(object):
                 break
             if fid == 1:
                 if ftype == TType.STRING:
-                    self.login = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                    self.token = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             elif fid == 2:
-                if ftype == TType.STRING:
-                    self.password = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 3:
                 if ftype == TType.I32:
-                    self.certId = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 4:
-                if ftype == TType.STRING:
-                    self.certHash = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                    self.serverId = iprot.readI32()
                 else:
                     iprot.skip(ftype)
             else:
@@ -699,22 +655,14 @@ class getApiKey_args(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('getApiKey_args')
-        if self.login is not None:
-            oprot.writeFieldBegin('login', TType.STRING, 1)
-            oprot.writeString(self.login.encode('utf-8') if sys.version_info[0] == 2 else self.login)
+        oprot.writeStructBegin('fetchCharacters_args')
+        if self.token is not None:
+            oprot.writeFieldBegin('token', TType.STRING, 1)
+            oprot.writeString(self.token.encode('utf-8') if sys.version_info[0] == 2 else self.token)
             oprot.writeFieldEnd()
-        if self.password is not None:
-            oprot.writeFieldBegin('password', TType.STRING, 2)
-            oprot.writeString(self.password.encode('utf-8') if sys.version_info[0] == 2 else self.password)
-            oprot.writeFieldEnd()
-        if self.certId is not None:
-            oprot.writeFieldBegin('certId', TType.I32, 3)
-            oprot.writeI32(self.certId)
-            oprot.writeFieldEnd()
-        if self.certHash is not None:
-            oprot.writeFieldBegin('certHash', TType.STRING, 4)
-            oprot.writeString(self.certHash.encode('utf-8') if sys.version_info[0] == 2 else self.certHash)
+        if self.serverId is not None:
+            oprot.writeFieldBegin('serverId', TType.I32, 2)
+            oprot.writeI32(self.serverId)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -732,188 +680,15 @@ class getApiKey_args(object):
 
     def __ne__(self, other):
         return not (self == other)
-all_structs.append(getApiKey_args)
-getApiKey_args.thrift_spec = (
+all_structs.append(fetchCharacters_args)
+fetchCharacters_args.thrift_spec = (
     None,  # 0
-    (1, TType.STRING, 'login', 'UTF8', None, ),  # 1
-    (2, TType.STRING, 'password', 'UTF8', None, ),  # 2
-    (3, TType.I32, 'certId', None, None, ),  # 3
-    (4, TType.STRING, 'certHash', 'UTF8', None, ),  # 4
+    (1, TType.STRING, 'token', 'UTF8', None, ),  # 1
+    (2, TType.I32, 'serverId', None, None, ),  # 2
 )
 
 
-class getApiKey_result(object):
-    """
-    Attributes:
-     - success
-
-    """
-
-
-    def __init__(self, success=None,):
-        self.success = success
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 0:
-                if ftype == TType.STRING:
-                    self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('getApiKey_result')
-        if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRING, 0)
-            oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(getApiKey_result)
-getApiKey_result.thrift_spec = (
-    (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
-)
-
-
-class fetchAccountCharacters_args(object):
-    """
-    Attributes:
-     - login
-     - password
-     - certId
-     - certHash
-     - apiKey
-
-    """
-
-
-    def __init__(self, login=None, password=None, certId=None, certHash=None, apiKey=None,):
-        self.login = login
-        self.password = password
-        self.certId = certId
-        self.certHash = certHash
-        self.apiKey = apiKey
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.STRING:
-                    self.login = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 2:
-                if ftype == TType.STRING:
-                    self.password = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 3:
-                if ftype == TType.I32:
-                    self.certId = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 4:
-                if ftype == TType.STRING:
-                    self.certHash = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 5:
-                if ftype == TType.STRING:
-                    self.apiKey = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('fetchAccountCharacters_args')
-        if self.login is not None:
-            oprot.writeFieldBegin('login', TType.STRING, 1)
-            oprot.writeString(self.login.encode('utf-8') if sys.version_info[0] == 2 else self.login)
-            oprot.writeFieldEnd()
-        if self.password is not None:
-            oprot.writeFieldBegin('password', TType.STRING, 2)
-            oprot.writeString(self.password.encode('utf-8') if sys.version_info[0] == 2 else self.password)
-            oprot.writeFieldEnd()
-        if self.certId is not None:
-            oprot.writeFieldBegin('certId', TType.I32, 3)
-            oprot.writeI32(self.certId)
-            oprot.writeFieldEnd()
-        if self.certHash is not None:
-            oprot.writeFieldBegin('certHash', TType.STRING, 4)
-            oprot.writeString(self.certHash.encode('utf-8') if sys.version_info[0] == 2 else self.certHash)
-            oprot.writeFieldEnd()
-        if self.apiKey is not None:
-            oprot.writeFieldBegin('apiKey', TType.STRING, 5)
-            oprot.writeString(self.apiKey.encode('utf-8') if sys.version_info[0] == 2 else self.apiKey)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(fetchAccountCharacters_args)
-fetchAccountCharacters_args.thrift_spec = (
-    None,  # 0
-    (1, TType.STRING, 'login', 'UTF8', None, ),  # 1
-    (2, TType.STRING, 'password', 'UTF8', None, ),  # 2
-    (3, TType.I32, 'certId', None, None, ),  # 3
-    (4, TType.STRING, 'certHash', 'UTF8', None, ),  # 4
-    (5, TType.STRING, 'apiKey', 'UTF8', None, ),  # 5
-)
-
-
-class fetchAccountCharacters_result(object):
+class fetchCharacters_result(object):
     """
     Attributes:
      - success
@@ -953,7 +728,7 @@ class fetchAccountCharacters_result(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('fetchAccountCharacters_result')
+        oprot.writeStructBegin('fetchCharacters_result')
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
@@ -977,31 +752,146 @@ class fetchAccountCharacters_result(object):
 
     def __ne__(self, other):
         return not (self == other)
-all_structs.append(fetchAccountCharacters_result)
-fetchAccountCharacters_result.thrift_spec = (
+all_structs.append(fetchCharacters_result)
+fetchCharacters_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [Character, None], False), None, ),  # 0
+)
+
+
+class fetchUsedServers_args(object):
+    """
+    Attributes:
+     - token
+
+    """
+
+
+    def __init__(self, token=None,):
+        self.token = token
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.token = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('fetchUsedServers_args')
+        if self.token is not None:
+            oprot.writeFieldBegin('token', TType.STRING, 1)
+            oprot.writeString(self.token.encode('utf-8') if sys.version_info[0] == 2 else self.token)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(fetchUsedServers_args)
+fetchUsedServers_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'token', 'UTF8', None, ),  # 1
+)
+
+
+class fetchUsedServers_result(object):
+    """
+    Attributes:
+     - success
+
+    """
+
+
+    def __init__(self, success=None,):
+        self.success = success
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRING:
+                    self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('fetchUsedServers_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRING, 0)
+            oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(fetchUsedServers_result)
+fetchUsedServers_result.thrift_spec = (
+    (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
 )
 
 
 class runSession_args(object):
     """
     Attributes:
-     - login
-     - password
-     - certId
-     - certHash
-     - apiKey
+     - token
      - sessionJson
 
     """
 
 
-    def __init__(self, login=None, password=None, certId=None, certHash=None, apiKey=None, sessionJson=None,):
-        self.login = login
-        self.password = password
-        self.certId = certId
-        self.certHash = certHash
-        self.apiKey = apiKey
+    def __init__(self, token=None, sessionJson=None,):
+        self.token = token
         self.sessionJson = sessionJson
 
     def read(self, iprot):
@@ -1015,27 +905,7 @@ class runSession_args(object):
                 break
             if fid == 1:
                 if ftype == TType.STRING:
-                    self.login = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 2:
-                if ftype == TType.STRING:
-                    self.password = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 3:
-                if ftype == TType.I32:
-                    self.certId = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 4:
-                if ftype == TType.STRING:
-                    self.certHash = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 5:
-                if ftype == TType.STRING:
-                    self.apiKey = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                    self.token = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             elif fid == 6:
@@ -1053,25 +923,9 @@ class runSession_args(object):
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
         oprot.writeStructBegin('runSession_args')
-        if self.login is not None:
-            oprot.writeFieldBegin('login', TType.STRING, 1)
-            oprot.writeString(self.login.encode('utf-8') if sys.version_info[0] == 2 else self.login)
-            oprot.writeFieldEnd()
-        if self.password is not None:
-            oprot.writeFieldBegin('password', TType.STRING, 2)
-            oprot.writeString(self.password.encode('utf-8') if sys.version_info[0] == 2 else self.password)
-            oprot.writeFieldEnd()
-        if self.certId is not None:
-            oprot.writeFieldBegin('certId', TType.I32, 3)
-            oprot.writeI32(self.certId)
-            oprot.writeFieldEnd()
-        if self.certHash is not None:
-            oprot.writeFieldBegin('certHash', TType.STRING, 4)
-            oprot.writeString(self.certHash.encode('utf-8') if sys.version_info[0] == 2 else self.certHash)
-            oprot.writeFieldEnd()
-        if self.apiKey is not None:
-            oprot.writeFieldBegin('apiKey', TType.STRING, 5)
-            oprot.writeString(self.apiKey.encode('utf-8') if sys.version_info[0] == 2 else self.apiKey)
+        if self.token is not None:
+            oprot.writeFieldBegin('token', TType.STRING, 1)
+            oprot.writeString(self.token.encode('utf-8') if sys.version_info[0] == 2 else self.token)
             oprot.writeFieldEnd()
         if self.sessionJson is not None:
             oprot.writeFieldBegin('sessionJson', TType.STRING, 6)
@@ -1096,11 +950,11 @@ class runSession_args(object):
 all_structs.append(runSession_args)
 runSession_args.thrift_spec = (
     None,  # 0
-    (1, TType.STRING, 'login', 'UTF8', None, ),  # 1
-    (2, TType.STRING, 'password', 'UTF8', None, ),  # 2
-    (3, TType.I32, 'certId', None, None, ),  # 3
-    (4, TType.STRING, 'certHash', 'UTF8', None, ),  # 4
-    (5, TType.STRING, 'apiKey', 'UTF8', None, ),  # 5
+    (1, TType.STRING, 'token', 'UTF8', None, ),  # 1
+    None,  # 2
+    None,  # 3
+    None,  # 4
+    None,  # 5
     (6, TType.STRING, 'sessionJson', 'UTF8', None, ),  # 6
 )
 

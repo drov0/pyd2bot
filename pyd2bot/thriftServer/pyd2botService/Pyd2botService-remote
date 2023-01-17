@@ -24,9 +24,9 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('Usage: ' + sys.argv[0] + ' [-h host[:port]] [-u url] [-f[ramed]] [-s[sl]] [-novalidate] [-ca_certs certs] [-keyfile keyfile] [-certfile certfile] function [arg1 [arg2...]]')
     print('')
     print('Functions:')
-    print('  string getApiKey(string login, string password, int certId, string certHash)')
-    print('   fetchAccountCharacters(string login, string password, int certId, string certHash, string apiKey)')
-    print('  void runSession(string login, string password, int certId, string certHash, string apiKey, string sessionJson)')
+    print('   fetchCharacters(string token, int serverId)')
+    print('  string fetchUsedServers(string token)')
+    print('  void runSession(string token, string sessionJson)')
     print('   fetchBreedSpells(int breedId)')
     print('  string fetchJobsInfosJson()')
     print('  void moveToVertex(string vertex)')
@@ -114,23 +114,23 @@ protocol = TBinaryProtocol(transport)
 client = Pyd2botService.Client(protocol)
 transport.open()
 
-if cmd == 'getApiKey':
-    if len(args) != 4:
-        print('getApiKey requires 4 args')
+if cmd == 'fetchCharacters':
+    if len(args) != 2:
+        print('fetchCharacters requires 2 args')
         sys.exit(1)
-    pp.pprint(client.getApiKey(args[0], args[1], eval(args[2]), args[3],))
+    pp.pprint(client.fetchCharacters(args[0], eval(args[1]),))
 
-elif cmd == 'fetchAccountCharacters':
-    if len(args) != 5:
-        print('fetchAccountCharacters requires 5 args')
+elif cmd == 'fetchUsedServers':
+    if len(args) != 1:
+        print('fetchUsedServers requires 1 args')
         sys.exit(1)
-    pp.pprint(client.fetchAccountCharacters(args[0], args[1], eval(args[2]), args[3], args[4],))
+    pp.pprint(client.fetchUsedServers(args[0],))
 
 elif cmd == 'runSession':
-    if len(args) != 6:
-        print('runSession requires 6 args')
+    if len(args) != 2:
+        print('runSession requires 2 args')
         sys.exit(1)
-    pp.pprint(client.runSession(args[0], args[1], eval(args[2]), args[3], args[4], args[5],))
+    pp.pprint(client.runSession(args[0], args[1],))
 
 elif cmd == 'fetchBreedSpells':
     if len(args) != 1:
