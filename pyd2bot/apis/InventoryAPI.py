@@ -13,7 +13,10 @@ from pydofus2.com.ankamagames.dofus.logic.game.roleplay.actions.DeleteObjectActi
 class InventoryAPI:
     @classmethod
     def getWeightPercent(cls):
-        pourcentt = round((PlayedCharacterManager().inventoryWeight / PlayedCharacterManager().inventoryWeightMax) * 100, 2)
+        pourcentt = round(
+            (PlayedCharacterManager().inventoryWeight / PlayedCharacterManager().inventoryWeightMax) * 100,
+            2,
+        )
         return pourcentt
 
     @classmethod

@@ -3,12 +3,18 @@ from threading import Timer
 from time import perf_counter, sleep
 from typing import TYPE_CHECKING
 from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import InteractiveElementData
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import (
+    PlayedCharacterManager,
+)
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
+    InteractiveElementData,
+)
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import Edge
 
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import Transition
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import TransitionTypeEnum
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import (
+    TransitionTypeEnum,
+)
 
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import (
     WorldPathFinder,
@@ -18,7 +24,9 @@ if TYPE_CHECKING:
     from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
         RoleplayInteractivesFrame,
     )
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import RoleplayMovementFrame
+    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import (
+        RoleplayMovementFrame,
+    )
 
 from pydofus2.com.ankamagames.atouin.messages.AdjacentMapClickMessage import (
     AdjacentMapClickMessage,
@@ -127,10 +135,14 @@ class MoveAPI:
         if not tr.isValid:
             raise Exception("[RolePlayMovement] Trying to follow a NON valid transition")
         if tr.transitionMapId == PlayedCharacterManager().currentMap.mapId:
-            logger.warning(f"[RolePlayMovement] transition is heading to my current map '{tr.transitionMapId}', nothing to do.")
+            logger.warning(
+                f"[RolePlayMovement] transition is heading to my current map '{tr.transitionMapId}', nothing to do."
+            )
             return True
         if TransitionTypeEnum(tr.type) == TransitionTypeEnum.INTERACTIVE:
-            logger.debug(f"[RolePlayMovement] Wants to activate skillId '{tr.skillId}' to change map to '{tr.transitionMapId}'")
+            logger.debug(
+                f"[RolePlayMovement] Wants to activate skillId '{tr.skillId}' to change map to '{tr.transitionMapId}'"
+            )
             ie = cls.getTransitionIe(tr)
             if ie is not None:
                 logger.debug(f"[RolePlayMovement] InteractiveElement found: '{ie.element.elementId}'")

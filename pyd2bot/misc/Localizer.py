@@ -2,13 +2,24 @@ import json
 import os
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import (
+    PlayedCharacterManager,
+)
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import AStar
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import WorldPathFinder
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import (
+    WorldPathFinder,
+)
 
 
 class BankInfos:
-    def __init__(self, npcActionId: int, npcId: float, npcMapId: float, openBankReplyId: int, name: str = "undefined"):
+    def __init__(
+        self,
+        npcActionId: int,
+        npcId: float,
+        npcMapId: float,
+        openBankReplyId: int,
+        name: str = "undefined",
+    ):
         self.name = name
         self.npcActionId = npcActionId
         self.npcId = npcId
@@ -20,7 +31,7 @@ class BankInfos:
             "npcActionId": self.npcActionId,
             "npcId": self.npcId,
             "npcMapId": self.npcMapId,
-            "openBankReplyId": self.openBankReplyId
+            "openBankReplyId": self.openBankReplyId,
         }
 
 
