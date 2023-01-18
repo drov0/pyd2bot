@@ -38,9 +38,10 @@ class Pyd2botServer:
     def fetchUsedServers(self, token: str) -> list[dict]:
         DofusClient().login(token)
         servers = KernelEventsManager().wait(KernelEvts.SERVERS_LIST)
-        if DofusClient().exitError: raise DofusError(DofusClient().exitError())
+        if DofusClient().exitError: raise Exception(DofusClient().exitError.message)
+        self.logger.debug(DofusClient().exitError.reason)
         if servers is None:
-            raise DofusError(code=0, message="Unable to fetch servers list.")
+            raise Exception("Unable to fetch servers list.")
         DofusClient().shutdown()
         return json.dumps([server.to_json() for server in servers["used"]])
 

@@ -34,11 +34,11 @@ class PyD2Bot(metaclass=Singleton):
         self.handler = Pyd2botServer(self.id)       
         self.processor = Pyd2botService.Processor(self.handler)
     
-    def runServer(self):
-        server = THttpServer.THttpServer(self.processor, (self.host, self.port), TJSONProtocolFactory())
-        server.httpd.RequestHandlerClass = getReqHandler(server)
+    def runHttpServer(self):
+        self.serverTransport = THttpServer.THttpServer(self.processor, (self.host, self.port), TJSONProtocolFactory())
+        self.serverTransport.httpd.RequestHandlerClass = getReqHandler(self.serverTransport)
         self.logger.info(f"[Server - {self.id}] Started serving on {self.host}:{self.port}")
-        server.serve()
+        self.serverTransport.serve()
         
     def runSocketServer(self):
         self._stop.clear()
