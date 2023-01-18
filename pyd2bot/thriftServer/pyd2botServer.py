@@ -1,7 +1,6 @@
 import json
 import threading
 from pyd2bot.apis.PlayerAPI import PlayerAPI
-
 from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import BotCharacterUpdatesFrame
 from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
 from pyd2bot.logic.managers.SessionManager import SessionManager, InactivityMonitor
@@ -28,7 +27,6 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFin
 )
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
-
 lock = threading.Lock()
 
 
@@ -40,16 +38,16 @@ class Pyd2botServer:
     def fetchUsedServers(self, token: str) -> list[dict]:
         DofusClient().login(token)
         servers = KernelEventsManager().wait(KernelEvts.SERVERS_LIST)
+        if DofusClient().exitError: raise DofusError(DofusClient().exitError())
         if servers is None:
             raise DofusError(code=0, message="Unable to fetch servers list.")
-        result = [server.to_json() for server in servers["used"]]
         DofusClient().shutdown()
-        return result
+        return json.dumps([server.to_json() for server in servers["used"]])
 
     def fetchCharacters(self, token: str, serverId: int) -> list[Character]:
         result = list()
         DofusClient().login(token, serverId)
-        charactersList = KernelEventsManager().wait(KernelEvts.CHARACTERS_LIST, 30)
+        charactersList = KernelEventsManager().wait(KernelEvts.CHARACTERS_LIST, 60)
         if charactersList is None:
             raise DofusError(code=0, message="Unable to fetch characters list.")
         for character in charactersList:
@@ -66,8 +64,8 @@ class Pyd2botServer:
         DofusClient().shutdown()
         return result
 
-    def runSession(self, login: str, password: str, certId: str, certHash: str, apiKey: str, sessionJson: str) -> None:
-        self.logger.debug(f"runSession called with login {login}")
+    def runSession(self, token: str, sessionJson: str) -> None:
+        self.logger.debug(f"runSession called with token {token}")
         self.logger.debug("session: " + sessionJson)
         SessionManager().load(sessionJson)
         self.logger.debug("Session loaded")
@@ -78,14 +76,14 @@ class Pyd2botServer:
         elif SessionManager().type == "selling":
             pass
         else:
-            raise Exception("Unsupported session type: %s" % SessionManager().type)
+            raise DofusError("Unsupported session type: %s" % SessionManager().type)
         self.logger.debug("Frames registered")
-        Haapi().APIKEY = apiKey
-        loginToken = Haapi().getLoginToken(login, password, certId, certHash)
-        if loginToken is None:
-            raise Exception("Unable to generate login token.")
-        self.logger.debug(f"Generated LoginToken : {loginToken}")
-        dofus2.login(loginToken, SessionManager().character["serverId"], SessionManager().character["id"])
+        if token is None:
+            raise DofusError("Unable to generate login token.")
+        self.logger.debug(f"Generated LoginToken : {token}")
+        serverId = SessionManager().character["serverId"]
+        characId = SessionManager().character["id"]
+        dofus2.login(token, serverId, characId)
         iam = InactivityMonitor()
         iam.start()
 
@@ -118,10 +116,6 @@ class Pyd2botServer:
                 if gr not in res[skill.parentJobId]["gatheredRessources"]:
                     res[skill.parentJobId]["gatheredRessources"].append(gr)
         return json.dumps(res)
-
-    def getApiKey(self, login: str, password: str, certId: str, certHash: str) -> str:
-        response = Haapi().createAPIKEY(login, password, certId, certHash, game_id=102)
-        return json.dumps(response)
 
     def moveToVertex(self, vertex: str):
         v = Vertex(**json.loads(vertex))

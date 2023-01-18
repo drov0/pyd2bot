@@ -10,7 +10,50 @@ from thrift.transport import TTransport
 from thrift.transport.TSocket import TSocket, TServerSocket
 from thrift.protocol import TBinaryProtocol
 from thrift.server import THttpServer
+from six.moves import BaseHTTPServer
+from thrift.Thrift import TMessageType
  
+def getReqHandler(thttpserver: THttpServer.THttpServer):
+    class RequestHander(BaseHTTPServer.BaseHTTPRequestHandler):
+        def do_POST(self):
+            # Don't care about the request path.
+            thttpserver._replied = False
+            iftrans = TTransport.TFileObjectTransport(self.rfile)
+            itrans = TTransport.TBufferedTransport(
+                iftrans, int(self.headers['Content-Length']))
+            otrans = TTransport.TMemoryBuffer()
+            iprot = thttpserver.inputProtocolFactory.getProtocol(itrans)
+            oprot = thttpserver.outputProtocolFactory.getProtocol(otrans)
+            try:
+                thttpserver.processor.on_message_begin(self.on_begin)
+                thttpserver.processor.process(iprot, oprot)
+            except THttpServer.ResponseException as exn:
+                exn.handler(self)
+            else:
+                if not thttpserver._replied:
+                    # If the request was ONEWAY we would have replied already
+                    data = otrans.getvalue()
+                    self.send_response(200)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Content-Length", len(data))
+                    self.send_header("Content-Type", "application/x-thrift")
+                    self.end_headers()
+                    self.wfile.write(data)
+
+        def on_begin(self, name, type, seqid):
+            """
+            Inspect the message header.
+
+            This allows us to post an immediate transport response
+            if the request is a ONEWAY message type.
+            """
+            if type == TMessageType.ONEWAY:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/x-thrift")
+                self.end_headers()
+                thttpserver._replied = True
+    return RequestHander
+
 class PyD2Bot(metaclass=Singleton):
     _stop = threading.Event()
     id: str
@@ -31,11 +74,10 @@ class PyD2Bot(metaclass=Singleton):
         self.logger = Logger()
         self.handler = Pyd2botServer(self.id)       
         self.processor = Pyd2botService.Processor(self.handler)
-        self.inputTransportFactory = self.outputTransportFactory = TTransport.TBufferedTransportFactory()
-        self.inputProtocolFactory = self.outputProtocolFactory = TBinaryProtocol.TBinaryProtocolFactory()
     
     def runServer(self):
         server = THttpServer.THttpServer(self.processor, (self.host, self.port), TJSONProtocolFactory())
+        server.httpd.RequestHandlerClass = getReqHandler(server)
         self.logger.info(f"[Server - {self.id}] Started serving on {self.host}:{self.port}")
         server.serve()
         
