@@ -102,7 +102,7 @@ class BotUnloadInSellerFrame(Frame):
                     Kernel().getWorker().addFrame(BotAutoTripFrame(self.bankInfos.npcMapId))
                     self.state = UnloadInSellerStatesEnum.WALKING_TO_BANK
                 else:
-                    threading.Thread(target=self.waitForSellerToComme).start()
+                    threading.Thread(target=self.waitForSellerToComme, name=threading.current_thread().name).start()
                     self.state = UnloadInSellerStatesEnum.WAITING_FOR_SELLER
                 return True
             sleep(2)
@@ -113,7 +113,7 @@ class BotUnloadInSellerFrame(Frame):
         currentMapId = PlayedCharacterManager().currentMap.mapId
         self._startMapId = currentMapId
         self._startRpZone = PlayedCharacterManager().currentZoneRp
-        threading.Thread(target=self.waitForSellerIdleStatus).start()
+        threading.Thread(target=self.waitForSellerIdleStatus, name=threading.current_thread().name).start()
 
     def process(self, msg: Message) -> bool:
 
@@ -123,7 +123,7 @@ class BotUnloadInSellerFrame(Frame):
                 Kernel().getWorker().removeFrame(self)
                 Kernel().getWorker().processImmediately(SellerCollectedGuestItemsMessage())
             elif self.state == UnloadInSellerStatesEnum.WALKING_TO_BANK:
-                threading.Thread(target=self.waitForSellerToComme).start()
+                threading.Thread(target=self.waitForSellerToComme, name=threading.current_thread().name).start()
                 self.state = UnloadInSellerStatesEnum.WAITING_FOR_SELLER
             return True
 

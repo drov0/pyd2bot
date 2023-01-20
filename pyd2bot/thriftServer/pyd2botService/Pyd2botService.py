@@ -515,10 +515,10 @@ class Processor(Iface, TProcessor):
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
             result = ex
-        except Exception:
+        except Exception as e:
             logging.exception('Unexpected exception in handler')
             msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, str(e))
         oprot.writeMessageBegin("fetchUsedServers", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
@@ -616,10 +616,10 @@ class Processor(Iface, TProcessor):
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
             result = ex
-        except Exception:
+        except Exception as e:
             logging.exception('Unexpected exception in handler')
             msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, str(e))
         oprot.writeMessageBegin("moveToVertex", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()

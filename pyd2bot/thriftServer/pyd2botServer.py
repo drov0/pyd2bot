@@ -27,6 +27,7 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFin
 )
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
+
 lock = threading.Lock()
 
 
@@ -36,14 +37,22 @@ class Pyd2botServer:
         self.logger = Logger()
 
     def fetchUsedServers(self, token: str) -> list[dict]:
-        DofusClient().login(token)
-        servers = KernelEventsManager().wait(KernelEvts.SERVERS_LIST)
-        if DofusClient().exitError: raise Exception(DofusClient().exitError.message)
-        self.logger.debug(DofusClient().exitError.reason)
-        if servers is None:
-            raise Exception("Unable to fetch servers list.")
-        DofusClient().shutdown()
-        return json.dumps([server.to_json() for server in servers["used"]])
+        try:
+            DofusClient().login(token)
+            servers = KernelEventsManager().wait(KernelEvts.SERVERS_LIST)
+            if servers is None:
+                raise DofusError(0, "Unable to fetch servers list.")
+            DofusClient().shutdown()
+            return json.dumps([server.to_json() for server in servers["used"]])
+        except Exception as e:
+            self.logger.error(f"[{self._id}] Error while reading socket. \n", exc_info=True)
+            import sys
+            import traceback
+
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback_in_var = traceback.format_tb(exc_traceback)
+            error_trace = "\n".join([str(e), str(exc_type), str(exc_value), "\n".join(traceback_in_var)])
+            raise DofusError(0, error_trace)
 
     def fetchCharacters(self, token: str, serverId: int) -> list[Character]:
         result = list()

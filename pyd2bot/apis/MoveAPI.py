@@ -1,5 +1,5 @@
 import random
-from threading import Timer
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from time import perf_counter, sleep
 from typing import TYPE_CHECKING
 from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
@@ -125,7 +125,7 @@ class MoveAPI:
     def getTransitionIe(cls, transition: Transition) -> "InteractiveElementData":
         rpframe: "RoleplayInteractivesFrame" = Kernel().getWorker().getFrame("RoleplayInteractivesFrame")
         if not rpframe:
-            Timer(1, cls.getTransitionIe, [transition]).start()
+            BenchmarkTimer(1, cls.getTransitionIe, [transition]).start()
             return
         ie = rpframe.getInteractiveElement(transition.id, transition.skillId)
         return ie
@@ -178,7 +178,7 @@ class MoveAPI:
     def neighborMapIdFromcoords(cls, x: int, y: int) -> int:
         v = WorldPathFinder().currPlayerVertex
         if not v:
-            Timer(1, cls.neighborMapIdFromcoords, [x, y]).start()
+            BenchmarkTimer(1, cls.neighborMapIdFromcoords, [x, y]).start()
             return
         outgoingEdges = WorldPathFinder().worldGraph.getOutgoingEdgesFromVertex(v)
         for edge in outgoingEdges:
@@ -192,7 +192,7 @@ class MoveAPI:
     def changeMapToDstCoords(cls, x: int, y: int) -> None:
         v = WorldPathFinder().currPlayerVertex
         if not v:
-            Timer(1, cls.changeMapToDstCoords, [x, y]).start()
+            BenchmarkTimer(1, cls.changeMapToDstCoords, [x, y]).start()
             return
         outgoingEdges = WorldPathFinder().worldGraph.getOutgoingEdgesFromVertex(v)
         for edge in outgoingEdges:

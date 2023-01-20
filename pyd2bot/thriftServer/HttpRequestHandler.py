@@ -10,8 +10,7 @@ def getReqHandler(thttpserver: THttpServer.THttpServer):
             # Don't care about the request path.
             thttpserver._replied = False
             iftrans = TTransport.TFileObjectTransport(self.rfile)
-            itrans = TTransport.TBufferedTransport(
-                iftrans, int(self.headers['Content-Length']))
+            itrans = TTransport.TBufferedTransport(iftrans, int(self.headers["Content-Length"]))
             otrans = TTransport.TMemoryBuffer()
             iprot = thttpserver.inputProtocolFactory.getProtocol(itrans)
             oprot = thttpserver.outputProtocolFactory.getProtocol(otrans)
@@ -44,4 +43,5 @@ def getReqHandler(thttpserver: THttpServer.THttpServer):
                 self.send_header("Content-Type", "application/x-thrift")
                 self.end_headers()
                 thttpserver._replied = True
+
     return RequestHander

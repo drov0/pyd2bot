@@ -1,9 +1,8 @@
 import json
 import threading
-from threading import Timer
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from time import sleep
 from typing import TYPE_CHECKING, Tuple
-from pyd2bot.apis.PlayerAPI import PlayerAPI
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import Transition
 from pyd2bot.logic.roleplay.messages.LeaderPosMessage import LeaderPosMessage
 from pyd2bot.logic.roleplay.messages.LeaderTransitionMessage import LeaderTransitionMessage
@@ -96,46 +95,35 @@ class MembersMonitor(threading.Thread):
         self.bpframe = bpframe
         self.stopSig = threading.Event()
         self._runningMonitors.append(self)
-    
+        self.parent = threading.current_thread()
+        self.name = self.parent.name
+            
     def run(self) -> None:
         logger.debug("[MembersMonitor] started")
         while not self.stopSig.is_set():
             try:
-                if PlayedCharacterManager().isInFight:
-                    pass
-                
-                elif PlayerAPI.status() != "idle":
-                    pass
-                
-                else:                
-                    if not self.bpframe:
-                        pass
-                            
-                    elif not self.bpframe.farmFrame:
-                        pass
-                    
-                    elif self.bpframe.allMembersIdle:
-                        if self.bpframe.allMembersOnSameMap:
-                            BotEventsManager().dispatch(BotEventsManager.MEMBERS_READY)
-                        elif self.bpframe.farmFrame and self.bpframe.farmFrame.isInsideFarmPath:
-                            self.bpframe.notifyFollowesrWithPos()
+                if self.bpframe.allMembersIdle:
+                    if self.bpframe.allMembersOnSameMap:
+                        BotEventsManager().dispatch(BotEventsManager.MEMBERS_READY)
+                    elif self.bpframe.farmFrame and self.bpframe.farmFrame.isInsideFarmPath:
+                        self.bpframe.notifyFollowesrWithPos()
             except Exception as e:
                 logger.error(e)
             sleep(3)
+        if self in MembersMonitor._runningMonitors:
+            MembersMonitor._runningMonitors.remove(self)
         logger.debug("[MembersMonitor] died")
-        if self in self._runningMonitors:
-            self._runningMonitors.remove(self)
 
 class BotPartyFrame(Frame):
     ASK_INVITE_TIMOUT = 10
     CONFIRME_JOIN_TIMEOUT = 5
-    name: str = None
-    changingMap: bool = False
-    followingLeaderTransition = None
-    wantsTransition = None
-    followersClients : dict[int, Tuple['TBufferedTransport', 'Pyd2botServiceClient']] = {}
     
     def __init__(self) -> None:
+        self.name: str = None
+        self.changingMap: bool = False
+        self.followingLeaderTransition = None
+        self.wantsTransition = None
+        self.followersClients : dict[int, Tuple['TBufferedTransport', 'Pyd2botServiceClient']] = {}
         super().__init__()
 
     @property
@@ -206,7 +194,7 @@ class BotPartyFrame(Frame):
         return True
 
     def pushed(self):
-        self.partyInviteTimers = dict[str, Timer]()
+        self.partyInviteTimers = dict[str, BenchmarkTimer]()
         self.currentPartyId = None
         self.partyMembers = dict[int, PartyMemberInformations]()
         self.joiningLeaderVertex : Vertex = None
@@ -219,9 +207,9 @@ class BotPartyFrame(Frame):
     def init(self):
         if WorldPathFinder().currPlayerVertex is None:
             logger.debug("[BotPartyFrame] Cant invite members before am in game")
-            Timer(5, self.init).start()
+            BenchmarkTimer(5, self.init).start()
             return
-        self.canFarmMonitor = MembersMonitor(self)
+        self.canFarmMonitor = MembersMonitor(self, group=threading.current_thread().group)
         self.canFarmMonitor.start()
         logger.debug(f"[BotPartyFrame] Send party invite to all followers.")
         for follower in self.followers:
@@ -247,14 +235,14 @@ class BotPartyFrame(Frame):
         pi = PlayerSearchCharacterNameInformation()
         pi.init(playerName)
         ccmsg.init(pi, message)
-        ConnectionsHandler.getConnection().send(ccmsg)
+        ConnectionsHandler().getConnection().send(ccmsg)
 
     def cancelPartyInvite(self, playerName):
         follower = self.getFollowerByName(playerName)
         if follower and self.currentPartyId is not None:
             cpimsg = PartyCancelInvitationMessage()
             cpimsg.init(follower["id"], self.currentPartyId)
-            ConnectionsHandler.getConnection().send(cpimsg)
+            ConnectionsHandler().getConnection().send(cpimsg)
             return True
         return False
 
@@ -268,15 +256,15 @@ class BotPartyFrame(Frame):
             pscni = PlayerSearchCharacterNameInformation()
             pscni.init(playerName)
             pimsg.init(pscni)
-            ConnectionsHandler.getConnection().send(pimsg)
-            self.partyInviteTimers[playerName] = Timer(self.CONFIRME_JOIN_TIMEOUT, self.sendPartyInvite, [playerName])
+            ConnectionsHandler().getConnection().send(pimsg)
+            self.partyInviteTimers[playerName] = BenchmarkTimer(self.CONFIRME_JOIN_TIMEOUT, self.sendPartyInvite, [playerName])
             self.partyInviteTimers[playerName].start()
             logger.debug(f"[BotPartyFrame] Join party invitation sent to {playerName}")
 
     def sendFollowMember(self, memberId):
         pfmrm = PartyFollowMemberRequestMessage()
         pfmrm.init(memberId, self.currentPartyId)
-        ConnectionsHandler.getConnection().send(pfmrm)
+        ConnectionsHandler().getConnection().send(pfmrm)
 
     def joinFight(self, fightId: int):
         if self.movementFrame._isMoving:
@@ -303,7 +291,7 @@ class BotPartyFrame(Frame):
             return
         plmsg = PartyLeaveRequestMessage()
         plmsg.init(self.currentPartyId)
-        ConnectionsHandler.getConnection().send(plmsg)
+        ConnectionsHandler().getConnection().send(plmsg)
         self.currentPartyId = None
 
     def process(self, msg: Message):
@@ -313,10 +301,6 @@ class BotPartyFrame(Frame):
 
         elif isinstance(msg, MapChangeFailedMessage):
             logger.error(f"[BotPartyFrame] received map change failed for reason: {msg.reason}")
-            # if self.isLeader:
-            #     return False
-            # self.requestMapData()
-            # return True
 
         elif isinstance(msg, PartyMemberRemoveMessage):
             logger.debug(f"[BotPartyFrame] {msg.leavingPlayerId} left the party")
@@ -341,12 +325,12 @@ class BotPartyFrame(Frame):
             if not self.isLeader and int(msg.fromId) == int(self.leader["id"]):
                 paimsg = PartyAcceptInvitationMessage()
                 paimsg.init(msg.partyId)
-                ConnectionsHandler.getConnection().send(paimsg)
+                ConnectionsHandler().getConnection().send(paimsg)
                 logger.debug(f"[BotPartyFrame] Accepted party invite from {msg.fromName}.")
             else:
                 pirmsg = PartyRefuseInvitationMessage()
                 pirmsg.init(msg.partyId)
-                ConnectionsHandler.getConnection().send(pirmsg)
+                ConnectionsHandler().getConnection().send(pirmsg)
             return True
 
         elif isinstance(msg, PartyNewMemberMessage):
@@ -453,14 +437,14 @@ class BotPartyFrame(Frame):
     def setFollowLeader(self):
         if not self.isLeader:
             if not self.movementFrame:
-                Timer(1, self.setFollowLeader).start()
+                BenchmarkTimer(1, self.setFollowLeader).start()
                 return
             self.movementFrame.setFollowingActor(self.leader['id'])
     
     def notifyFollowerWithPos(self, follower):
         cv = WorldPathFinder().currPlayerVertex
         if cv is None:
-            Timer(1, self.notifyFollowerWithPos, [follower]).start()
+            BenchmarkTimer(1, self.notifyFollowerWithPos, [follower]).start()
             return
         
         transport, client = self.getFollowerClient(follower)
@@ -517,7 +501,7 @@ class BotPartyFrame(Frame):
     def requestMapData(self):
         mirmsg = MapInformationsRequestMessage()
         mirmsg.init(mapId_=MapDisplayManager().currentMapPoint.mapId)
-        ConnectionsHandler.getConnection().send(mirmsg)
+        ConnectionsHandler().getConnection().send(mirmsg)
 
     def moveToVertex(self, vertex: Vertex):
         logger.debug(f"[BotPartyFrame] Moving to vertex {vertex}")

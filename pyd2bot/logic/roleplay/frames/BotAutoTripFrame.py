@@ -1,12 +1,6 @@
-from threading import Timer
-from pydofus2.com.DofusClient import DofusClient
-from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import Edge
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.MapInformationsRequestMessage import (
-    MapInformationsRequestMessage,
-)
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pyd2bot.apis.MoveAPI import MoveAPI
@@ -60,7 +54,7 @@ class BotAutoTripFrame(Frame):
         self._computed = False
         self.changeMapFails.clear()
         self.path = None
-        Timer(0.2, self.walkToNextStep).start()
+        BenchmarkTimer(0.2, self.walkToNextStep).start()
         return True
 
     def pulled(self) -> bool:
@@ -78,17 +72,6 @@ class BotAutoTripFrame(Frame):
         if isinstance(msg, MapChangeFailedMessage):
             logger.debug(f"Autotrip received map change failed for reason: {msg.reason}")
             raise Exception(f"Autotrip received map change failed for reason: {msg.reason}")
-            v = WorldPathFinder().currPlayerVertex
-            if self.changeMapFails.get(v.UID, 0) > 3:
-                DofusClient().restart()
-                return True
-            if v.UID not in self.changeMapFails:
-                self.changeMapFails[v.UID] = 0
-            self.changeMapFails[v.UID] += 1
-            mirmsg = MapInformationsRequestMessage()
-            mirmsg.init(mapId_=MapDisplayManager().currentMapPoint.mapId)
-            ConnectionsHandler.getConnection().send(mirmsg)
-            return True
 
     @property
     def currentEdgeIndex(self):
@@ -102,7 +85,7 @@ class BotAutoTripFrame(Frame):
 
     def walkToNextStep(self):
         if not PlayedCharacterManager().currentMap:
-            Timer(0.5, self.walkToNextStep).start()
+            BenchmarkTimer(0.5, self.walkToNextStep).start()
             return
         elif self._computed:
             currMapId = WorldPathFinder().currPlayerVertex.mapId

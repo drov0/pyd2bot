@@ -1,4 +1,4 @@
-from threading import Timer
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from typing import TYPE_CHECKING
 from pyd2bot.apis.PlayerAPI import PlayerAPI
 from pydofus2.com.DofusClient import DofusClient
@@ -107,7 +107,7 @@ class BotFarmPathFrame(Frame):
         logger.info("BotFarmPathFrame pushed")
         self._followinMonsterGroup = None
         if self._autoStart:
-            Timer(5, self.doFarm).start()
+            BenchmarkTimer(5, self.doFarm).start()
         return True
 
     def pulled(self) -> bool:
@@ -309,7 +309,7 @@ class BotFarmPathFrame(Frame):
     def requestMapData(self):
         mirmsg = MapInformationsRequestMessage()
         mirmsg.init(mapId_=MapDisplayManager().currentMapPoint.mapId)
-        ConnectionsHandler.getConnection().send(mirmsg)
+        ConnectionsHandler().getConnection().send(mirmsg)
 
     def collectResource(self) -> None:
         target = None

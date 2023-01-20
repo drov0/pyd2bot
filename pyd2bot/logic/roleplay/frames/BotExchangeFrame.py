@@ -1,4 +1,3 @@
-from threading import Timer
 from pyd2bot.logic.roleplay.messages.ExchangeConcludedMessage import ExchangeConcludedMessage
 from pydofus2.com.ankamagames.dofus.datacenter.communication.InfoMessage import InfoMessage
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
@@ -39,6 +38,7 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.Ex
     ExchangeStartedWithPodsMessage,
 )
 from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.items.ExchangeKamaModifiedMessage import ExchangeKamaModifiedMessage
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -78,8 +78,8 @@ class BotExchangeFrame(Frame):
             self.giveAll = False
             self.step = len(items)
         self.wantsToMoveItemToExchange = set()
-        self.acceptExchangeTimer : Timer = None
-        self.openExchangeTimer : Timer = None
+        self.acceptExchangeTimer :  BenchmarkTimer = None
+        self.openExchangeTimer :  BenchmarkTimer = None
         super().__init__()
 
     def pushed(self) -> bool:
@@ -107,7 +107,7 @@ class BotExchangeFrame(Frame):
             logger.debug(f"Exchange request received from {msg.source} to {msg.target}")
             if msg.source == self.target["id"]:
                 self.state = ExchangeStateEnum.EXCHANGE_REQUEST_RECEIVED
-                ConnectionsHandler.getConnection().send(ExchangeAcceptMessage())
+                ConnectionsHandler().getConnection().send(ExchangeAcceptMessage())
                 self.state = ExchangeStateEnum.EXCHANGE_REQUEST_ACCEPTED
             elif int(msg.source) == int(PlayedCharacterManager().id):
                 if self.openExchangeTimer:
@@ -131,12 +131,12 @@ class BotExchangeFrame(Frame):
             self.state = ExchangeStateEnum.EXCHANGE_OPEN
             if self.direction == ExchangeDirectionEnum.GIVE:
                 if self.giveAll:
-                    ConnectionsHandler.getConnection().send(ExchangeObjectTransfertAllFromInvMessage())
+                    ConnectionsHandler().getConnection().send(ExchangeObjectTransfertAllFromInvMessage())
                 else:
                     for elem in self.items:
                         rmsg = ExchangeObjectMoveMessage()
                         rmsg.init(objectUID_=elem["uid"], quantity_=elem["quantity"])
-                        ConnectionsHandler.getConnection().send(rmsg)
+                        ConnectionsHandler().getConnection().send(rmsg)
                         self.wantsToMoveItemToExchange.add(elem["uid"])
                 logger.debug("Moved items to exchange.")
             return True
@@ -146,9 +146,9 @@ class BotExchangeFrame(Frame):
             self.state = ExchangeStateEnum.EXCHANGE_OBJECTS_ADDED
             if self.direction == ExchangeDirectionEnum.GIVE:
                 if self.giveAll:
-                    Timer(3, self.sendAllKamas).start()
+                    BenchmarkTimer(3, self.sendAllKamas).start()
                 else:
-                    Timer(3, self.sendExchangeReady).start()
+                    BenchmarkTimer(3, self.sendExchangeReady).start()
             return True
         
         elif isinstance(msg, ExchangeKamaModifiedMessage):
@@ -156,7 +156,7 @@ class BotExchangeFrame(Frame):
             self.state = ExchangeStateEnum.EXCHANGE_KAMAS_ADDED
             self.step += 1
             if self.direction == ExchangeDirectionEnum.GIVE:
-                Timer(3, self.sendExchangeReady).start()
+                BenchmarkTimer(3, self.sendExchangeReady).start()
             return True
                 
         elif isinstance(msg, ExchangeObjectAddedMessage):
@@ -166,14 +166,14 @@ class BotExchangeFrame(Frame):
                 if len(self.wantsToMoveItemToExchange) == 0:
                     logger.debug("All items moved to exchange.")
                     self.state = ExchangeStateEnum.EXCHANGE_OBJECTS_ADDED
-                    Timer(3, self.sendExchangeReady).start()
+                    BenchmarkTimer(3, self.sendExchangeReady).start()
                     
         elif isinstance(msg, ExchangeIsReadyMessage):
             logger.debug(f"Exchange is ready received from target {int(msg.id)}")
             if self.acceptExchangeTimer is not None:
                 self.acceptExchangeTimer.cancel()
             if self.direction == ExchangeDirectionEnum.RECEIVE and int(msg.id) == int(self.target["id"]) and msg.ready:
-                Timer(3, self.sendExchangeReady).start()
+                BenchmarkTimer(3, self.sendExchangeReady).start()
                 return True
 
         elif isinstance(msg, ExchangeLeaveMessage):
@@ -189,8 +189,8 @@ class BotExchangeFrame(Frame):
     def sendExchangeRequest(self):
         msg = ExchangePlayerRequestMessage()
         msg.init(exchangeType_=1, target_=self.target["id"])
-        ConnectionsHandler.getConnection().send(msg)
-        self.openExchangeTimer = Timer(3, self.sendExchangeRequest)
+        ConnectionsHandler().getConnection().send(msg)
+        self.openExchangeTimer = BenchmarkTimer(3, self.sendExchangeRequest)
         self.openExchangeTimer.start()
         logger.debug("Exchange open request sent")
 
@@ -199,8 +199,8 @@ class BotExchangeFrame(Frame):
             return
         readymsg = ExchangeReadyMessage()
         readymsg.init(ready_=True, step_=self.step)
-        ConnectionsHandler.getConnection().send(readymsg)
-        self.acceptExchangeTimer = Timer(5, self.sendExchangeReady)
+        ConnectionsHandler().getConnection().send(readymsg)
+        self.acceptExchangeTimer = BenchmarkTimer(5, self.sendExchangeReady)
         self.acceptExchangeTimer.start()
         logger.debug("Exchange is ready sent.")
     
@@ -209,4 +209,4 @@ class BotExchangeFrame(Frame):
         kamas_quantity = InventoryManager().inventory.kamas
         logger.debug(f"There is {kamas_quantity} in bots inventory.") 
         eomkm.init(kamas_quantity)
-        ConnectionsHandler.getConnection().send(eomkm)
+        ConnectionsHandler().getConnection().send(eomkm)

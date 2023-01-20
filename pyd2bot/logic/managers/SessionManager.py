@@ -3,6 +3,7 @@ import threading
 from time import perf_counter, sleep
 from pyd2bot.apis.PlayerAPI import PlayerAPI
 from pydofus2.com.DofusClient import DofusClient
+from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import DisconnectionReasonEnum
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 from pyd2bot.logic.managers.PathManager import PathManager
@@ -15,12 +16,13 @@ class SessionTypeEnum:
     SELL = "selling"
 class InactivityMonitor(threading.Thread):
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, name="InactivityMonitor", group=None):
+        super().__init__(name=name)
         self.lastActivity = perf_counter()
-        self.maxInactivityInterval = 60 * 60 * 2 if SessionManager().type == "selling" else 60 * 15
+        self.maxInactivityInterval = 60 * 60 * 2 if SessionManager().type == SessionTypeEnum.SELL else 60 * 15
         self.lastStatus = "disconnected"
         self.stop = threading.Event()
+        self.group = group
     
     def run(self):
         while not self.stop.is_set():
@@ -28,25 +30,29 @@ class InactivityMonitor(threading.Thread):
             if status != self.lastStatus:
                 self.lastActivity = perf_counter()
             elif perf_counter() - self.lastActivity > self.maxInactivityInterval:
-                logger.info("Inactivity detected, disconnecting ...")
-                DofusClient().restart()
-                self.lastActivity = perf_counter()
+                DofusClient().shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, "Fatal Error bot stayed inactive for too long")
+                self.stop.set()
+                return 1
             self.lastStatus = status
             sleep(1)
+        logger.info("Inactivity monitor stopped")
             
 class SessionManager(metaclass=Singleton):
-    character = None
-    path = None
-    isLeader: bool = None
-    leader = None
-    followers: list[str] = None
-    jobIds = None
-    resourceIds = None
-    id = None
 
     def __init__(self) -> None:
-        pass
-    
+        self.character = None
+        self.path = None
+        self.isLeader: bool = None
+        self.leader = None
+        self.followers: list[str] = None
+        self.jobIds = None
+        self.resourceIds = None
+        self.id = None
+        self.type = None
+        self.seller = None
+        self.unloadType = None
+        self.key = None
+        
         
     def load(self, sessionstr: str):
         sessionJson = json.loads(sessionstr)

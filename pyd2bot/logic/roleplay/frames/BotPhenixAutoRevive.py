@@ -81,4 +81,4 @@ class BotPhenixAutoRevive(Frame):
 
     def releaseSoul(self):
         grpfsrmmsg = GameRolePlayFreeSoulRequestMessage()
-        ConnectionsHandler.getConnection().send(grpfsrmmsg)
+        ConnectionsHandler().getConnection().send(grpfsrmmsg)

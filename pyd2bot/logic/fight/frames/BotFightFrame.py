@@ -1,5 +1,5 @@
 import collections
-from threading import Timer
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from time import perf_counter
 from types import FunctionType
 from typing import TYPE_CHECKING, Tuple
@@ -325,7 +325,7 @@ class BotFightFrame(Frame):
         if self.battleFrame._executingSequence:
             if self.VERBOSE:
                 logger.warn(f"[FightBot] Battle is busy processing sequences")
-            Timer(1, self.nextTurnAction).start()
+            BenchmarkTimer(1, self.nextTurnAction).start()
             return
         else:
             if self.VERBOSE:
@@ -360,10 +360,10 @@ class BotFightFrame(Frame):
             if SessionManager().isLeader and not self._fightOptionsSent:
                 gfotmsg = GameFightOptionToggleMessage()
                 gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_SECRET)
-                ConnectionsHandler.getConnection().send(gfotmsg)
+                ConnectionsHandler().getConnection().send(gfotmsg)
                 gfotmsg = GameFightOptionToggleMessage()
                 gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_TO_PARTY_ONLY)
-                ConnectionsHandler.getConnection().send(gfotmsg)
+                ConnectionsHandler().getConnection().send(gfotmsg)
                 self._fightOptionsSent = True
             return False
 
@@ -402,7 +402,7 @@ class BotFightFrame(Frame):
                         return True
             startFightMsg = GameFightReadyMessage()
             startFightMsg.init(True)
-            ConnectionsHandler.getConnection().send(startFightMsg)
+            ConnectionsHandler().getConnection().send(startFightMsg)
             return True
 
         elif isinstance(msg, SequenceEndMessage):
@@ -492,7 +492,7 @@ class BotFightFrame(Frame):
             logger.debug(f"[FightBot] Casting spell {spellId} on cell {cellId}.")
         gafcrmsg: GameActionFightCastRequestMessage = GameActionFightCastRequestMessage()
         gafcrmsg.init(spellId, cellId)
-        ConnectionsHandler.getConnection().send(gafcrmsg)
+        ConnectionsHandler().getConnection().send(gafcrmsg)
 
     def askMove(self, cells: list[int], cellsTackled: list[int] = []) -> None:
         if self.VERBOSE:

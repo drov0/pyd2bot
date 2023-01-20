@@ -84,7 +84,7 @@ class BotCharacterUpdatesFrame(Frame):
             logger.debug(f"Boosting {statId} by {canUse}")
             sumsg = StatsUpgradeRequestMessage()
             sumsg.init(False, statId, canUse)
-            connh.ConnectionsHandler.getConnection().send(sumsg)
+            connh.ConnectionsHandler().getConnection().send(sumsg)
 
     def process(self, msg: Message) -> bool:
 
@@ -92,7 +92,7 @@ class BotCharacterUpdatesFrame(Frame):
             msg.achievement.id
             arrmsg = AchievementRewardRequestMessage()
             arrmsg.init(msg.achievement.id)
-            connh.ConnectionsHandler.getConnection().send(arrmsg)
+            connh.ConnectionsHandler().getConnection().send(arrmsg)
             return False
 
         elif isinstance(msg, CharacterLevelUpMessage):
