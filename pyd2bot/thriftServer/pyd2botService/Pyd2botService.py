@@ -6,7 +6,8 @@
 #  options string: py
 #
 
-from thrift.Thrift import TApplicationException, TMessageType, TType
+from thrift.Thrift import TType, TMessageType, TFrozenDict, TException, TApplicationException
+from thrift.protocol.TProtocol import TProtocolException
 from thrift.TRecursive import fix_spec
 
 import sys
@@ -25,6 +26,7 @@ class Iface(object):
          - serverId
 
         """
+        pass
 
     def fetchUsedServers(self, token):
         """
@@ -32,6 +34,7 @@ class Iface(object):
          - token
 
         """
+        pass
 
     def runSession(self, token, sessionJson):
         """
@@ -40,6 +43,7 @@ class Iface(object):
          - sessionJson
 
         """
+        pass
 
     def fetchBreedSpells(self, breedId):
         """
@@ -47,39 +51,9 @@ class Iface(object):
          - breedId
 
         """
+        pass
 
     def fetchJobsInfosJson(self):
-        pass
-
-    def moveToVertex(self, vertex):
-        """
-        Parameters:
-         - vertex
-
-        """
-
-    def followTransition(self, transition):
-        """
-        Parameters:
-         - transition
-
-        """
-
-    def getStatus(self):
-        pass
-
-    def comeToBankToCollectResources(self, bankInfos, guestInfos):
-        """
-        Parameters:
-         - bankInfos
-         - guestInfos
-
-        """
-
-    def getCurrentVertex(self):
-        pass
-
-    def getInventoryKamas(self):
         pass
 
 
@@ -256,184 +230,6 @@ class Client(Iface):
             raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchJobsInfosJson failed: unknown result")
 
-    def moveToVertex(self, vertex):
-        """
-        Parameters:
-         - vertex
-
-        """
-        self.send_moveToVertex(vertex)
-        self.recv_moveToVertex()
-
-    def send_moveToVertex(self, vertex):
-        self._oprot.writeMessageBegin('moveToVertex', TMessageType.CALL, self._seqid)
-        args = moveToVertex_args()
-        args.vertex = vertex
-        args.write(self._oprot)
-        self._oprot.writeMessageEnd()
-        self._oprot.trans.flush()
-
-    def recv_moveToVertex(self):
-        iprot = self._iprot
-        (fname, mtype, rseqid) = iprot.readMessageBegin()
-        if mtype == TMessageType.EXCEPTION:
-            x = TApplicationException()
-            x.read(iprot)
-            iprot.readMessageEnd()
-            raise x
-        result = moveToVertex_result()
-        result.read(iprot)
-        iprot.readMessageEnd()
-        return
-
-    def followTransition(self, transition):
-        """
-        Parameters:
-         - transition
-
-        """
-        self.send_followTransition(transition)
-        self.recv_followTransition()
-
-    def send_followTransition(self, transition):
-        self._oprot.writeMessageBegin('followTransition', TMessageType.CALL, self._seqid)
-        args = followTransition_args()
-        args.transition = transition
-        args.write(self._oprot)
-        self._oprot.writeMessageEnd()
-        self._oprot.trans.flush()
-
-    def recv_followTransition(self):
-        iprot = self._iprot
-        (fname, mtype, rseqid) = iprot.readMessageBegin()
-        if mtype == TMessageType.EXCEPTION:
-            x = TApplicationException()
-            x.read(iprot)
-            iprot.readMessageEnd()
-            raise x
-        result = followTransition_result()
-        result.read(iprot)
-        iprot.readMessageEnd()
-        return
-
-    def getStatus(self):
-        self.send_getStatus()
-        return self.recv_getStatus()
-
-    def send_getStatus(self):
-        self._oprot.writeMessageBegin('getStatus', TMessageType.CALL, self._seqid)
-        args = getStatus_args()
-        args.write(self._oprot)
-        self._oprot.writeMessageEnd()
-        self._oprot.trans.flush()
-
-    def recv_getStatus(self):
-        iprot = self._iprot
-        (fname, mtype, rseqid) = iprot.readMessageBegin()
-        if mtype == TMessageType.EXCEPTION:
-            x = TApplicationException()
-            x.read(iprot)
-            iprot.readMessageEnd()
-            raise x
-        result = getStatus_result()
-        result.read(iprot)
-        iprot.readMessageEnd()
-        if result.success is not None:
-            return result.success
-        if result.error is not None:
-            raise result.error
-        raise TApplicationException(TApplicationException.MISSING_RESULT, "getStatus failed: unknown result")
-
-    def comeToBankToCollectResources(self, bankInfos, guestInfos):
-        """
-        Parameters:
-         - bankInfos
-         - guestInfos
-
-        """
-        self.send_comeToBankToCollectResources(bankInfos, guestInfos)
-        self.recv_comeToBankToCollectResources()
-
-    def send_comeToBankToCollectResources(self, bankInfos, guestInfos):
-        self._oprot.writeMessageBegin('comeToBankToCollectResources', TMessageType.CALL, self._seqid)
-        args = comeToBankToCollectResources_args()
-        args.bankInfos = bankInfos
-        args.guestInfos = guestInfos
-        args.write(self._oprot)
-        self._oprot.writeMessageEnd()
-        self._oprot.trans.flush()
-
-    def recv_comeToBankToCollectResources(self):
-        iprot = self._iprot
-        (fname, mtype, rseqid) = iprot.readMessageBegin()
-        if mtype == TMessageType.EXCEPTION:
-            x = TApplicationException()
-            x.read(iprot)
-            iprot.readMessageEnd()
-            raise x
-        result = comeToBankToCollectResources_result()
-        result.read(iprot)
-        iprot.readMessageEnd()
-        if result.error is not None:
-            raise result.error
-        return
-
-    def getCurrentVertex(self):
-        self.send_getCurrentVertex()
-        return self.recv_getCurrentVertex()
-
-    def send_getCurrentVertex(self):
-        self._oprot.writeMessageBegin('getCurrentVertex', TMessageType.CALL, self._seqid)
-        args = getCurrentVertex_args()
-        args.write(self._oprot)
-        self._oprot.writeMessageEnd()
-        self._oprot.trans.flush()
-
-    def recv_getCurrentVertex(self):
-        iprot = self._iprot
-        (fname, mtype, rseqid) = iprot.readMessageBegin()
-        if mtype == TMessageType.EXCEPTION:
-            x = TApplicationException()
-            x.read(iprot)
-            iprot.readMessageEnd()
-            raise x
-        result = getCurrentVertex_result()
-        result.read(iprot)
-        iprot.readMessageEnd()
-        if result.success is not None:
-            return result.success
-        if result.error is not None:
-            raise result.error
-        raise TApplicationException(TApplicationException.MISSING_RESULT, "getCurrentVertex failed: unknown result")
-
-    def getInventoryKamas(self):
-        self.send_getInventoryKamas()
-        return self.recv_getInventoryKamas()
-
-    def send_getInventoryKamas(self):
-        self._oprot.writeMessageBegin('getInventoryKamas', TMessageType.CALL, self._seqid)
-        args = getInventoryKamas_args()
-        args.write(self._oprot)
-        self._oprot.writeMessageEnd()
-        self._oprot.trans.flush()
-
-    def recv_getInventoryKamas(self):
-        iprot = self._iprot
-        (fname, mtype, rseqid) = iprot.readMessageBegin()
-        if mtype == TMessageType.EXCEPTION:
-            x = TApplicationException()
-            x.read(iprot)
-            iprot.readMessageEnd()
-            raise x
-        result = getInventoryKamas_result()
-        result.read(iprot)
-        iprot.readMessageEnd()
-        if result.success is not None:
-            return result.success
-        if result.error is not None:
-            raise result.error
-        raise TApplicationException(TApplicationException.MISSING_RESULT, "getInventoryKamas failed: unknown result")
-
 
 class Processor(Iface, TProcessor):
     def __init__(self, handler):
@@ -444,12 +240,6 @@ class Processor(Iface, TProcessor):
         self._processMap["runSession"] = Processor.process_runSession
         self._processMap["fetchBreedSpells"] = Processor.process_fetchBreedSpells
         self._processMap["fetchJobsInfosJson"] = Processor.process_fetchJobsInfosJson
-        self._processMap["moveToVertex"] = Processor.process_moveToVertex
-        self._processMap["followTransition"] = Processor.process_followTransition
-        self._processMap["getStatus"] = Processor.process_getStatus
-        self._processMap["comeToBankToCollectResources"] = Processor.process_comeToBankToCollectResources
-        self._processMap["getCurrentVertex"] = Processor.process_getCurrentVertex
-        self._processMap["getInventoryKamas"] = Processor.process_getInventoryKamas
         self._on_message_begin = None
 
     def on_message_begin(self, func):
@@ -515,10 +305,10 @@ class Processor(Iface, TProcessor):
             logging.exception('TApplication exception in handler')
             msg_type = TMessageType.EXCEPTION
             result = ex
-        except Exception as e:
+        except Exception:
             logging.exception('Unexpected exception in handler')
             msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, str(e))
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
         oprot.writeMessageBegin("fetchUsedServers", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
@@ -598,156 +388,6 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
         oprot.writeMessageBegin("fetchJobsInfosJson", msg_type, seqid)
-        result.write(oprot)
-        oprot.writeMessageEnd()
-        oprot.trans.flush()
-
-    def process_moveToVertex(self, seqid, iprot, oprot):
-        args = moveToVertex_args()
-        args.read(iprot)
-        iprot.readMessageEnd()
-        result = moveToVertex_result()
-        try:
-            self._handler.moveToVertex(args.vertex)
-            msg_type = TMessageType.REPLY
-        except TTransport.TTransportException:
-            raise
-        except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = ex
-        except Exception as e:
-            logging.exception('Unexpected exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, str(e))
-        oprot.writeMessageBegin("moveToVertex", msg_type, seqid)
-        result.write(oprot)
-        oprot.writeMessageEnd()
-        oprot.trans.flush()
-
-    def process_followTransition(self, seqid, iprot, oprot):
-        args = followTransition_args()
-        args.read(iprot)
-        iprot.readMessageEnd()
-        result = followTransition_result()
-        try:
-            self._handler.followTransition(args.transition)
-            msg_type = TMessageType.REPLY
-        except TTransport.TTransportException:
-            raise
-        except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = ex
-        except Exception:
-            logging.exception('Unexpected exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("followTransition", msg_type, seqid)
-        result.write(oprot)
-        oprot.writeMessageEnd()
-        oprot.trans.flush()
-
-    def process_getStatus(self, seqid, iprot, oprot):
-        args = getStatus_args()
-        args.read(iprot)
-        iprot.readMessageEnd()
-        result = getStatus_result()
-        try:
-            result.success = self._handler.getStatus()
-            msg_type = TMessageType.REPLY
-        except TTransport.TTransportException:
-            raise
-        except DofusError as error:
-            msg_type = TMessageType.REPLY
-            result.error = error
-        except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = ex
-        except Exception:
-            logging.exception('Unexpected exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("getStatus", msg_type, seqid)
-        result.write(oprot)
-        oprot.writeMessageEnd()
-        oprot.trans.flush()
-
-    def process_comeToBankToCollectResources(self, seqid, iprot, oprot):
-        args = comeToBankToCollectResources_args()
-        args.read(iprot)
-        iprot.readMessageEnd()
-        result = comeToBankToCollectResources_result()
-        try:
-            self._handler.comeToBankToCollectResources(args.bankInfos, args.guestInfos)
-            msg_type = TMessageType.REPLY
-        except TTransport.TTransportException:
-            raise
-        except DofusError as error:
-            msg_type = TMessageType.REPLY
-            result.error = error
-        except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = ex
-        except Exception:
-            logging.exception('Unexpected exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("comeToBankToCollectResources", msg_type, seqid)
-        result.write(oprot)
-        oprot.writeMessageEnd()
-        oprot.trans.flush()
-
-    def process_getCurrentVertex(self, seqid, iprot, oprot):
-        args = getCurrentVertex_args()
-        args.read(iprot)
-        iprot.readMessageEnd()
-        result = getCurrentVertex_result()
-        try:
-            result.success = self._handler.getCurrentVertex()
-            msg_type = TMessageType.REPLY
-        except TTransport.TTransportException:
-            raise
-        except DofusError as error:
-            msg_type = TMessageType.REPLY
-            result.error = error
-        except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = ex
-        except Exception:
-            logging.exception('Unexpected exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("getCurrentVertex", msg_type, seqid)
-        result.write(oprot)
-        oprot.writeMessageEnd()
-        oprot.trans.flush()
-
-    def process_getInventoryKamas(self, seqid, iprot, oprot):
-        args = getInventoryKamas_args()
-        args.read(iprot)
-        iprot.readMessageEnd()
-        result = getInventoryKamas_result()
-        try:
-            result.success = self._handler.getInventoryKamas()
-            msg_type = TMessageType.REPLY
-        except TTransport.TTransportException:
-            raise
-        except DofusError as error:
-            msg_type = TMessageType.REPLY
-            result.error = error
-        except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = ex
-        except Exception:
-            logging.exception('Unexpected exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("getInventoryKamas", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -854,11 +494,11 @@ class fetchCharacters_result(object):
             if fid == 0:
                 if ftype == TType.LIST:
                     self.success = []
-                    (_etype3, _size0) = iprot.readListBegin()
-                    for _i4 in range(_size0):
-                        _elem5 = Character()
-                        _elem5.read(iprot)
-                        self.success.append(_elem5)
+                    (_etype10, _size7) = iprot.readListBegin()
+                    for _i11 in range(_size7):
+                        _elem12 = Character()
+                        _elem12.read(iprot)
+                        self.success.append(_elem12)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -880,8 +520,8 @@ class fetchCharacters_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
-            for iter6 in self.success:
-                iter6.write(oprot)
+            for iter13 in self.success:
+                iter13.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.error is not None:
@@ -996,8 +636,14 @@ class fetchUsedServers_result(object):
             if ftype == TType.STOP:
                 break
             if fid == 0:
-                if ftype == TType.STRING:
-                    self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                if ftype == TType.LIST:
+                    self.success = []
+                    (_etype17, _size14) = iprot.readListBegin()
+                    for _i18 in range(_size14):
+                        _elem19 = Server()
+                        _elem19.read(iprot)
+                        self.success.append(_elem19)
+                    iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 1:
@@ -1016,8 +662,11 @@ class fetchUsedServers_result(object):
             return
         oprot.writeStructBegin('fetchUsedServers_result')
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRING, 0)
-            oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
+            oprot.writeFieldBegin('success', TType.LIST, 0)
+            oprot.writeListBegin(TType.STRUCT, len(self.success))
+            for iter20 in self.success:
+                iter20.write(oprot)
+            oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.error is not None:
             oprot.writeFieldBegin('error', TType.STRUCT, 1)
@@ -1041,7 +690,7 @@ class fetchUsedServers_result(object):
         return not (self == other)
 all_structs.append(fetchUsedServers_result)
 fetchUsedServers_result.thrift_spec = (
-    (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
+    (0, TType.LIST, 'success', (TType.STRUCT, [Server, None], False), None, ),  # 0
     (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 
@@ -1074,8 +723,9 @@ class runSession_args(object):
                 else:
                     iprot.skip(ftype)
             elif fid == 6:
-                if ftype == TType.STRING:
-                    self.sessionJson = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                if ftype == TType.STRUCT:
+                    self.sessionJson = Session()
+                    self.sessionJson.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -1093,8 +743,8 @@ class runSession_args(object):
             oprot.writeString(self.token.encode('utf-8') if sys.version_info[0] == 2 else self.token)
             oprot.writeFieldEnd()
         if self.sessionJson is not None:
-            oprot.writeFieldBegin('sessionJson', TType.STRING, 6)
-            oprot.writeString(self.sessionJson.encode('utf-8') if sys.version_info[0] == 2 else self.sessionJson)
+            oprot.writeFieldBegin('sessionJson', TType.STRUCT, 6)
+            self.sessionJson.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1120,7 +770,7 @@ runSession_args.thrift_spec = (
     None,  # 3
     None,  # 4
     None,  # 5
-    (6, TType.STRING, 'sessionJson', 'UTF8', None, ),  # 6
+    (6, TType.STRUCT, 'sessionJson', [Session, None], None, ),  # 6
 )
 
 
@@ -1273,11 +923,11 @@ class fetchBreedSpells_result(object):
             if fid == 0:
                 if ftype == TType.LIST:
                     self.success = []
-                    (_etype10, _size7) = iprot.readListBegin()
-                    for _i11 in range(_size7):
-                        _elem12 = Spell()
-                        _elem12.read(iprot)
-                        self.success.append(_elem12)
+                    (_etype24, _size21) = iprot.readListBegin()
+                    for _i25 in range(_size21):
+                        _elem26 = Spell()
+                        _elem26.read(iprot)
+                        self.success.append(_elem26)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1299,8 +949,8 @@ class fetchBreedSpells_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
-            for iter13 in self.success:
-                iter13.write(oprot)
+            for iter27 in self.success:
+                iter27.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.error is not None:
@@ -1442,701 +1092,6 @@ class fetchJobsInfosJson_result(object):
 all_structs.append(fetchJobsInfosJson_result)
 fetchJobsInfosJson_result.thrift_spec = (
     (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
-)
-
-
-class moveToVertex_args(object):
-    """
-    Attributes:
-     - vertex
-
-    """
-
-
-    def __init__(self, vertex=None,):
-        self.vertex = vertex
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.STRING:
-                    self.vertex = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('moveToVertex_args')
-        if self.vertex is not None:
-            oprot.writeFieldBegin('vertex', TType.STRING, 1)
-            oprot.writeString(self.vertex.encode('utf-8') if sys.version_info[0] == 2 else self.vertex)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(moveToVertex_args)
-moveToVertex_args.thrift_spec = (
-    None,  # 0
-    (1, TType.STRING, 'vertex', 'UTF8', None, ),  # 1
-)
-
-
-class moveToVertex_result(object):
-
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('moveToVertex_result')
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(moveToVertex_result)
-moveToVertex_result.thrift_spec = (
-)
-
-
-class followTransition_args(object):
-    """
-    Attributes:
-     - transition
-
-    """
-
-
-    def __init__(self, transition=None,):
-        self.transition = transition
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.STRING:
-                    self.transition = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('followTransition_args')
-        if self.transition is not None:
-            oprot.writeFieldBegin('transition', TType.STRING, 1)
-            oprot.writeString(self.transition.encode('utf-8') if sys.version_info[0] == 2 else self.transition)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(followTransition_args)
-followTransition_args.thrift_spec = (
-    None,  # 0
-    (1, TType.STRING, 'transition', 'UTF8', None, ),  # 1
-)
-
-
-class followTransition_result(object):
-
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('followTransition_result')
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(followTransition_result)
-followTransition_result.thrift_spec = (
-)
-
-
-class getStatus_args(object):
-
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('getStatus_args')
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(getStatus_args)
-getStatus_args.thrift_spec = (
-)
-
-
-class getStatus_result(object):
-    """
-    Attributes:
-     - success
-     - error
-
-    """
-
-
-    def __init__(self, success=None, error=None,):
-        self.success = success
-        self.error = error
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 0:
-                if ftype == TType.STRING:
-                    self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 1:
-                if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('getStatus_result')
-        if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRING, 0)
-            oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
-            oprot.writeFieldEnd()
-        if self.error is not None:
-            oprot.writeFieldBegin('error', TType.STRUCT, 1)
-            self.error.write(oprot)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(getStatus_result)
-getStatus_result.thrift_spec = (
-    (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
-)
-
-
-class comeToBankToCollectResources_args(object):
-    """
-    Attributes:
-     - bankInfos
-     - guestInfos
-
-    """
-
-
-    def __init__(self, bankInfos=None, guestInfos=None,):
-        self.bankInfos = bankInfos
-        self.guestInfos = guestInfos
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.STRING:
-                    self.bankInfos = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 3:
-                if ftype == TType.STRING:
-                    self.guestInfos = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('comeToBankToCollectResources_args')
-        if self.bankInfos is not None:
-            oprot.writeFieldBegin('bankInfos', TType.STRING, 1)
-            oprot.writeString(self.bankInfos.encode('utf-8') if sys.version_info[0] == 2 else self.bankInfos)
-            oprot.writeFieldEnd()
-        if self.guestInfos is not None:
-            oprot.writeFieldBegin('guestInfos', TType.STRING, 3)
-            oprot.writeString(self.guestInfos.encode('utf-8') if sys.version_info[0] == 2 else self.guestInfos)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(comeToBankToCollectResources_args)
-comeToBankToCollectResources_args.thrift_spec = (
-    None,  # 0
-    (1, TType.STRING, 'bankInfos', 'UTF8', None, ),  # 1
-    None,  # 2
-    (3, TType.STRING, 'guestInfos', 'UTF8', None, ),  # 3
-)
-
-
-class comeToBankToCollectResources_result(object):
-    """
-    Attributes:
-     - error
-
-    """
-
-
-    def __init__(self, error=None,):
-        self.error = error
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('comeToBankToCollectResources_result')
-        if self.error is not None:
-            oprot.writeFieldBegin('error', TType.STRUCT, 1)
-            self.error.write(oprot)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(comeToBankToCollectResources_result)
-comeToBankToCollectResources_result.thrift_spec = (
-    None,  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
-)
-
-
-class getCurrentVertex_args(object):
-
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('getCurrentVertex_args')
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(getCurrentVertex_args)
-getCurrentVertex_args.thrift_spec = (
-)
-
-
-class getCurrentVertex_result(object):
-    """
-    Attributes:
-     - success
-     - error
-
-    """
-
-
-    def __init__(self, success=None, error=None,):
-        self.success = success
-        self.error = error
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 0:
-                if ftype == TType.STRING:
-                    self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 1:
-                if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('getCurrentVertex_result')
-        if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRING, 0)
-            oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
-            oprot.writeFieldEnd()
-        if self.error is not None:
-            oprot.writeFieldBegin('error', TType.STRUCT, 1)
-            self.error.write(oprot)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(getCurrentVertex_result)
-getCurrentVertex_result.thrift_spec = (
-    (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
-)
-
-
-class getInventoryKamas_args(object):
-
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('getInventoryKamas_args')
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(getInventoryKamas_args)
-getInventoryKamas_args.thrift_spec = (
-)
-
-
-class getInventoryKamas_result(object):
-    """
-    Attributes:
-     - success
-     - error
-
-    """
-
-
-    def __init__(self, success=None, error=None,):
-        self.success = success
-        self.error = error
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 0:
-                if ftype == TType.I32:
-                    self.success = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 1:
-                if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('getInventoryKamas_result')
-        if self.success is not None:
-            oprot.writeFieldBegin('success', TType.I32, 0)
-            oprot.writeI32(self.success)
-            oprot.writeFieldEnd()
-        if self.error is not None:
-            oprot.writeFieldBegin('error', TType.STRUCT, 1)
-            self.error.write(oprot)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(getInventoryKamas_result)
-getInventoryKamas_result.thrift_spec = (
-    (0, TType.I32, 'success', None, None, ),  # 0
     (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 fix_spec(all_structs)

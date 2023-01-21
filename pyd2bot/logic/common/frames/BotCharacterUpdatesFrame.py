@@ -40,6 +40,7 @@ class BotCharacterUpdatesFrame(Frame):
     def priority(self) -> int:
         return Priority.VERY_LOW
 
+    @pr
     def boostStat(self, statId: int, points: int):
         if statId == StatIds.STRENGTH:
             statFloors = Breed.getBreedById(PlayedCharacterManager().infos.breed).statsPointsForStrength

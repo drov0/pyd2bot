@@ -17,6 +17,7 @@ from thrift.transport import TTransport, TSocket, TSSLSocket, THttpClient
 from thrift.protocol.TBinaryProtocol import TBinaryProtocol
 
 from pyd2botService import Pyd2botService
+from pyd2botService.ttypes import *
 
 if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('')
@@ -24,16 +25,10 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('')
     print('Functions:')
     print('   fetchCharacters(string token, int serverId)')
-    print('  string fetchUsedServers(string token)')
-    print('  void runSession(string token, string sessionJson)')
+    print('   fetchUsedServers(string token)')
+    print('  void runSession(string token, Session sessionJson)')
     print('   fetchBreedSpells(int breedId)')
     print('  string fetchJobsInfosJson()')
-    print('  void moveToVertex(string vertex)')
-    print('  void followTransition(string transition)')
-    print('  string getStatus()')
-    print('  void comeToBankToCollectResources(string bankInfos, string guestInfos)')
-    print('  string getCurrentVertex()')
-    print('  int getInventoryKamas()')
     print('')
     sys.exit(0)
 
@@ -129,7 +124,7 @@ elif cmd == 'runSession':
     if len(args) != 2:
         print('runSession requires 2 args')
         sys.exit(1)
-    pp.pprint(client.runSession(args[0], args[1],))
+    pp.pprint(client.runSession(args[0], eval(args[1]),))
 
 elif cmd == 'fetchBreedSpells':
     if len(args) != 1:
@@ -142,42 +137,6 @@ elif cmd == 'fetchJobsInfosJson':
         print('fetchJobsInfosJson requires 0 args')
         sys.exit(1)
     pp.pprint(client.fetchJobsInfosJson())
-
-elif cmd == 'moveToVertex':
-    if len(args) != 1:
-        print('moveToVertex requires 1 args')
-        sys.exit(1)
-    pp.pprint(client.moveToVertex(args[0],))
-
-elif cmd == 'followTransition':
-    if len(args) != 1:
-        print('followTransition requires 1 args')
-        sys.exit(1)
-    pp.pprint(client.followTransition(args[0],))
-
-elif cmd == 'getStatus':
-    if len(args) != 0:
-        print('getStatus requires 0 args')
-        sys.exit(1)
-    pp.pprint(client.getStatus())
-
-elif cmd == 'comeToBankToCollectResources':
-    if len(args) != 2:
-        print('comeToBankToCollectResources requires 2 args')
-        sys.exit(1)
-    pp.pprint(client.comeToBankToCollectResources(args[0], args[1],))
-
-elif cmd == 'getCurrentVertex':
-    if len(args) != 0:
-        print('getCurrentVertex requires 0 args')
-        sys.exit(1)
-    pp.pprint(client.getCurrentVertex())
-
-elif cmd == 'getInventoryKamas':
-    if len(args) != 0:
-        print('getInventoryKamas requires 0 args')
-        sys.exit(1)
-    pp.pprint(client.getInventoryKamas())
 
 else:
     print('Unrecognized method %s' % cmd)

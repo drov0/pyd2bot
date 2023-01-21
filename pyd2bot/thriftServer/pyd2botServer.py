@@ -3,18 +3,19 @@ import threading
 from pyd2bot.apis.PlayerAPI import PlayerAPI
 from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import BotCharacterUpdatesFrame
 from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
-from pyd2bot.logic.managers.SessionManager import SessionManager, InactivityMonitor
+from pyd2bot.logic.managers.SessionManager import SessionManager
 from pyd2bot.logic.roleplay.frames.BotSellerCollectFrame import BotSellerCollectFrame
 from pyd2bot.logic.roleplay.messages.LeaderPosMessage import LeaderPosMessage
 from pyd2bot.logic.roleplay.messages.LeaderTransitionMessage import LeaderTransitionMessage
 from pyd2bot.misc.Localizer import BankInfos
-from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Spell, DofusError
+from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Spell, DofusError, Server, Session, SessionType
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEventsManager,
     KernelEvts,
 )
 from pydofus2.com.ankamagames.dofus.datacenter.breeds.Breed import Breed
 from pydofus2.com.ankamagames.dofus.datacenter.jobs.Skill import Skill
+from pydofus2.com.ankamagames.dofus.internalDatacenter.connection.BasicCharacterWrapper import BasicCharacterWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import (
@@ -25,10 +26,33 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import (
     WorldPathFinder,
 )
+from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import GameServerInformations
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
+import sys
+import traceback
+import functools
+
+
+def getTrace(e):
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    traceback_in_var = traceback.format_tb(exc_traceback)
+    error_trace = "\n".join([str(e), str(exc_type), str(exc_value), "\n".join(traceback_in_var)])
+    return error_trace
+
 
 lock = threading.Lock()
+
+
+def sendTrace(func):
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            raise DofusError(0, getTrace(e))
+
+    return wrapped
 
 
 class Pyd2botServer:
@@ -36,66 +60,56 @@ class Pyd2botServer:
         self.id = id
         self.logger = Logger()
 
-    def fetchUsedServers(self, token: str) -> list[dict]:
-        try:
-            DofusClient().login(token)
-            servers = KernelEventsManager().wait(KernelEvts.SERVERS_LIST)
-            if servers is None:
-                raise DofusError(0, "Unable to fetch servers list.")
-            DofusClient().shutdown()
-            return json.dumps([server.to_json() for server in servers["used"]])
-        except Exception as e:
-            self.logger.error(f"[{self._id}] Error while reading socket. \n", exc_info=True)
-            import sys
-            import traceback
-
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback_in_var = traceback.format_tb(exc_traceback)
-            error_trace = "\n".join([str(e), str(exc_type), str(exc_value), "\n".join(traceback_in_var)])
-            raise DofusError(0, error_trace)
-
-    def fetchCharacters(self, token: str, serverId: int) -> list[Character]:
-        result = list()
-        DofusClient().login(token, serverId)
-        charactersList = KernelEventsManager().wait(KernelEvts.CHARACTERS_LIST, 60)
-        if charactersList is None:
-            raise DofusError(code=0, message="Unable to fetch characters list.")
-        for character in charactersList:
-            chkwrgs = {
-                "name": character.name,
-                "id": character.id,
-                "level": character.level,
-                "breedId": character.breedId,
-                "breedName": character.breed.name,
-                "serverId": serverId,
-                "serverName": PlayerManager().server.name,
-            }
-            result.append(Character(**chkwrgs))
+    @sendTrace
+    def fetchUsedServers(self, token: str) -> list[Server]:
+        DofusClient().login(token)
+        servers: dict[str, list[GameServerInformations]] = KernelEventsManager().wait(KernelEvts.SERVERS_LIST, 60)
+        result = [
+            Server(
+                server.id,
+                server.status,
+                server.charactersCount,
+                server.charactersSlots,
+                server.isMonoAccount,
+                server.isSelectable,
+            )
+            for server in servers["used"]
+        ]
         DofusClient().shutdown()
         return result
 
-    def runSession(self, token: str, sessionJson: str) -> None:
-        self.logger.debug(f"runSession called with token {token}")
-        self.logger.debug("session: " + sessionJson)
-        SessionManager().load(sessionJson)
-        self.logger.debug("Session loaded")
-        dofus2 = DofusClient()
-        if SessionManager().type == "fight":
-            dofus2.registerInitFrame(BotWorkflowFrame)
-            dofus2.registerGameStartFrame(BotCharacterUpdatesFrame)
-        elif SessionManager().type == "selling":
-            pass
+    @sendTrace
+    def fetchCharacters(self, token: str, serverId: int) -> list[Character]:
+        result = list()
+        DofusClient().login(token, serverId)
+        charactersList: list[BasicCharacterWrapper] = KernelEventsManager().wait(KernelEvts.CHARACTERS_LIST, 60)
+        result = [
+            Character(
+                character.name,
+                character.id,
+                character.level,
+                character.breedId,
+                character.breed.name,
+                serverId,
+                PlayerManager().server.name,
+            )
+            for character in charactersList
+        ]
+        DofusClient().shutdown()
+        return result
+
+    @sendTrace
+    def runSession(self, token: str, session: Session) -> None:
+        SessionManager().load(session)
+        if session.type == SessionType.FIGHT:
+            DofusClient().registerInitFrame(BotWorkflowFrame)
+            DofusClient().registerGameStartFrame(BotCharacterUpdatesFrame)
         else:
-            raise DofusError("Unsupported session type: %s" % SessionManager().type)
-        self.logger.debug("Frames registered")
-        if token is None:
-            raise DofusError("Unable to generate login token.")
-        self.logger.debug(f"Generated LoginToken : {token}")
-        serverId = SessionManager().character["serverId"]
-        characId = SessionManager().character["id"]
-        dofus2.login(token, serverId, characId)
-        iam = InactivityMonitor()
-        iam.start()
+            raise Exception(f"Unsupported session type: {session.type}")
+        serverId = session.leader.serverId
+        characId = session.leader.id
+        DofusClient().login(token, serverId, characId)
+        
 
     def fetchBreedSpells(self, breedId: int) -> list["Spell"]:
         spells = []
