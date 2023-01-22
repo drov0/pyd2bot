@@ -83,7 +83,7 @@ class BotBankInteractionFrame(Frame):
                 self.requestTimer.cancel()
             rmsg = ExchangeObjectTransfertAllFromInvMessage()
             rmsg.init()
-            ConnectionsHandler().getConnection().send(rmsg)
+            ConnectionsHandler()._conn.send(rmsg)
             self.state = BankUnloadStateEnum.UNLOAD_REQUEST_SENT
             return True
 
@@ -91,7 +91,7 @@ class BotBankInteractionFrame(Frame):
             if self.state == BankUnloadStateEnum.UNLOAD_REQUEST_SENT:
                 rmsg = LeaveDialogRequestMessage()
                 rmsg.init()
-                ConnectionsHandler().getConnection().send(rmsg)
+                ConnectionsHandler()._conn.send(rmsg)
                 self.state = BankUnloadStateEnum.LEAVE_BANK_REQUESTED
             return True
 
@@ -104,7 +104,7 @@ class BotBankInteractionFrame(Frame):
     def talkToBankMan(self):
         rmsg = NpcGenericActionRequestMessage()
         rmsg.init(self.infos.npcId, self.infos.npcActionId, self.infos.npcMapId)
-        ConnectionsHandler().getConnection().send(rmsg)
+        ConnectionsHandler()._conn.send(rmsg)
         logger.debug("Open bank man dialog sent")
         self.state = BankUnloadStateEnum.WAITING_FOR_BANKMAN_DIALOG
 
@@ -112,5 +112,5 @@ class BotBankInteractionFrame(Frame):
         rmsg = NpcDialogReplyMessage()
         logger.debug(f"Open bank request sent")
         rmsg.init(self.infos.openBankReplyId)
-        ConnectionsHandler().getConnection().send(rmsg)
+        ConnectionsHandler()._conn.send(rmsg)
         self.state = BankUnloadStateEnum.BANK_OPEN_REQUESTED

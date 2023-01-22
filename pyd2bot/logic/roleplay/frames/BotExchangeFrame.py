@@ -107,7 +107,7 @@ class BotExchangeFrame(Frame):
             logger.debug(f"Exchange request received from {msg.source} to {msg.target}")
             if msg.source == self.target["id"]:
                 self.state = ExchangeStateEnum.EXCHANGE_REQUEST_RECEIVED
-                ConnectionsHandler().getConnection().send(ExchangeAcceptMessage())
+                ConnectionsHandler()._conn.send(ExchangeAcceptMessage())
                 self.state = ExchangeStateEnum.EXCHANGE_REQUEST_ACCEPTED
             elif int(msg.source) == int(PlayedCharacterManager().id):
                 if self.openExchangeTimer:
@@ -131,12 +131,12 @@ class BotExchangeFrame(Frame):
             self.state = ExchangeStateEnum.EXCHANGE_OPEN
             if self.direction == ExchangeDirectionEnum.GIVE:
                 if self.giveAll:
-                    ConnectionsHandler().getConnection().send(ExchangeObjectTransfertAllFromInvMessage())
+                    ConnectionsHandler()._conn.send(ExchangeObjectTransfertAllFromInvMessage())
                 else:
                     for elem in self.items:
                         rmsg = ExchangeObjectMoveMessage()
                         rmsg.init(objectUID_=elem["uid"], quantity_=elem["quantity"])
-                        ConnectionsHandler().getConnection().send(rmsg)
+                        ConnectionsHandler()._conn.send(rmsg)
                         self.wantsToMoveItemToExchange.add(elem["uid"])
                 logger.debug("Moved items to exchange.")
             return True
@@ -189,7 +189,7 @@ class BotExchangeFrame(Frame):
     def sendExchangeRequest(self):
         msg = ExchangePlayerRequestMessage()
         msg.init(exchangeType_=1, target_=self.target["id"])
-        ConnectionsHandler().getConnection().send(msg)
+        ConnectionsHandler()._conn.send(msg)
         self.openExchangeTimer = BenchmarkTimer(3, self.sendExchangeRequest)
         self.openExchangeTimer.start()
         logger.debug("Exchange open request sent")
@@ -199,7 +199,7 @@ class BotExchangeFrame(Frame):
             return
         readymsg = ExchangeReadyMessage()
         readymsg.init(ready_=True, step_=self.step)
-        ConnectionsHandler().getConnection().send(readymsg)
+        ConnectionsHandler()._conn.send(readymsg)
         self.acceptExchangeTimer = BenchmarkTimer(5, self.sendExchangeReady)
         self.acceptExchangeTimer.start()
         logger.debug("Exchange is ready sent.")
@@ -209,4 +209,4 @@ class BotExchangeFrame(Frame):
         kamas_quantity = InventoryManager().inventory.kamas
         logger.debug(f"There is {kamas_quantity} in bots inventory.") 
         eomkm.init(kamas_quantity)
-        ConnectionsHandler().getConnection().send(eomkm)
+        ConnectionsHandler()._conn.send(eomkm)

@@ -357,10 +357,10 @@ class BotFightFrame(Frame):
             if BotConfig().isLeader and not self._fightOptionsSent:
                 gfotmsg = GameFightOptionToggleMessage()
                 gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_SECRET)
-                ConnectionsHandler().getConnection().send(gfotmsg)
+                ConnectionsHandler()._conn.send(gfotmsg)
                 gfotmsg = GameFightOptionToggleMessage()
                 gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_TO_PARTY_ONLY)
-                ConnectionsHandler().getConnection().send(gfotmsg)
+                ConnectionsHandler()._conn.send(gfotmsg)
                 self._fightOptionsSent = True
             return False
 
@@ -396,7 +396,7 @@ class BotFightFrame(Frame):
                         return True
             startFightMsg = GameFightReadyMessage()
             startFightMsg.init(True)
-            ConnectionsHandler().getConnection().send(startFightMsg)
+            ConnectionsHandler()._conn.send(startFightMsg)
             return True
 
         elif isinstance(msg, SequenceEndMessage):
@@ -486,7 +486,7 @@ class BotFightFrame(Frame):
             logger.debug(f"[FightBot] Casting spell {spellId} on cell {cellId}.")
         gafcrmsg: GameActionFightCastRequestMessage = GameActionFightCastRequestMessage()
         gafcrmsg.init(spellId, cellId)
-        ConnectionsHandler().getConnection().send(gafcrmsg)
+        ConnectionsHandler()._conn.send(gafcrmsg)
 
     def askMove(self, cells: list[int], cellsTackled: list[int] = []) -> None:
         if self.VERBOSE:

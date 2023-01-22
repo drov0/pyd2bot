@@ -309,7 +309,7 @@ class BotFarmPathFrame(Frame):
     def requestMapData(self):
         mirmsg = MapInformationsRequestMessage()
         mirmsg.init(mapId_=MapDisplayManager().currentMapPoint.mapId)
-        ConnectionsHandler().getConnection().send(mirmsg)
+        ConnectionsHandler()._conn.send(mirmsg)
 
     def collectResource(self) -> None:
         target = None

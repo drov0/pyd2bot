@@ -79,8 +79,6 @@ if TYPE_CHECKING:
     from pyd2bot.logic.roleplay.frames.BotFarmPathFrame import BotFarmPathFrame
     from thrift.transport.TTransport import TBufferedTransport
     from pyd2bot.thriftServer.pyd2botService.Pyd2botService import Client as Pyd2botServiceClient
-    
-lock = threading.Lock()
 logger = Logger()
 
 
@@ -235,14 +233,14 @@ class BotPartyFrame(Frame):
         pi = PlayerSearchCharacterNameInformation()
         pi.init(playerName)
         ccmsg.init(pi, message)
-        ConnectionsHandler().getConnection().send(ccmsg)
+        ConnectionsHandler()._conn.send(ccmsg)
 
     def cancelPartyInvite(self, playerName):
         follower = self.getFollowerByName(playerName)
         if follower and self.currentPartyId is not None:
             cpimsg = PartyCancelInvitationMessage()
             cpimsg.init(follower["id"], self.currentPartyId)
-            ConnectionsHandler().getConnection().send(cpimsg)
+            ConnectionsHandler()._conn.send(cpimsg)
             return True
         return False
 
@@ -256,7 +254,7 @@ class BotPartyFrame(Frame):
             pscni = PlayerSearchCharacterNameInformation()
             pscni.init(playerName)
             pimsg.init(pscni)
-            ConnectionsHandler().getConnection().send(pimsg)
+            ConnectionsHandler()._conn.send(pimsg)
             self.partyInviteTimers[playerName] = BenchmarkTimer(self.CONFIRME_JOIN_TIMEOUT, self.sendPartyInvite, [playerName])
             self.partyInviteTimers[playerName].start()
             logger.debug(f"[BotPartyFrame] Join party invitation sent to {playerName}")
@@ -264,7 +262,7 @@ class BotPartyFrame(Frame):
     def sendFollowMember(self, memberId):
         pfmrm = PartyFollowMemberRequestMessage()
         pfmrm.init(memberId, self.currentPartyId)
-        ConnectionsHandler().getConnection().send(pfmrm)
+        ConnectionsHandler()._conn.send(pfmrm)
 
     def joinFight(self, fightId: int):
         if self.movementFrame._isMoving:
@@ -291,7 +289,7 @@ class BotPartyFrame(Frame):
             return
         plmsg = PartyLeaveRequestMessage()
         plmsg.init(self.currentPartyId)
-        ConnectionsHandler().getConnection().send(plmsg)
+        ConnectionsHandler()._conn.send(plmsg)
         self.currentPartyId = None
 
     def process(self, msg: Message):
@@ -325,12 +323,12 @@ class BotPartyFrame(Frame):
             if not self.isLeader and int(msg.fromId) == int(self.leader["id"]):
                 paimsg = PartyAcceptInvitationMessage()
                 paimsg.init(msg.partyId)
-                ConnectionsHandler().getConnection().send(paimsg)
+                ConnectionsHandler()._conn.send(paimsg)
                 logger.debug(f"[BotPartyFrame] Accepted party invite from {msg.fromName}.")
             else:
                 pirmsg = PartyRefuseInvitationMessage()
                 pirmsg.init(msg.partyId)
-                ConnectionsHandler().getConnection().send(pirmsg)
+                ConnectionsHandler()._conn.send(pirmsg)
             return True
 
         elif isinstance(msg, PartyNewMemberMessage):
@@ -501,7 +499,7 @@ class BotPartyFrame(Frame):
     def requestMapData(self):
         mirmsg = MapInformationsRequestMessage()
         mirmsg.init(mapId_=MapDisplayManager().currentMapPoint.mapId)
-        ConnectionsHandler().getConnection().send(mirmsg)
+        ConnectionsHandler()._conn.send(mirmsg)
 
     def moveToVertex(self, vertex: Vertex):
         logger.debug(f"[BotPartyFrame] Moving to vertex {vertex}")
