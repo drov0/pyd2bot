@@ -40,20 +40,21 @@ class BotCharacterUpdatesFrame(Frame):
     def priority(self) -> int:
         return Priority.VERY_LOW
 
-    @pr
+    @property
     def boostStat(self, statId: int, points: int):
+        breed = Breed.getBreedById(PlayedCharacterManager().infos.breed)
         if statId == StatIds.STRENGTH:
-            statFloors = Breed.getBreedById(PlayedCharacterManager().infos.breed).statsPointsForStrength
+            statFloors = breed.statsPointsForStrength
         elif statId == StatIds.VITALITY:
-            statFloors = Breed.getBreedById(PlayedCharacterManager().infos.breed).statsPointsForVitality
+            statFloors = breed.statsPointsForVitality
         elif statId == StatIds.WISDOM:
-            statFloors = Breed.getBreedById(PlayedCharacterManager().infos.breed).statsPointsForWisdom
+            statFloors = breed.statsPointsForWisdom
         elif statId == StatIds.INTELLIGENCE:
-            statFloors = Breed.getBreedById(PlayedCharacterManager().infos.breed).statsPointsForIntelligence
+            statFloors = breed.statsPointsForIntelligence
         elif statId == StatIds.AGILITY:
-            statFloors = Breed.getBreedById(PlayedCharacterManager().infos.breed).statsPointsForAgility
+            statFloors = breed.statsPointsForAgility
         elif statId == StatIds.CHANCE:
-            statFloors = Breed.getBreedById(PlayedCharacterManager().infos.breed).statsPointsForChance
+            statFloors = breed.statsPointsForChance
         additional = PlayedCharacterManager().stats.getStatAdditionalValue(statId)
         base = PlayedCharacterManager().stats.getStatBaseValue(statId)
         logger.debug(f"Have {points} unused stat points")

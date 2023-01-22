@@ -57,15 +57,18 @@ class Pyd2botServer:
         from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import (
             GameServerInformations,
         )
-
+        self.logger.debug("fetchUsedServers called with token: " + token)
         DofusClient().login(token)
         servers: dict[str, list[GameServerInformations]] = KernelEventsManager().wait(KernelEvts.SERVERS_LIST, 60)
+        self.logger.info(f"list servers: {[s.to_json() for s in servers['used']]}")
         result = [
             Server(
                 server.id,
                 server.status,
+                server.completion,
                 server.charactersCount,
                 server.charactersSlots,
+                server.date,
                 server.isMonoAccount,
                 server.isSelectable,
             )
@@ -84,6 +87,8 @@ class Pyd2botServer:
         result = list()
         DofusClient().login(token, serverId)
         charactersList: list[BasicCharacterWrapper] = KernelEventsManager().wait(KernelEvts.CHARACTERS_LIST, 60)
+        if charactersList is None:
+            raise Exception("Timeout!")
         result = [
             Character(
                 character.name,

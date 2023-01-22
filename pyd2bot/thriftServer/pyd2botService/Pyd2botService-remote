@@ -17,6 +17,7 @@ from thrift.transport import TTransport, TSocket, TSSLSocket, THttpClient
 from thrift.protocol.TBinaryProtocol import TBinaryProtocol
 
 from pyd2botService import Pyd2botService
+from pyd2botService.ttypes import *
 
 if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('')
@@ -25,7 +26,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('Functions:')
     print('   fetchCharacters(string token, int serverId)')
     print('   fetchUsedServers(string token)')
-    print('  void runSession(string token, Session sessionJson)')
+    print('  void runSession(string token, Session session)')
     print('   fetchBreedSpells(int breedId)')
     print('  string fetchJobsInfosJson()')
     print('')

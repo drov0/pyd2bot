@@ -6,7 +6,8 @@
 #  options string: py
 #
 
-from thrift.Thrift import TApplicationException, TMessageType, TType
+from thrift.Thrift import TType, TMessageType, TFrozenDict, TException, TApplicationException
+from thrift.protocol.TProtocol import TProtocolException
 from thrift.TRecursive import fix_spec
 
 import sys
@@ -25,6 +26,7 @@ class Iface(object):
          - serverId
 
         """
+        pass
 
     def fetchUsedServers(self, token):
         """
@@ -32,14 +34,16 @@ class Iface(object):
          - token
 
         """
+        pass
 
-    def runSession(self, token, sessionJson):
+    def runSession(self, token, session):
         """
         Parameters:
          - token
-         - sessionJson
+         - session
 
         """
+        pass
 
     def fetchBreedSpells(self, breedId):
         """
@@ -47,6 +51,7 @@ class Iface(object):
          - breedId
 
         """
+        pass
 
     def fetchJobsInfosJson(self):
         pass
@@ -129,21 +134,21 @@ class Client(Iface):
             raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchUsedServers failed: unknown result")
 
-    def runSession(self, token, sessionJson):
+    def runSession(self, token, session):
         """
         Parameters:
          - token
-         - sessionJson
+         - session
 
         """
-        self.send_runSession(token, sessionJson)
+        self.send_runSession(token, session)
         self.recv_runSession()
 
-    def send_runSession(self, token, sessionJson):
+    def send_runSession(self, token, session):
         self._oprot.writeMessageBegin('runSession', TMessageType.CALL, self._seqid)
         args = runSession_args()
         args.token = token
-        args.sessionJson = sessionJson
+        args.session = session
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
@@ -315,7 +320,7 @@ class Processor(Iface, TProcessor):
         iprot.readMessageEnd()
         result = runSession_result()
         try:
-            self._handler.runSession(args.token, args.sessionJson)
+            self._handler.runSession(args.token, args.session)
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
@@ -694,14 +699,14 @@ class runSession_args(object):
     """
     Attributes:
      - token
-     - sessionJson
+     - session
 
     """
 
 
-    def __init__(self, token=None, sessionJson=None,):
+    def __init__(self, token=None, session=None,):
         self.token = token
-        self.sessionJson = sessionJson
+        self.session = session
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -719,8 +724,8 @@ class runSession_args(object):
                     iprot.skip(ftype)
             elif fid == 6:
                 if ftype == TType.STRUCT:
-                    self.sessionJson = Session()
-                    self.sessionJson.read(iprot)
+                    self.session = Session()
+                    self.session.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -737,9 +742,9 @@ class runSession_args(object):
             oprot.writeFieldBegin('token', TType.STRING, 1)
             oprot.writeString(self.token.encode('utf-8') if sys.version_info[0] == 2 else self.token)
             oprot.writeFieldEnd()
-        if self.sessionJson is not None:
-            oprot.writeFieldBegin('sessionJson', TType.STRUCT, 6)
-            self.sessionJson.write(oprot)
+        if self.session is not None:
+            oprot.writeFieldBegin('session', TType.STRUCT, 6)
+            self.session.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -765,7 +770,7 @@ runSession_args.thrift_spec = (
     None,  # 3
     None,  # 4
     None,  # 5
-    (6, TType.STRUCT, 'sessionJson', [Session, None], None, ),  # 6
+    (6, TType.STRUCT, 'session', [Session, None], None, ),  # 6
 )
 
 

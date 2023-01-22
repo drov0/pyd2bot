@@ -6,7 +6,8 @@
 #  options string: py
 #
 
-from thrift.Thrift import TException, TType
+from thrift.Thrift import TType, TMessageType, TFrozenDict, TException, TApplicationException
+from thrift.protocol.TProtocol import TProtocolException
 from thrift.TRecursive import fix_spec
 
 import sys
@@ -184,8 +185,8 @@ class Server(object):
                 else:
                     iprot.skip(ftype)
             elif fid == 6:
-                if ftype == TType.I32:
-                    self.date = iprot.readI32()
+                if ftype == TType.DOUBLE:
+                    self.date = iprot.readDouble()
                 else:
                     iprot.skip(ftype)
             elif fid == 7:
@@ -229,8 +230,8 @@ class Server(object):
             oprot.writeI32(self.charactersSlots)
             oprot.writeFieldEnd()
         if self.date is not None:
-            oprot.writeFieldBegin('date', TType.I32, 6)
-            oprot.writeI32(self.date)
+            oprot.writeFieldBegin('date', TType.DOUBLE, 6)
+            oprot.writeDouble(self.date)
             oprot.writeFieldEnd()
         if self.isMonoAccount is not None:
             oprot.writeFieldBegin('isMonoAccount', TType.BOOL, 7)
@@ -740,7 +741,7 @@ Server.thrift_spec = (
     (3, TType.I32, 'completion', None, None, ),  # 3
     (4, TType.I32, 'charactersCount', None, None, ),  # 4
     (5, TType.I32, 'charactersSlots', None, None, ),  # 5
-    (6, TType.I32, 'date', None, None, ),  # 6
+    (6, TType.DOUBLE, 'date', None, None, ),  # 6
     (7, TType.BOOL, 'isMonoAccount', None, None, ),  # 7
     (8, TType.BOOL, 'isSelectable', None, None, ),  # 8
 )

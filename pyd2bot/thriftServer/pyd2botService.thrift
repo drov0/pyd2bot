@@ -11,7 +11,7 @@ struct Server {
     3: int completion,
     4: int charactersCount,
     5: int charactersSlots,
-    6: int date,
+    6: double date,
     7: bool isMonoAccount,
     8: bool isSelectable,
 }
