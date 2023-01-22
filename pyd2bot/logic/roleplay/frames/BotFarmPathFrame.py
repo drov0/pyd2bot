@@ -41,7 +41,7 @@ from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pyd2bot.apis.InventoryAPI import InventoryAPI
 from pyd2bot.apis.MoveAPI import MoveAPI
-from pyd2bot.logic.managers.SessionManager import SessionManager
+from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.frames.BotAutoTripFrame import BotAutoTripFrame
 from pyd2bot.logic.roleplay.frames.BotPartyFrame import BotPartyFrame
 from pyd2bot.logic.roleplay.messages.AutoTripEndedMessage import AutoTripEndedMessage
@@ -77,7 +77,7 @@ class BotFarmPathFrame(Frame):
 
     @property
     def farmPath(self):
-        return SessionManager().path
+        return BotConfig().path
 
     @property
     def priority(self) -> int:
@@ -245,7 +245,7 @@ class BotFarmPathFrame(Frame):
                 totalGrpLvl = infos.staticInfos.mainCreatureLightInfos.level + sum(
                     [ul.level for ul in infos.staticInfos.underlings]
                 )
-                if totalGrpLvl < SessionManager().monsterLvlCoefDiff * PlayedCharacterManager().limitedLevel:
+                if totalGrpLvl < BotConfig().monsterLvlCoefDiff * PlayedCharacterManager().limitedLevel:
                     monsterGroupPos = MapPoint.fromCellId(infos.disposition.cellId)
                     availableMonsterFights.append(
                         {"info": infos, "distance": currPlayerPos.distanceToCell(monsterGroupPos)}
@@ -271,7 +271,7 @@ class BotFarmPathFrame(Frame):
             BotEventsManager().add_listener(BotEventsManager.MEMBERS_READY, self.doFarm)
             return
         logger.debug("[BotFarmFrame] doFarm called")
-        if SessionManager().type == "fight" and not SessionManager().isLeader:
+        if BotConfig().type == "fight" and not BotConfig().isLeader:
             logger.warning("[BotFarmFrame] In fight mode only the leader can run a farm path")
             Kernel().getWorker().removeFrame(self)
             return
@@ -299,9 +299,9 @@ class BotFarmPathFrame(Frame):
         self._followinMonsterGroup = None
         self._followingIe = None
         self._lastCellId = PlayedCharacterManager().currentCellId
-        if SessionManager().type == 'fight':
+        if BotConfig().type == 'fight':
             self.attackMonsterGroup()
-        elif SessionManager().type == 'farm':
+        elif BotConfig().type == 'farm':
             self.collectResource()
         if self._followingIe is None and self._followinMonsterGroup is None:
             self.moveToNextStep()
@@ -316,13 +316,13 @@ class BotFarmPathFrame(Frame):
         minDist = float("inf")
         for it in self.interactivesFrame.collectables.values():
             if it.enabled:
-                if SessionManager().jobIds:
-                    if it.skill.parentJobId not in SessionManager().jobIds:
+                if BotConfig().jobIds:
+                    if it.skill.parentJobId not in BotConfig().jobIds:
                         continue
                     if PlayedCharacterManager().jobs[it.skill.parentJobId].jobLevel < it.skill.levelMin:
                         continue
-                    if SessionManager().resourceIds:
-                        if it.skill.gatheredRessource.id not in SessionManager().resourceIds:
+                    if BotConfig().resourceIds:
+                        if it.skill.gatheredRessource.id not in BotConfig().resourceIds:
                             continue
                 ie = self.interactivesFrame.interactives.get(it.id)
                 if not (self.interactivesFrame and self.interactivesFrame.usingInteractive):

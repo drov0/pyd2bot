@@ -1,7 +1,7 @@
-import json
 import threading
 from time import perf_counter, sleep
 from pyd2bot.apis.PlayerAPI import PlayerAPI
+from pyd2bot.thriftServer.pyd2botService.ttypes import Session
 from pydofus2.com.DofusClient import DofusClient
 from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import DisconnectionReasonEnum
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -19,7 +19,7 @@ class InactivityMonitor(threading.Thread):
     def __init__(self, name="InactivityMonitor", group=None):
         super().__init__(name=name)
         self.lastActivity = perf_counter()
-        self.maxInactivityInterval = 60 * 60 * 2 if SessionManager().type == SessionTypeEnum.SELL else 60 * 15
+        self.maxInactivityInterval = 60 * 60 * 2 if BotConfig().type == SessionTypeEnum.SELL else 60 * 15
         self.lastStatus = "disconnected"
         self.stop = threading.Event()
         self.group = group
@@ -37,7 +37,7 @@ class InactivityMonitor(threading.Thread):
             sleep(1)
         logger.info("Inactivity monitor stopped")
             
-class SessionManager(metaclass=Singleton):
+class BotConfig(metaclass=Singleton):
 
     def __init__(self) -> None:
         self.character = None
@@ -51,12 +51,11 @@ class SessionManager(metaclass=Singleton):
         self.type = None
         self.seller = None
         self.unloadType = None
-        self.key = None
         
-        
-    def load(self, sessionstr: str):
-        sessionJson = json.loads(sessionstr)
-        self.key = sessionJson.get("key")
+    def initFromSession(session: Session, character):
+        pass
+    def loadFromJson(self, sessionJson: dict):
+        self.id = sessionJson.get("id")
         self.type = sessionJson.get("type")
         self.character = sessionJson.get("character")
         self.unloadType = sessionJson.get("unloadType")
@@ -67,15 +66,15 @@ class SessionManager(metaclass=Singleton):
             self.resourceIds = sessionJson.get("resourceIds")
         elif self.type == SessionTypeEnum.FIGHT:
             self.followers : list[str] = sessionJson.get("followers")
-            self.party = True
+            self.monsterLvlCoefDiff = float(sessionJson.get("monsterLvlCoefDiff"))
             if self.followers is not None:
-                self.monsterLvlCoefDiff = float(sessionJson.get("monsterLvlCoefDiff"))
+                self.party = True
                 self.isLeader = True
-                self.path = sessionJson.get("path")
                 logger.info(f"Running path {self.path}")
             else:
                 self.isLeader = False
                 self.leader : int = sessionJson.get("leader")
+        self.path = sessionJson.get("path")
         if self.path:
             self.path = PathManager.from_json(sessionJson["path"])
 

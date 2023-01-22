@@ -44,7 +44,6 @@ class PyD2Bot(metaclass=Singleton):
         self._stop.clear()
         self.serverTransport = TServerSocket(host=self.host, port=self.port)
         self.logger.info(f"[Server - {self.id}] Threads started")
-        # Pump the socket for clients
         self.serverTransport.listen()
         self.logger.info(f"[Server - {self.id}] Started listening on {self.host}:{self.port}")
         while not self._stop.is_set():
@@ -77,20 +76,14 @@ class PyD2Bot(metaclass=Singleton):
         raise Exception("Can't connect to server")
         
     def serveClient(self, client: TSocket):
-        """Process input/output from a client for as long as possible"""
         itrans = self.inputTransportFactory.getTransport(client)
         iprot = self.inputProtocolFactory.getProtocol(itrans)
-
-        # for THeaderProtocol, we must use the same protocol instance for input
-        # and output so that the response is in the same dialect that the
-        # server detected the request was in.
         if isinstance(self.inputProtocolFactory, THeaderProtocolFactory):
             otrans = None
             oprot = iprot
         else:
             otrans = self.outputTransportFactory.getTransport(client)
             oprot = self.outputProtocolFactory.getProtocol(otrans)
-
         try:
             while not self._stop.is_set():
                 self.processor.process(iprot, oprot)
@@ -98,7 +91,6 @@ class PyD2Bot(metaclass=Singleton):
             pass
         except Exception as x:
             self.logger.exception(x)
-
         itrans.close()
         if otrans:
             otrans.close()

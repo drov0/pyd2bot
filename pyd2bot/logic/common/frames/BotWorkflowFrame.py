@@ -20,7 +20,7 @@ from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 from pyd2bot.apis.InventoryAPI import InventoryAPI
 from pyd2bot.logic.fight.frames.BotFightFrame import BotFightFrame
-from pyd2bot.logic.managers.SessionManager import SessionManager
+from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.frames.BotFarmPathFrame import BotFarmPathFrame
 from pyd2bot.logic.roleplay.frames.BotPhenixAutoRevive import BotPhenixAutoRevive
 from pyd2bot.logic.roleplay.frames.BotUnloadInBankFrame import BotUnloadInBankFrame
@@ -50,16 +50,16 @@ class BotWorkflowFrame(Frame):
         return Priority.VERY_LOW
 
     def triggerUnload(self):
-        if SessionManager().path and Kernel().getWorker().getFrame("BotFarmPathFrame"):
+        if BotConfig().path and Kernel().getWorker().getFrame("BotFarmPathFrame"):
             Kernel().getWorker().removeFrameByName("BotFarmPathFrame")
-        if SessionManager().party and Kernel().getWorker().getFrame("BotPartyFrame"):
+        if BotConfig().party and Kernel().getWorker().getFrame("BotPartyFrame"):
             Kernel().getWorker().removeFrameByName("BotPartyFrame")
         self._inAutoUnload = True
         logger.warn(f"Inventory is almost full {InventoryAPI.getWeightPercent()}, will trigger auto bank unload...")
-        if SessionManager().unloadType == "bank":
+        if BotConfig().unloadType == "bank":
             Kernel().getWorker().addFrame(BotUnloadInBankFrame(True))
-        elif SessionManager().unloadType == "seller":
-            Kernel().getWorker().addFrame(BotUnloadInSellerFrame(SessionManager().seller, True))
+        elif BotConfig().unloadType == "seller":
+            Kernel().getWorker().addFrame(BotUnloadInSellerFrame(BotConfig().seller, True))
 
     def process(self, msg: Message) -> bool:
 
@@ -72,12 +72,12 @@ class BotWorkflowFrame(Frame):
                 return True
             if not self._inAutoUnload and not self._inPhenixAutoRevive:
                 if self.currentContext == GameContextEnum.ROLE_PLAY:
-                    if SessionManager().party and not Kernel().getWorker().contains("BotPartyFrame"):
+                    if BotConfig().party and not Kernel().getWorker().contains("BotPartyFrame"):
                         Kernel().getWorker().addFrame(BotPartyFrame())
-                    if SessionManager().path and not Kernel().getWorker().contains("BotFarmPathFrame"):
+                    if BotConfig().path and not Kernel().getWorker().contains("BotFarmPathFrame"):
                         Kernel().getWorker().addFrame(BotFarmPathFrame(True))
                 elif self.currentContext == GameContextEnum.FIGHT:
-                    if SessionManager().party and not Kernel().getWorker().contains("BotPartyFrame"):
+                    if BotConfig().party and not Kernel().getWorker().contains("BotPartyFrame"):
                         Kernel().getWorker().addFrame(BotPartyFrame())
                     Kernel().getWorker().addFrame(BotFightFrame())
             return True
@@ -107,9 +107,9 @@ class BotWorkflowFrame(Frame):
 
         elif isinstance(msg, (BankUnloadEndedMessage, SellerCollectedGuestItemsMessage)):
             self._inAutoUnload = False
-            if SessionManager().path and not Kernel().getWorker().contains("BotFarmPathFrame"):
+            if BotConfig().path and not Kernel().getWorker().contains("BotFarmPathFrame"):
                 Kernel().getWorker().addFrame(BotFarmPathFrame(True))
-            if SessionManager().party and not Kernel().getWorker().contains("BotPartyFrame"):
+            if BotConfig().party and not Kernel().getWorker().contains("BotPartyFrame"):
                 Kernel().getWorker().addFrame(BotPartyFrame())
 
         elif (
@@ -135,7 +135,7 @@ class BotWorkflowFrame(Frame):
             self._inPhenixAutoRevive = False
             if Kernel().getWorker().contains("BotPhenixAutoRevive"):
                 Kernel().getWorker().removeFrameByName("BotPhenixAutoRevive")
-            if SessionManager().path:
+            if BotConfig().path:
                 if not Kernel().getWorker().contains("BotFarmPathFrame"):
                     Kernel().getWorker().addFrame(BotFarmPathFrame(True))
             return True

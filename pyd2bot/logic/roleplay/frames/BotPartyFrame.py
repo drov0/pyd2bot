@@ -67,7 +67,7 @@ from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 from pyd2bot.apis.MoveAPI import MoveAPI
-from pyd2bot.logic.managers.SessionManager import SessionManager
+from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.frames.BotAutoTripFrame import BotAutoTripFrame
 from pyd2bot.logic.roleplay.messages.AutoTripEndedMessage import AutoTripEndedMessage
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
@@ -128,15 +128,15 @@ class BotPartyFrame(Frame):
 
     @property
     def isLeader(self):
-        return SessionManager().isLeader
+        return BotConfig().isLeader
 
     @property
     def followers(self):
-        return SessionManager().followers
+        return BotConfig().followers
 
     @property
     def leaderName(self):
-        return SessionManager().character["name"] if self.isLeader else SessionManager().leader["name"]
+        return BotConfig().character["name"] if self.isLeader else BotConfig().leader["name"]
 
     @property
     def priority(self) -> int:
@@ -156,7 +156,7 @@ class BotPartyFrame(Frame):
     
     @property
     def leader(self) -> dict:
-        return SessionManager().leader
+        return BotConfig().leader
     
     @property
     def allMembersOnSameMap(self):

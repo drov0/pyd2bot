@@ -19,7 +19,7 @@ from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 from pydofus2.damageCalculation.tools.StatIds import StatIds
-from pyd2bot.logic.managers.SessionManager import SessionManager
+from pyd2bot.logic.managers.BotConfig import BotConfig
 
 logger = Logger()
 
@@ -98,17 +98,17 @@ class BotCharacterUpdatesFrame(Frame):
 
         elif isinstance(msg, CharacterLevelUpMessage):
             clumsg = msg
-            if SessionManager().character["primaryStatId"]:
+            if BotConfig().character["primaryStatId"]:
                 previousLevel = PlayedCharacterManager().infos.level
                 PlayedCharacterManager().infos.level = clumsg.newLevel
                 pointsEarned = (clumsg.newLevel - previousLevel) * 5
-                self.boostStat(SessionManager().character["primaryStatId"], pointsEarned)
+                self.boostStat(BotConfig().character["primaryStatId"], pointsEarned)
             return True
 
         elif isinstance(msg, CharacterStatsListMessage):
             if not self._statsInitialized:
                 unusedStatPoints = PlayedCharacterManager().stats.getStatBaseValue(StatIds.STATS_POINTS)
                 if unusedStatPoints > 0:
-                    self.boostStat(SessionManager().character["primaryStatId"], unusedStatPoints)
+                    self.boostStat(BotConfig().character["primaryStatId"], unusedStatPoints)
                 self._statsInitialized = True
             return True

@@ -59,7 +59,7 @@ from pydofus2.com.ankamagames.jerakine.types.zones.Lozenge import Lozenge
 from pydofus2.com.ankamagames.jerakine.utils.display.spellZone.SpellShapeEnum import SpellShapeEnum
 from pydofus2.damageCalculation.tools.StatIds import StatIds
 from pyd2bot.logic.fight.frames.BotFightTurnFrame import BotFightTurnFrame
-from pyd2bot.logic.managers.SessionManager import SessionManager
+from pyd2bot.logic.managers.BotConfig import BotConfig
 
 if TYPE_CHECKING:
     from pydofus2.com.ankamagames.dofus.logic.game.fight.frames.FightBattleFrame import FightBattleFrame
@@ -117,7 +117,7 @@ class BotFightFrame(Frame):
         self._turnAction = []
         self._spellw = None
         self._botTurnFrame = BotFightTurnFrame()
-        self.spellId = SessionManager().character["primarySpellId"]
+        self.spellId = BotConfig().character["primarySpellId"]
         self._spellCastFails = 0
         self._inFight = False
         super().__init__()
@@ -229,9 +229,8 @@ class BotFightFrame(Frame):
                 return
         if self.VERBOSE:
             logger.info(f"[FightAlgo] MP : {self.movementPoints}, AP : {self.actionPoints}")
-            logger.info(f"[FightAlgo] Current atack spell : {self.spellw.spell.name}")
+            logger.info(f"[FightAlgo] Current attack spell : {self.spellw.spell.name}")
         self.updateReachableCells()
-        # logger.info(f"[FightAlgo] Current reachable cells {self._reachableCells}")
         target, path = self.findPathToTarget(self.spellw, targets)
         if target is not None:
             if len(path) == 0:
@@ -345,19 +344,17 @@ class BotFightFrame(Frame):
         if CurrentPlayedFighterManager().canCastThisSpell(self.spellId, spellw.spellLevel, targetId, reason):
             return True
         else:
-            # if self.VERBOSE:
-            #     logger.error(f"[FightBot] Unable to cast spell for reason {reason[0]}")
             return False
 
     def process(self, msg: Message) -> bool:
 
         if isinstance(msg, GameFightJoinMessage):
             logger.debug(f"****************** Joined fight ******************************************")
-            SessionManager().lastFightTime = perf_counter()
+            BotConfig().lastFightTime = perf_counter()
             self._fightCount += 1
             self._spellCastFails = 0
             self._inFight = True
-            if SessionManager().isLeader and not self._fightOptionsSent:
+            if BotConfig().isLeader and not self._fightOptionsSent:
                 gfotmsg = GameFightOptionToggleMessage()
                 gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_SECRET)
                 ConnectionsHandler().getConnection().send(gfotmsg)
@@ -378,7 +375,6 @@ class BotFightFrame(Frame):
                 self.turnEnd()
                 return True
             self._spellCastFails += 1
-            # self._tryWithLessRangeOf += 2
             self.playTurn()
             return True
 
@@ -391,12 +387,10 @@ class BotFightFrame(Frame):
             return False
 
         elif isinstance(msg, GameFightShowFighterMessage):
-            # when a fighter is added to the fight
             msg.informations.contextualId
             self._turnPlayed = 0
             self._myTurn = False
             if self.partyFrame and self.partyFrame.isLeader:
-                # if bot is in fight and in a prrty and is the leader, check if all party members are in fight
                 for memberId in self.partyFrame.partyMembers:
                     if not self.entitiesFrame.getEntityInfos(memberId):
                         return True

@@ -2,7 +2,7 @@ from enum import Enum
 import json
 import threading
 from time import sleep
-from pyd2bot.logic.managers.SessionManager import SessionManager
+from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.frames.BotExchangeFrame import BotExchangeFrame, ExchangeDirectionEnum
 from pyd2bot.logic.roleplay.messages.ExchangeConcludedMessage import ExchangeConcludedMessage
 from pyd2bot.logic.roleplay.messages.SellerCollectedGuestItemsMessage import SellerCollectedGuestItemsMessage
@@ -97,7 +97,7 @@ class BotUnloadInSellerFrame(Frame):
             sellerStatus = client.getStatus()
             logger.debug("Seller status: %s", sellerStatus)
             if sellerStatus == "idle":
-                client.comeToBankToCollectResources(json.dumps(self.bankInfos.to_json()), json.dumps(SessionManager().character))
+                client.comeToBankToCollectResources(json.dumps(self.bankInfos.to_json()), json.dumps(BotConfig().character))
                 if currentMapId != self.bankInfos.npcMapId:
                     Kernel().getWorker().addFrame(BotAutoTripFrame(self.bankInfos.npcMapId))
                     self.state = UnloadInSellerStatesEnum.WALKING_TO_BANK
