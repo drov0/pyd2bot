@@ -20,7 +20,7 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager 
     InventoryManager,
 )
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.DofusClient import DofusClient
+from pydofus2.com.DofusClient import DofusClientThread
 import sys
 import traceback
 import functools
@@ -58,7 +58,7 @@ class Pyd2botServer:
             GameServerInformations,
         )
         self.logger.debug("fetchUsedServers called with token: " + token)
-        DofusClient().login(token)
+        DofusClientThread().login(token)
         servers: dict[str, list[GameServerInformations]] = KernelEventsManager().wait(KernelEvts.SERVERS_LIST, 60)
         self.logger.info(f"list servers: {[s.to_json() for s in servers['used']]}")
         result = [
@@ -74,7 +74,7 @@ class Pyd2botServer:
             )
             for server in servers["used"]
         ]
-        DofusClient().shutdown()
+        DofusClientThread().shutdown()
         return result
 
     @sendTrace
@@ -85,7 +85,7 @@ class Pyd2botServer:
         )
 
         result = list()
-        DofusClient().login(token, serverId)
+        DofusClientThread().login(token, serverId)
         charactersList: list[BasicCharacterWrapper] = KernelEventsManager().wait(KernelEvts.CHARACTERS_LIST, 60)
         if charactersList is None:
             raise Exception("Timeout!")
@@ -101,18 +101,18 @@ class Pyd2botServer:
             )
             for character in charactersList
         ]
-        DofusClient().shutdown()
+        DofusClientThread().shutdown()
         return result
 
     @sendTrace
     def runSession(self, token: str, session: Session) -> None:
         if session.type == SessionType.FIGHT:
             BotConfig().initFromSession(session, "leader")
-            DofusClient().registerInitFrame(BotWorkflowFrame)
-            DofusClient().registerGameStartFrame(BotCharacterUpdatesFrame)
+            DofusClientThread().registerInitFrame(BotWorkflowFrame)
+            DofusClientThread().registerGameStartFrame(BotCharacterUpdatesFrame)
             serverId = session.leader.serverId
             characId = session.leader.id
-            DofusClient().login(token, serverId, characId)
+            DofusClientThread().login(token, serverId, characId)
             for character in session.followers:
                 BotConfig().initFromSession(session, "follower", character)
         else:

@@ -2,7 +2,7 @@ import threading
 from time import perf_counter, sleep
 from pyd2bot.apis.PlayerAPI import PlayerAPI
 from pyd2bot.thriftServer.pyd2botService.ttypes import Session
-from pydofus2.com.DofusClient import DofusClient
+from pydofus2.com.DofusClient import DofusClientThread
 from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import DisconnectionReasonEnum
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
@@ -30,7 +30,7 @@ class InactivityMonitor(threading.Thread):
             if status != self.lastStatus:
                 self.lastActivity = perf_counter()
             elif perf_counter() - self.lastActivity > self.maxInactivityInterval:
-                DofusClient().shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, "Fatal Error bot stayed inactive for too long")
+                DofusClientThread().shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, "Fatal Error bot stayed inactive for too long")
                 self.stop.set()
                 return 1
             self.lastStatus = status

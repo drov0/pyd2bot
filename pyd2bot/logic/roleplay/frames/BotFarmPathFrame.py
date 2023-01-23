@@ -1,7 +1,7 @@
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from typing import TYPE_CHECKING
 from pyd2bot.apis.PlayerAPI import PlayerAPI
-from pydofus2.com.DofusClient import DofusClient
+from pydofus2.com.DofusClient import DofusClientThread
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
 from pydofus2.com.ankamagames.dofus.datacenter.notifications.Notification import Notification
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -179,7 +179,7 @@ class BotFarmPathFrame(Frame):
             return True
 
         elif isinstance(msg, (MapMoveFailed, MapChangeFailedMessage, MovementRequestTimeoutMessage)):
-            DofusClient().restart()
+            DofusClientThread().restart()
 
         elif isinstance(msg, FightRequestFailed):
             self._followinMonsterGroup = None
