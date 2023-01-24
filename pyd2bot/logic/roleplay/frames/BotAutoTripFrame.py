@@ -35,7 +35,7 @@ class BotAutoTripFrame(Frame):
         self.path = None
         self.changeMapFails = dict()
         self._computed = False
-        self._worker = Kernel().getWorker()
+        self._worker = Kernel().worker
         super().__init__()
 
     @property
@@ -50,7 +50,7 @@ class BotAutoTripFrame(Frame):
 
     def pushed(self) -> bool:
         logger.debug("Auto trip frame pushed")
-        self._worker = Kernel().getWorker()
+        self._worker = Kernel().worker
         self._computed = False
         self.changeMapFails.clear()
         self.path = None
@@ -93,8 +93,8 @@ class BotAutoTripFrame(Frame):
             logger.debug(f"Player current mapId {currMapId} and dst mapId {dstMapId}")
             if currMapId == dstMapId:
                 logger.debug(f"Trip reached destination Map : {dstMapId}")
-                Kernel().getWorker().removeFrame(self)
-                Kernel().getWorker().processImmediately(AutoTripEndedMessage(self.dstMapId))
+                Kernel().worker.removeFrame(self)
+                Kernel().worker.processImmediately(AutoTripEndedMessage(self.dstMapId))
                 return True
             logger.debug(f"Current step index: {self.currentEdgeIndex + 1}/{len(self.path)}")
             e = self.path[self.currentEdgeIndex]
@@ -114,12 +114,12 @@ class BotAutoTripFrame(Frame):
                 path = arg
                 break
         if path is None:
-            Kernel().getWorker().removeFrame(self)
-            Kernel().getWorker().process(AutoTripEndedMessage(None))
+            Kernel().worker.removeFrame(self)
+            Kernel().worker.process(AutoTripEndedMessage(None))
             return True
         if len(path) == 0:
-            Kernel().getWorker().removeFrame(self)
-            Kernel().getWorker().process(AutoTripEndedMessage(self.dstMapId))
+            Kernel().worker.removeFrame(self)
+            Kernel().worker.process(AutoTripEndedMessage(self.dstMapId))
             return True
         logger.debug(f"\nPath found: ")
         for e in path:

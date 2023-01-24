@@ -55,7 +55,7 @@ class MoveAPI:
         randTransition = random.choice(transitions)
         if randTransition.skillId > 0:
             rplInteractivesFrame: "RoleplayInteractivesFrame" = (
-                Kernel().getWorker().getFrame("RoleplayInteractivesFrame")
+                Kernel().worker.getFrame("RoleplayInteractivesFrame")
             )
             ie = rplInteractivesFrame.interactives.get(randTransition.id)
             if ie is None:
@@ -97,14 +97,14 @@ class MoveAPI:
         msg: AdjacentMapClickMessage = AdjacentMapClickMessage()
         msg.cellId = cellId
         msg.adjacentMapId = mapId
-        Kernel().getWorker().process(msg)
+        Kernel().worker.process(msg)
 
     @classmethod
     def sendCellClickMsg(cls, mapId: float, cellId: int) -> None:
         msg: CellClickMessage = CellClickMessage()
         msg.cellId = cellId
         msg.id = mapId
-        Kernel().getWorker().process(msg)
+        Kernel().worker.process(msg)
 
     @classmethod
     def changeMapToDstMapdId(cls, destMapId: int, discard=[]) -> None:
@@ -123,7 +123,7 @@ class MoveAPI:
 
     @classmethod
     def getTransitionIe(cls, transition: Transition) -> "InteractiveElementData":
-        rpframe: "RoleplayInteractivesFrame" = Kernel().getWorker().getFrame("RoleplayInteractivesFrame")
+        rpframe: "RoleplayInteractivesFrame" = Kernel().worker.getFrame("RoleplayInteractivesFrame")
         if not rpframe:
             BenchmarkTimer(1, cls.getTransitionIe, [transition]).start()
             return
@@ -157,7 +157,7 @@ class MoveAPI:
                         break
                     sleep(0.2)
                 logger.debug(f"[RolePlayMovement] InteractiveElement found: '{ie.element.elementId}' after retry")
-            rpmframe: "RoleplayMovementFrame" = Kernel().getWorker().getFrame("RoleplayMovementFrame")
+            rpmframe: "RoleplayMovementFrame" = Kernel().worker.getFrame("RoleplayMovementFrame")
             if tr.cell != PlayedCharacterManager().entity.position.cellId:
                 rpmframe.setFollowingInteraction(
                     {

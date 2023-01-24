@@ -60,10 +60,10 @@ class BotSellerCollectFrame(Frame):
     def goToBank(self):
         currentMapId = PlayedCharacterManager().currentMap.mapId
         if currentMapId != self.bankInfos.npcMapId:
-            Kernel().getWorker().addFrame(BotAutoTripFrame(self.bankInfos.npcMapId))
+            Kernel().worker.addFrame(BotAutoTripFrame(self.bankInfos.npcMapId))
         else:
             self.state = SellerCollecteStateEnum.INSIDE_BANK
-            Kernel().getWorker().addFrame(BotExchangeFrame(ExchangeDirectionEnum.RECEIVE, self.guest, self.items))
+            Kernel().worker.addFrame(BotExchangeFrame(ExchangeDirectionEnum.RECEIVE, self.guest, self.items))
             self.state = SellerCollecteStateEnum.EXCHANGING_WITH_GUEST
             
     def process(self, msg: Message) -> bool:
@@ -72,7 +72,7 @@ class BotSellerCollectFrame(Frame):
             logger.debug("AutoTripEndedMessage received")
             if self.state == SellerCollecteStateEnum.GOING_TO_BANK:
                 self.state = SellerCollecteStateEnum.INSIDE_BANK
-                Kernel().getWorker().addFrame(BotExchangeFrame(ExchangeDirectionEnum.RECEIVE, self.guest, self.items))
+                Kernel().worker.addFrame(BotExchangeFrame(ExchangeDirectionEnum.RECEIVE, self.guest, self.items))
                 self.state = SellerCollecteStateEnum.EXCHANGING_WITH_GUEST
             return True
 
@@ -85,11 +85,11 @@ class BotSellerCollectFrame(Frame):
         elif isinstance(msg, ExchangeConcludedMessage):
             logger.debug("Exchange with guest ended successfully")
             self.state = SellerCollecteStateEnum.UNLOADING_IN_BANK
-            Kernel().getWorker().addFrame(BotBankInteractionFrame(self.bankInfos))
+            Kernel().worker.addFrame(BotBankInteractionFrame(self.bankInfos))
         
         elif isinstance(msg, BankInteractionEndedMessage):
             logger.debug("BankInteractionEndedMessage received")
-            Kernel().getWorker().processImmediately(SellerCollectedGuestItemsMessage())
-            Kernel().getWorker().removeFrame(self)
+            Kernel().worker.processImmediately(SellerCollectedGuestItemsMessage())
+            Kernel().worker.removeFrame(self)
 
  

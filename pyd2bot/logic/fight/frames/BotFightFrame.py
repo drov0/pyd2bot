@@ -135,32 +135,32 @@ class BotFightFrame(Frame):
         self._repeatActionTimeout = None
         self._spellCastFails = 0
         self._fightOptionsSent = False
-        Kernel().getWorker().addFrame(self._botTurnFrame)
+        Kernel().worker.addFrame(self._botTurnFrame)
         return True
 
     @property
     def turnFrame(self) -> "FightTurnFrame":
-        return Kernel().getWorker().getFrame("FightTurnFrame")
+        return Kernel().worker.getFrame("FightTurnFrame")
 
     @property
     def fightContextFrame(self) -> "FightContextFrame":
-        return Kernel().getWorker().getFrame("FightContextFrame")
+        return Kernel().worker.getFrame("FightContextFrame")
 
     @property
     def entitiesFrame(self) -> "FightEntitiesFrame":
-        return Kernel().getWorker().getFrame("FightEntitiesFrame")
+        return Kernel().worker.getFrame("FightEntitiesFrame")
 
     @property
     def spellFrame(self) -> "FightSpellCastFrame":
-        return Kernel().getWorker().getFrame("FightSpellCastFrame")
+        return Kernel().worker.getFrame("FightSpellCastFrame")
 
     @property
     def battleFrame(self) -> "FightBattleFrame":
-        return Kernel().getWorker().getFrame("FightBattleFrame")
+        return Kernel().worker.getFrame("FightBattleFrame")
 
     @property
     def partyFrame(self) -> "BotPartyFrame":
-        return Kernel().getWorker().getFrame("BotPartyFrame")
+        return Kernel().worker.getFrame("BotPartyFrame")
 
     def pulled(self) -> bool:
         self._enabled = False
@@ -168,7 +168,7 @@ class BotFightFrame(Frame):
         if self._reachableCells:
             self._reachableCells.clear()
         self._turnAction.clear()
-        Kernel().getWorker().removeFrame(self._botTurnFrame)
+        Kernel().worker.removeFrame(self._botTurnFrame)
         return True
 
     @property
@@ -494,7 +494,7 @@ class BotFightFrame(Frame):
         if not self._myTurn:
             logger.warn("[FightBot] Wants to move when it's not its turn yet.")
             return False
-        fightTurnFrame: "FightTurnFrame" = Kernel().getWorker().getFrame("FightTurnFrame")
+        fightTurnFrame: "FightTurnFrame" = Kernel().worker.getFrame("FightTurnFrame")
         if not fightTurnFrame:
             logger.warn("[FightBot] Wants to move inside fight but 'FightTurnFrame' not found in kernel.")
             return False

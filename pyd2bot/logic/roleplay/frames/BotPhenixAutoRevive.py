@@ -39,7 +39,7 @@ class BotPhenixAutoRevive(Frame):
         self._waitingForMapData = False
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_PHANTOM:
             self.phenixMapId = Localizer.getPhenixMapId()
-            Kernel().getWorker().addFrame(BotAutoTripFrame(self.phenixMapId))
+            Kernel().worker.addFrame(BotAutoTripFrame(self.phenixMapId))
         elif PlayedCharacterManager().state == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
             self.releaseSoul()
         return True
@@ -63,18 +63,18 @@ class BotPhenixAutoRevive(Frame):
                 self._waitingForMapData = True
             else:
                 logger.info("Player is not in phantom state will renmove the phenix frame")
-                Kernel().getWorker().removeFrame(self)
+                Kernel().worker.removeFrame(self)
             return False
 
         elif isinstance(msg, MapComplementaryInformationsDataMessage):
             if self._waitingForMapData:
                 self.phenixMapId = Localizer.getPhenixMapId()
-                Kernel().getWorker().addFrame(BotAutoTripFrame(self.phenixMapId))
+                Kernel().worker.addFrame(BotAutoTripFrame(self.phenixMapId))
                 self._waitingForMapData = False
             return False
 
     def clickOnPhenix(self):
-        interactives: "RoleplayInteractivesFrame" = Kernel().getWorker().getFrame("RoleplayInteractivesFrame")
+        interactives: "RoleplayInteractivesFrame" = Kernel().worker.getFrame("RoleplayInteractivesFrame")
         if interactives:
             reviveSkill = interactives.getReviveIe()
             interactives.skillClicked(reviveSkill)

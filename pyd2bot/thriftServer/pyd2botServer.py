@@ -20,7 +20,7 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager 
     InventoryManager,
 )
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.DofusClient import DofusClientThread
+from pydofus2.com.DofusClient import DofusClient
 import sys
 import traceback
 import functools
@@ -58,7 +58,7 @@ class Pyd2botServer:
             GameServerInformations,
         )
         self.logger.debug("fetchUsedServers called with token: " + token)
-        DofusClientThread().login(token)
+        DofusClient().login(token)
         servers: dict[str, list[GameServerInformations]] = KernelEventsManager().wait(KernelEvts.SERVERS_LIST, 60)
         self.logger.info(f"list servers: {[s.to_json() for s in servers['used']]}")
         result = [
@@ -74,7 +74,7 @@ class Pyd2botServer:
             )
             for server in servers["used"]
         ]
-        DofusClientThread().shutdown()
+        DofusClient().shutdown()
         return result
 
     @sendTrace
@@ -85,7 +85,7 @@ class Pyd2botServer:
         )
 
         result = list()
-        DofusClientThread().login(token, serverId)
+        DofusClient().login(token, serverId)
         charactersList: list[BasicCharacterWrapper] = KernelEventsManager().wait(KernelEvts.CHARACTERS_LIST, 60)
         if charactersList is None:
             raise Exception("Timeout!")
@@ -101,18 +101,18 @@ class Pyd2botServer:
             )
             for character in charactersList
         ]
-        DofusClientThread().shutdown()
+        DofusClient().shutdown()
         return result
 
     @sendTrace
     def runSession(self, token: str, session: Session) -> None:
         if session.type == SessionType.FIGHT:
             BotConfig().initFromSession(session, "leader")
-            DofusClientThread().registerInitFrame(BotWorkflowFrame)
-            DofusClientThread().registerGameStartFrame(BotCharacterUpdatesFrame)
+            DofusClient().registerInitFrame(BotWorkflowFrame)
+            DofusClient().registerGameStartFrame(BotCharacterUpdatesFrame)
             serverId = session.leader.serverId
             characId = session.leader.id
-            DofusClientThread().login(token, serverId, characId)
+            DofusClient().login(token, serverId, characId)
             for character in session.followers:
                 BotConfig().initFromSession(session, "follower", character)
         else:
@@ -158,7 +158,7 @@ class Pyd2botServer:
 
         v = Vertex(**json.loads(vertex))
         self.logger.debug(f"Leader pos given, leader in vertex {v}.")
-        Kernel().getWorker().process(LeaderPosMessage(v))
+        Kernel().worker.process(LeaderPosMessage(v))
 
     def followTransition(self, transition: str):
         from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import (
@@ -167,7 +167,7 @@ class Pyd2botServer:
         from pyd2bot.logic.roleplay.messages.LeaderTransitionMessage import LeaderTransitionMessage
 
         tr = Transition(**json.loads(transition))
-        Kernel().getWorker().process(LeaderTransitionMessage(tr))
+        Kernel().worker.process(LeaderTransitionMessage(tr))
         print("LeaderTransitionMessage processed")
 
     def getStatus(self) -> str:
@@ -184,7 +184,7 @@ class Pyd2botServer:
         with lock:
             bankInfos = BankInfos(**json.loads(bankInfos))
             guestInfos = json.loads(guestInfos)
-            Kernel().getWorker().addFrame(BotSellerCollectFrame(bankInfos, guestInfos))
+            Kernel().worker.addFrame(BotSellerCollectFrame(bankInfos, guestInfos))
 
     def getCurrentVertex(self) -> str:
         from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import (

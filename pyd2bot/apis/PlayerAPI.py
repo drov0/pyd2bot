@@ -25,11 +25,11 @@ if TYPE_CHECKING:
 class PlayerAPI:
     @staticmethod
     def status() -> str:
-        bpframe: "BotPartyFrame" = Kernel().getWorker().getFrame("BotPartyFrame")
-        mvframe: "RoleplayMovementFrame" = Kernel().getWorker().getFrame("RoleplayMovementFrame")
-        iframe: "RoleplayInteractivesFrame" = Kernel().getWorker().getFrame("RoleplayInteractivesFrame")
-        rpeframe: "RoleplayEntitiesFrame" = Kernel().getWorker().getFrame("RoleplayEntitiesFrame")
-        bfpf: "BotFarmPathFrame" = Kernel().getWorker().getFrame("BotFarmPathFrame")
+        bpframe: "BotPartyFrame" = Kernel().worker.getFrame("BotPartyFrame")
+        mvframe: "RoleplayMovementFrame" = Kernel().worker.getFrame("RoleplayMovementFrame")
+        iframe: "RoleplayInteractivesFrame" = Kernel().worker.getFrame("RoleplayInteractivesFrame")
+        rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrame("RoleplayEntitiesFrame")
+        bfpf: "BotFarmPathFrame" = Kernel().worker.getFrame("BotFarmPathFrame")
         if MapDisplayManager().currentDataMap is None:
             status = "loadingMap"
         elif rpeframe and not rpeframe.mcidm_processessed:
@@ -40,18 +40,18 @@ class PlayerAPI:
             status = f"inTransition:{bpframe.followingLeaderTransition}"
         elif bpframe and bpframe.joiningLeaderVertex is not None:
             status = f"joiningLeaderVertex:{bpframe.joiningLeaderVertex}"
-        elif Kernel().getWorker().getFrame("BotSellerCollectFrame"):
-            f: "BotSellerCollectFrame" = Kernel().getWorker().getFrame("BotSellerCollectFrame")
+        elif Kernel().worker.getFrame("BotSellerCollectFrame"):
+            f: "BotSellerCollectFrame" = Kernel().worker.getFrame("BotSellerCollectFrame")
             status = "collectingSellerItems:" + f.state.name
-        elif Kernel().getWorker().getFrame("BotUnloadInBankFrame"):
-            f: "BotUnloadInBankFrame" = Kernel().getWorker().getFrame("BotUnloadInBankFrame")
+        elif Kernel().worker.getFrame("BotUnloadInBankFrame"):
+            f: "BotUnloadInBankFrame" = Kernel().worker.getFrame("BotUnloadInBankFrame")
             status = "inBankAutoUnload:" + f.state.name
-        elif Kernel().getWorker().getFrame("BotUnloadInSellerFrame"):
-            f: "BotUnloadInSellerFrame" = Kernel().getWorker().getFrame("BotUnloadInSellerFrame")
+        elif Kernel().worker.getFrame("BotUnloadInSellerFrame"):
+            f: "BotUnloadInSellerFrame" = Kernel().worker.getFrame("BotUnloadInSellerFrame")
             status = "inSellerAutoUnload:" + f.state.name
-        elif Kernel().getWorker().getFrame("BotPhenixAutoRevive"):
+        elif Kernel().worker.getFrame("BotPhenixAutoRevive"):
             status = "inPhenixAutoRevive"
-        elif Kernel().getWorker().getFrame("BotAutoTripFrame"):
+        elif Kernel().worker.getFrame("BotAutoTripFrame"):
             status = "inAutoTrip"
         elif bfpf and bfpf._followinMonsterGroup:
             status = "followingMonsterGroup"

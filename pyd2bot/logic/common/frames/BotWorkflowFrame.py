@@ -38,11 +38,11 @@ class BotWorkflowFrame(Frame):
         self._inAutoUnload = False
         self._inPhenixAutoRevive = False
         self._delayedAutoUnlaod = False
-        Kernel().getWorker().addFrame(BotPartyFrame())
+        Kernel().worker.addFrame(BotPartyFrame())
         return True
 
     def pulled(self) -> bool:
-        Kernel().getWorker().removeFrameByName("BotCharacterUpdatesFrame")
+        Kernel().worker.removeFrameByName("BotCharacterUpdatesFrame")
         return True
 
     @property
@@ -50,16 +50,16 @@ class BotWorkflowFrame(Frame):
         return Priority.VERY_LOW
 
     def triggerUnload(self):
-        if BotConfig().path and Kernel().getWorker().getFrame("BotFarmPathFrame"):
-            Kernel().getWorker().removeFrameByName("BotFarmPathFrame")
-        if BotConfig().party and Kernel().getWorker().getFrame("BotPartyFrame"):
-            Kernel().getWorker().removeFrameByName("BotPartyFrame")
+        if BotConfig().path and Kernel().worker.getFrame("BotFarmPathFrame"):
+            Kernel().worker.removeFrameByName("BotFarmPathFrame")
+        if BotConfig().party and Kernel().worker.getFrame("BotPartyFrame"):
+            Kernel().worker.removeFrameByName("BotPartyFrame")
         self._inAutoUnload = True
         logger.warn(f"Inventory is almost full {InventoryAPI.getWeightPercent()}, will trigger auto bank unload...")
         if BotConfig().unloadType == "bank":
-            Kernel().getWorker().addFrame(BotUnloadInBankFrame(True))
+            Kernel().worker.addFrame(BotUnloadInBankFrame(True))
         elif BotConfig().unloadType == "seller":
-            Kernel().getWorker().addFrame(BotUnloadInSellerFrame(BotConfig().seller, True))
+            Kernel().worker.addFrame(BotUnloadInSellerFrame(BotConfig().seller, True))
 
     def process(self, msg: Message) -> bool:
 
@@ -72,24 +72,24 @@ class BotWorkflowFrame(Frame):
                 return True
             if not self._inAutoUnload and not self._inPhenixAutoRevive:
                 if self.currentContext == GameContextEnum.ROLE_PLAY:
-                    if BotConfig().party and not Kernel().getWorker().contains("BotPartyFrame"):
-                        Kernel().getWorker().addFrame(BotPartyFrame())
-                    if BotConfig().path and not Kernel().getWorker().contains("BotFarmPathFrame"):
-                        Kernel().getWorker().addFrame(BotFarmPathFrame(True))
+                    if BotConfig().party and not Kernel().worker.contains("BotPartyFrame"):
+                        Kernel().worker.addFrame(BotPartyFrame())
+                    if BotConfig().path and not Kernel().worker.contains("BotFarmPathFrame"):
+                        Kernel().worker.addFrame(BotFarmPathFrame(True))
                 elif self.currentContext == GameContextEnum.FIGHT:
-                    if BotConfig().party and not Kernel().getWorker().contains("BotPartyFrame"):
-                        Kernel().getWorker().addFrame(BotPartyFrame())
-                    Kernel().getWorker().addFrame(BotFightFrame())
+                    if BotConfig().party and not Kernel().worker.contains("BotPartyFrame"):
+                        Kernel().worker.addFrame(BotPartyFrame())
+                    Kernel().worker.addFrame(BotFightFrame())
             return True
 
         elif isinstance(msg, GameContextDestroyMessage):
             logger.debug("*************************************** GameContext Destroyed ************************************************")
             if self.currentContext == GameContextEnum.FIGHT:
-                if Kernel().getWorker().contains("BotFightFrame"):
-                    Kernel().getWorker().removeFrameByName("BotFightFrame")
+                if Kernel().worker.contains("BotFightFrame"):
+                    Kernel().worker.removeFrameByName("BotFightFrame")
             elif self.currentContext == GameContextEnum.ROLE_PLAY:
-                if Kernel().getWorker().contains("BotFarmPathFrame"):
-                    Kernel().getWorker().removeFrameByName("BotFarmPathFrame")
+                if Kernel().worker.contains("BotFarmPathFrame"):
+                    Kernel().worker.removeFrameByName("BotFarmPathFrame")
             return True
 
         elif isinstance(msg, InventoryWeightMessage):
@@ -107,10 +107,10 @@ class BotWorkflowFrame(Frame):
 
         elif isinstance(msg, (BankUnloadEndedMessage, SellerCollectedGuestItemsMessage)):
             self._inAutoUnload = False
-            if BotConfig().path and not Kernel().getWorker().contains("BotFarmPathFrame"):
-                Kernel().getWorker().addFrame(BotFarmPathFrame(True))
-            if BotConfig().party and not Kernel().getWorker().contains("BotPartyFrame"):
-                Kernel().getWorker().addFrame(BotPartyFrame())
+            if BotConfig().path and not Kernel().worker.contains("BotFarmPathFrame"):
+                Kernel().worker.addFrame(BotFarmPathFrame(True))
+            if BotConfig().party and not Kernel().worker.contains("BotPartyFrame"):
+                Kernel().worker.addFrame(BotPartyFrame())
 
         elif (
             isinstance(msg, GameRolePlayPlayerLifeStatusMessage)
@@ -121,10 +121,10 @@ class BotWorkflowFrame(Frame):
         ) or isinstance(msg, GameRolePlayGameOverMessage):
             logger.debug(f"Player is dead, auto reviving...")
             self._inPhenixAutoRevive = True
-            if Kernel().getWorker().contains("BotFarmPathFrame"):
-                Kernel().getWorker().removeFrameByName("BotFarmPathFrame")
+            if Kernel().worker.contains("BotFarmPathFrame"):
+                Kernel().worker.removeFrameByName("BotFarmPathFrame")
             PlayedCharacterManager().state = PlayerLifeStatusEnum(msg.state)
-            Kernel().getWorker().addFrame(BotPhenixAutoRevive())
+            Kernel().worker.addFrame(BotPhenixAutoRevive())
             return False
 
         elif (
@@ -133,10 +133,10 @@ class BotWorkflowFrame(Frame):
         ):
             logger.debug(f"Player is alive and kicking, returning to work...")
             self._inPhenixAutoRevive = False
-            if Kernel().getWorker().contains("BotPhenixAutoRevive"):
-                Kernel().getWorker().removeFrameByName("BotPhenixAutoRevive")
+            if Kernel().worker.contains("BotPhenixAutoRevive"):
+                Kernel().worker.removeFrameByName("BotPhenixAutoRevive")
             if BotConfig().path:
-                if not Kernel().getWorker().contains("BotFarmPathFrame"):
-                    Kernel().getWorker().addFrame(BotFarmPathFrame(True))
+                if not Kernel().worker.contains("BotFarmPathFrame"):
+                    Kernel().worker.addFrame(BotFarmPathFrame(True))
             return True
 

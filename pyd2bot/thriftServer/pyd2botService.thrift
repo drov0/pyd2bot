@@ -18,6 +18,12 @@ struct Server {
 enum SessionType {
     FIGHT = 0,
     FARM = 1,
+    SELL = 3
+}
+enum UnloadType {
+    BANK = 0,
+    STORAGE = 1,
+    SELLER = 2
 }
 enum PathType {
     RandomSubAreaFarmPath = 0,
@@ -47,6 +53,9 @@ struct Session {
     4: optional list<Character> followers,
     5: optional Character seller,
     6: SessionType type,
+    7: UnloadType unloadType,
+    8: optional Path path,
+    9: optional double monsterLvlCoefDiff
 }
 exception DofusError {
     1: int code,

@@ -56,11 +56,11 @@ class BotUnloadInBankFrame(Frame):
         self._startRpZone = PlayedCharacterManager().currentZoneRp
         self._startedInBankMap = False
         if currentMapId != self.infos.npcMapId:
-            Kernel().getWorker().addFrame(BotAutoTripFrame(self.infos.npcMapId))
+            Kernel().worker.addFrame(BotAutoTripFrame(self.infos.npcMapId))
             self.state = BankUnloadStates.WALKING_TO_BANK
         else:
             self._startedInBankMap = True
-            Kernel().getWorker().addFrame(BotBankInteractionFrame(self.infos))
+            Kernel().worker.addFrame(BotBankInteractionFrame(self.infos))
             self.state = BankUnloadStates.INTERACTING_WITH_BANK_MAN
 
     def process(self, msg: Message) -> bool:
@@ -69,11 +69,11 @@ class BotUnloadInBankFrame(Frame):
             logger.debug("AutoTripEndedMessage received")
             if self.state == BankUnloadStates.RETURNING_TO_START_POINT:
                 self.state = BankUnloadStates.IDLE
-                Kernel().getWorker().removeFrame(self)
-                Kernel().getWorker().processImmediately(BankUnloadEndedMessage())
+                Kernel().worker.removeFrame(self)
+                Kernel().worker.processImmediately(BankUnloadEndedMessage())
             elif self.state == BankUnloadStates.WALKING_TO_BANK:
                 self.state = BankUnloadStates.ISIDE_BANK
-                Kernel().getWorker().addFrame(BotBankInteractionFrame(self.infos))
+                Kernel().worker.addFrame(BotBankInteractionFrame(self.infos))
                 self.state = BankUnloadStates.INTERACTING_WITH_BANK_MAN
             return True
 
@@ -85,10 +85,10 @@ class BotUnloadInBankFrame(Frame):
         elif isinstance(msg, BankInteractionEndedMessage):
             if not self.return_to_start:
                 self.state = BankUnloadStates.IDLE
-                Kernel().getWorker().removeFrame(self)
-                Kernel().getWorker().processImmediately(BankUnloadEndedMessage())
+                Kernel().worker.removeFrame(self)
+                Kernel().worker.processImmediately(BankUnloadEndedMessage())
             else:
                 self.state = BankUnloadStates.RETURNING_TO_START_POINT
-                Kernel().getWorker().addFrame(BotAutoTripFrame(self._startMapId, self._startRpZone))
+                Kernel().worker.addFrame(BotAutoTripFrame(self._startMapId, self._startRpZone))
                 
     

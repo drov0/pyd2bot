@@ -1,7 +1,7 @@
+from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import DisconnectionReasonEnum
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from typing import TYPE_CHECKING
 from pyd2bot.apis.PlayerAPI import PlayerAPI
-from pydofus2.com.DofusClient import DofusClientThread
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
 from pydofus2.com.ankamagames.dofus.datacenter.notifications.Notification import Notification
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -71,7 +71,7 @@ class BotFarmPathFrame(Frame):
         self._entities = dict()
         self._inAutoTrip = False
         self._discardedMonstersIds = []
-        self._worker = Kernel().getWorker()
+        self._worker = Kernel().worker
         self._pulled = False
         self._followinMonsterGroup = None
 
@@ -179,7 +179,7 @@ class BotFarmPathFrame(Frame):
             return True
 
         elif isinstance(msg, (MapMoveFailed, MapChangeFailedMessage, MovementRequestTimeoutMessage)):
-            DofusClientThread().restart()
+            ConnectionsHandler().closeConnection(DisconnectionReasonEnum.RESTARTING, "Restart due to Map change failed")
 
         elif isinstance(msg, FightRequestFailed):
             self._followinMonsterGroup = None
@@ -271,9 +271,9 @@ class BotFarmPathFrame(Frame):
             BotEventsManager().add_listener(BotEventsManager.MEMBERS_READY, self.doFarm)
             return
         logger.debug("[BotFarmFrame] doFarm called")
-        if BotConfig().type == "fight" and not BotConfig().isLeader:
+        if BotConfig().sessionType == "fight" and not BotConfig().isLeader:
             logger.warning("[BotFarmFrame] In fight mode only the leader can run a farm path")
-            Kernel().getWorker().removeFrame(self)
+            Kernel().worker.removeFrame(self)
             return
         if WorldPathFinder().currPlayerVertex is None:
             BotEventsManager().add_listener(BotEventsManager.MEMBERS_READY, self.doFarm)
@@ -299,9 +299,9 @@ class BotFarmPathFrame(Frame):
         self._followinMonsterGroup = None
         self._followingIe = None
         self._lastCellId = PlayedCharacterManager().currentCellId
-        if BotConfig().type == 'fight':
+        if BotConfig().sessionType == 'fight':
             self.attackMonsterGroup()
-        elif BotConfig().type == 'farm':
+        elif BotConfig().sessionType == 'farm':
             self.collectResource()
         if self._followingIe is None and self._followinMonsterGroup is None:
             self.moveToNextStep()

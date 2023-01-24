@@ -19,15 +19,36 @@ all_structs = []
 class SessionType(object):
     FIGHT = 0
     FARM = 1
+    SELL = 3
 
     _VALUES_TO_NAMES = {
         0: "FIGHT",
         1: "FARM",
+        3: "SELL",
     }
 
     _NAMES_TO_VALUES = {
         "FIGHT": 0,
         "FARM": 1,
+        "SELL": 3,
+    }
+
+
+class UnloadType(object):
+    BANK = 0
+    STORAGE = 1
+    SELLER = 2
+
+    _VALUES_TO_NAMES = {
+        0: "BANK",
+        1: "STORAGE",
+        2: "SELLER",
+    }
+
+    _NAMES_TO_VALUES = {
+        "BANK": 0,
+        "STORAGE": 1,
+        "SELLER": 2,
     }
 
 
@@ -538,16 +559,22 @@ class Session(object):
      - followers
      - seller
      - type
+     - unloadType
+     - path
+     - monsterLvlCoefDiff
 
     """
 
 
-    def __init__(self, id=None, leader=None, followers=None, seller=None, type=None,):
+    def __init__(self, id=None, leader=None, followers=None, seller=None, type=None, unloadType=None, path=None, monsterLvlCoefDiff=None,):
         self.id = id
         self.leader = leader
         self.followers = followers
         self.seller = seller
         self.type = type
+        self.unloadType = unloadType
+        self.path = path
+        self.monsterLvlCoefDiff = monsterLvlCoefDiff
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -591,6 +618,22 @@ class Session(object):
                     self.type = iprot.readI32()
                 else:
                     iprot.skip(ftype)
+            elif fid == 7:
+                if ftype == TType.I32:
+                    self.unloadType = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 8:
+                if ftype == TType.STRUCT:
+                    self.path = Path()
+                    self.path.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            elif fid == 9:
+                if ftype == TType.DOUBLE:
+                    self.monsterLvlCoefDiff = iprot.readDouble()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -623,6 +666,18 @@ class Session(object):
         if self.type is not None:
             oprot.writeFieldBegin('type', TType.I32, 6)
             oprot.writeI32(self.type)
+            oprot.writeFieldEnd()
+        if self.unloadType is not None:
+            oprot.writeFieldBegin('unloadType', TType.I32, 7)
+            oprot.writeI32(self.unloadType)
+            oprot.writeFieldEnd()
+        if self.path is not None:
+            oprot.writeFieldBegin('path', TType.STRUCT, 8)
+            self.path.write(oprot)
+            oprot.writeFieldEnd()
+        if self.monsterLvlCoefDiff is not None:
+            oprot.writeFieldBegin('monsterLvlCoefDiff', TType.DOUBLE, 9)
+            oprot.writeDouble(self.monsterLvlCoefDiff)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -778,6 +833,9 @@ Session.thrift_spec = (
     (4, TType.LIST, 'followers', (TType.STRUCT, [Character, None], False), None, ),  # 4
     (5, TType.STRUCT, 'seller', [Character, None], None, ),  # 5
     (6, TType.I32, 'type', None, None, ),  # 6
+    (7, TType.I32, 'unloadType', None, None, ),  # 7
+    (8, TType.STRUCT, 'path', [Path, None], None, ),  # 8
+    (9, TType.DOUBLE, 'monsterLvlCoefDiff', None, None, ),  # 9
 )
 all_structs.append(DofusError)
 DofusError.thrift_spec = (

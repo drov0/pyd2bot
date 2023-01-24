@@ -24,4 +24,4 @@ class InventoryAPI:
         for iw in InventoryManager().realInventory:
             if not iw.isEquipment:
                 doa = DeleteObjectAction.create(iw.objectUID, iw.quantity)
-                Kernel().getWorker().process(doa)
+                Kernel().worker.process(doa)

@@ -142,15 +142,15 @@ class BotPartyFrame(Frame):
 
     @property
     def movementFrame(self) -> "RoleplayMovementFrame":
-        return Kernel().getWorker().getFrame("RoleplayMovementFrame")
+        return Kernel().worker.getFrame("RoleplayMovementFrame")
 
     @property
     def entitiesFrame(self) -> "RoleplayEntitiesFrame":
-        return Kernel().getWorker().getFrame("RoleplayEntitiesFrame")
+        return Kernel().worker.getFrame("RoleplayEntitiesFrame")
     
     @property
     def farmFrame(self) -> "BotFarmPathFrame":
-        return Kernel().getWorker().getFrame("BotFarmPathFrame")
+        return Kernel().worker.getFrame("BotFarmPathFrame")
     
     @property
     def leader(self) -> dict:
@@ -401,7 +401,7 @@ class BotPartyFrame(Frame):
                 logger.debug(f"[BotPartyFrame] Leader {self.leaderName} is in vertex {msg.vertex}, will follow it.")
                 self.joiningLeaderVertex = msg.vertex
                 af = BotAutoTripFrame(msg.vertex.mapId, msg.vertex.zoneId)
-                Kernel().getWorker().pushFrame(af)
+                Kernel().worker.pushFrame(af)
                 return True 
             else:
                 logger.debug(f"[BotPartyFrame] Player is already in leader vertex {msg.vertex}")
@@ -426,7 +426,7 @@ class BotPartyFrame(Frame):
                 logger.debug(f"[BotPartyFrame] member {msg.memberId} started fight {msg.fightId}")
                 if float(msg.fightMap.mapId) != float(PlayedCharacterManager().currentMap.mapId):
                     af = BotAutoTripFrame(msg.fightMap.mapId)
-                    Kernel().getWorker().pushFrame(af)
+                    Kernel().worker.pushFrame(af)
                     self._wantsToJoinFight = msg.fightId
                 else:
                     self.joinFight(msg.fightId)
@@ -505,7 +505,7 @@ class BotPartyFrame(Frame):
         logger.debug(f"[BotPartyFrame] Moving to vertex {vertex}")
         self.joiningLeaderVertex = vertex
         af = BotAutoTripFrame(vertex.mapId, vertex.zoneId)
-        Kernel().getWorker().pushFrame(af)
+        Kernel().worker.pushFrame(af)
         return True
     
     def getFollowerClient(self, follower: dict):
@@ -523,7 +523,7 @@ class BotPartyFrame(Frame):
     
 
     def connectFollowerClient(self, follower: dict):
-        from pyd2bot.PyD2Bot import PyD2Bot
+        from pyd2bot import PyD2Bot
 
         transport, client = PyD2Bot().runClient('localhost', follower["serverPort"])
         self.followersClients[follower["id"]] = (transport, client)

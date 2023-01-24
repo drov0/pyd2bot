@@ -123,7 +123,7 @@ class BotExchangeFrame(Frame):
                         if not iw.isEquipment and iw.isDestructible:
                             logger.debug(f"delete {iw.name} x 1")
                             doa = DeleteObjectAction.create(iw.objectUID, 1)
-                            Kernel().getWorker().process(doa)
+                            Kernel().worker.process(doa)
                             return True
                 
         elif isinstance(msg, ExchangeStartedWithPodsMessage):
@@ -181,8 +181,8 @@ class BotExchangeFrame(Frame):
             if msg.success == True:
                 logger.debug("Exchange ended successfully")
                 self.state = ExchangeStateEnum.TERMINATED
-                Kernel().getWorker().processImmediately(ExchangeConcludedMessage())
-                Kernel().getWorker().removeFrame(self)
+                Kernel().worker.processImmediately(ExchangeConcludedMessage())
+                Kernel().worker.removeFrame(self)
             else:
                 raise Exception("Exchange failed")
 

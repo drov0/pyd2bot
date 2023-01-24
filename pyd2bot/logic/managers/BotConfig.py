@@ -1,70 +1,62 @@
-import threading
-from time import perf_counter, sleep
-from pyd2bot.apis.PlayerAPI import PlayerAPI
-from pyd2bot.thriftServer.pyd2botService.ttypes import Session
-from pydofus2.com.DofusClient import DofusClientThread
-from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import DisconnectionReasonEnum
+from pyd2bot.thriftServer.pyd2botService.ttypes import Session, SessionType, Character, UnloadType
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 from pyd2bot.logic.managers.PathManager import PathManager
-    
+from enum import Enum
 logger = Logger()
 
-class SessionTypeEnum:
-    FIGHT = "fight"
-    FARM = "farm"
-    SELL = "selling"
-class InactivityMonitor(threading.Thread):
-    
-    def __init__(self, name="InactivityMonitor", group=None):
-        super().__init__(name=name)
-        self.lastActivity = perf_counter()
-        self.maxInactivityInterval = 60 * 60 * 2 if BotConfig().type == SessionTypeEnum.SELL else 60 * 15
-        self.lastStatus = "disconnected"
-        self.stop = threading.Event()
-        self.group = group
-    
-    def run(self):
-        while not self.stop.is_set():
-            status = PlayerAPI.status()
-            if status != self.lastStatus:
-                self.lastActivity = perf_counter()
-            elif perf_counter() - self.lastActivity > self.maxInactivityInterval:
-                DofusClientThread().shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, "Fatal Error bot stayed inactive for too long")
-                self.stop.set()
-                return 1
-            self.lastStatus = status
-            sleep(1)
-        logger.info("Inactivity monitor stopped")
-            
+class CharacterRoleEnum(Enum):
+    LEADER = 0
+    FOLLOWER = 1
+    SELLER = 2
 class BotConfig(metaclass=Singleton):
 
     def __init__(self) -> None:
-        self.character = None
+        self.character: Character = None
         self.path = None
         self.isLeader: bool = None
-        self.leader = None
-        self.followers: list[str] = None
-        self.jobIds = None
-        self.resourceIds = None
+        self.leader: Character = None
+        self.followers: list[Character] = None
+        self.jobIds: list[int] = None
+        self.resourceIds: list[int] = None
         self.id = None
-        self.type = None
-        self.seller = None
-        self.unloadType = None
+        self.sessionType: SessionType = None
+        self.seller: Character = None
+        self.unloadType: UnloadType = None
         
-    def initFromSession(session: Session, character):
-        pass
+    def initFromSession(self, session: Session, role: CharacterRoleEnum):
+        self.id = session.id
+        self.sessionType = session.type
+        if session.type == SessionType.FARM:
+            if role == CharacterRoleEnum.LEADER:
+                self.leader = True
+                self.character = session.leader
+                self.unloadType = session.unloadType
+                self.followers = session.followers
+                self.path = PathManager.from_thriftObj(session.path)
+                self.monsterLvlCoefDiff = session.monsterLvlCoefDiff
+                if len(self.followers) > 0:
+                    self.party = True
+            elif role == CharacterRoleEnum.FOLLOWER:
+                self.character = session.followers[0]
+                self.leader = session.leader
+                self.path = PathManager.from_thriftObj(session.path)
+                self.monsterLvlCoefDiff = session.monsterLvlCoefDiff
+                self.party = True
+        else:
+            raise Exception(f"Unsupported session type: {session.type}")
+        
     def loadFromJson(self, sessionJson: dict):
         self.id = sessionJson.get("id")
-        self.type = sessionJson.get("type")
+        self.sessionType = sessionJson.get("type")
         self.character = sessionJson.get("character")
         self.unloadType = sessionJson.get("unloadType")
         self.seller = sessionJson.get("seller")
-        if self.type == SessionTypeEnum.FARM:
+        if self.sessionType == SessionType.FARM:
             self.path = sessionJson.get("path")
             self.jobIds = sessionJson.get("jobIds")
             self.resourceIds = sessionJson.get("resourceIds")
-        elif self.type == SessionTypeEnum.FIGHT:
+        elif self.sessionType == SessionType.FIGHT:
             self.followers : list[str] = sessionJson.get("followers")
             self.monsterLvlCoefDiff = float(sessionJson.get("monsterLvlCoefDiff"))
             if self.followers is not None:

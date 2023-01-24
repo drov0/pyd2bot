@@ -97,8 +97,8 @@ class BotBankInteractionFrame(Frame):
 
         elif isinstance(msg, ExchangeLeaveMessage):
             if self.state == BankUnloadStateEnum.LEAVE_BANK_REQUESTED:
-                Kernel().getWorker().removeFrame(self)
-                Kernel().getWorker().processImmediately(BankInteractionEndedMessage())
+                Kernel().worker.removeFrame(self)
+                Kernel().worker.processImmediately(BankInteractionEndedMessage())
                 return True
 
     def talkToBankMan(self):

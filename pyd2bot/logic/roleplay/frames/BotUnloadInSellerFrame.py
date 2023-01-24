@@ -65,7 +65,7 @@ class BotUnloadInSellerFrame(Frame):
         return Priority.VERY_LOW
 
     def connectToSellerServer(self):
-        from pyd2bot.PyD2Bot import PyD2Bot
+        from pyd2bot import PyD2Bot
 
         transport, client = PyD2Bot().runClient('localhost', self.sellerInfos["serverPort"])
         self.sellerInfos["client"] = (transport, client)
@@ -73,7 +73,7 @@ class BotUnloadInSellerFrame(Frame):
     
     @property
     def entitiesFrame(self) -> "RoleplayEntitiesFrame":
-        return Kernel().getWorker().getFrame("RoleplayEntitiesFrame")
+        return Kernel().worker.getFrame("RoleplayEntitiesFrame")
     
     def waitForSellerToComme(self):
         self.stopWaitingForSeller.clear()
@@ -81,7 +81,7 @@ class BotUnloadInSellerFrame(Frame):
             if self.entitiesFrame:
                 if self.entitiesFrame.getEntityInfos(self.sellerInfos["id"]):
                     logger.debug("Seller found in the bank map")
-                    Kernel().getWorker().addFrame(BotExchangeFrame(ExchangeDirectionEnum.GIVE, target=self.sellerInfos))
+                    Kernel().worker.addFrame(BotExchangeFrame(ExchangeDirectionEnum.GIVE, target=self.sellerInfos))
                     self.state = UnloadInSellerStatesEnum.IN_EXCHANGE_WITH_SELLER
                     return True        
                 else:
@@ -99,7 +99,7 @@ class BotUnloadInSellerFrame(Frame):
             if sellerStatus == "idle":
                 client.comeToBankToCollectResources(json.dumps(self.bankInfos.to_json()), json.dumps(BotConfig().character))
                 if currentMapId != self.bankInfos.npcMapId:
-                    Kernel().getWorker().addFrame(BotAutoTripFrame(self.bankInfos.npcMapId))
+                    Kernel().worker.addFrame(BotAutoTripFrame(self.bankInfos.npcMapId))
                     self.state = UnloadInSellerStatesEnum.WALKING_TO_BANK
                 else:
                     threading.Thread(target=self.waitForSellerToComme, name=threading.current_thread().name).start()
@@ -120,8 +120,8 @@ class BotUnloadInSellerFrame(Frame):
         if isinstance(msg, AutoTripEndedMessage):
             logger.debug("AutoTripEndedMessage received")
             if self.state == UnloadInSellerStatesEnum.RETURNING_TO_START_POINT:
-                Kernel().getWorker().removeFrame(self)
-                Kernel().getWorker().processImmediately(SellerCollectedGuestItemsMessage())
+                Kernel().worker.removeFrame(self)
+                Kernel().worker.processImmediately(SellerCollectedGuestItemsMessage())
             elif self.state == UnloadInSellerStatesEnum.WALKING_TO_BANK:
                 threading.Thread(target=self.waitForSellerToComme, name=threading.current_thread().name).start()
                 self.state = UnloadInSellerStatesEnum.WAITING_FOR_SELLER
@@ -134,10 +134,10 @@ class BotUnloadInSellerFrame(Frame):
 
         elif isinstance(msg, ExchangeConcludedMessage):
             if not self.return_to_start:
-                Kernel().getWorker().removeFrame(self)
-                Kernel().getWorker().processImmediately(SellerCollectedGuestItemsMessage())
+                Kernel().worker.removeFrame(self)
+                Kernel().worker.processImmediately(SellerCollectedGuestItemsMessage())
             else:
                 self.state = UnloadInSellerStatesEnum.RETURNING_TO_START_POINT
-                Kernel().getWorker().addFrame(BotAutoTripFrame(self._startMapId, self._startRpZone))
+                Kernel().worker.addFrame(BotAutoTripFrame(self._startMapId, self._startRpZone))
                 
     
