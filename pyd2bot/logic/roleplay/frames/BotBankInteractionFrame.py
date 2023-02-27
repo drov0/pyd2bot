@@ -1,33 +1,40 @@
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from pyd2bot.logic.roleplay.messages.BankInteractionEndedMessage import BankInteractionEndedMessage
+from pyd2bot.misc.Localizer import BankInfos
+from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcDialogCreationMessage import (
     NpcDialogCreationMessage,
 )
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcDialogQuestionMessage import NpcDialogQuestionMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcDialogQuestionMessage import (
+    NpcDialogQuestionMessage,
+)
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcDialogReplyMessage import (
     NpcDialogReplyMessage,
 )
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcGenericActionRequestMessage import (
     NpcGenericActionRequestMessage,
 )
-from pydofus2.com.ankamagames.dofus.network.messages.game.dialog.LeaveDialogRequestMessage import LeaveDialogRequestMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeLeaveMessage import ExchangeLeaveMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.dialog.LeaveDialogRequestMessage import (
+    LeaveDialogRequestMessage,
+)
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeLeaveMessage import (
+    ExchangeLeaveMessage,
+)
 from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectTransfertAllFromInvMessage import (
     ExchangeObjectTransfertAllFromInvMessage,
 )
 from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeStartedWithStorageMessage import (
     ExchangeStartedWithStorageMessage,
 )
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.items.InventoryWeightMessage import InventoryWeightMessage
-from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
-from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.items.InventoryWeightMessage import (
+    InventoryWeightMessage,
+)
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
-from pyd2bot.misc.Localizer import BankInfos
 
-logger = Logger()
 
 class BankUnloadStateEnum:
     UNLOAD_REQUEST_SENT = 0
@@ -38,21 +45,23 @@ class BankUnloadStateEnum:
     BANK_OPEN_REQUESTED = 4
     LEAVE_BANK_REQUESTED = 5
 
+
 class BotBankInteractionFrame(Frame):
     PHENIX_MAPID = None
 
-    def __init__(self, bankInfos : BankInfos):
+    def __init__(self, bankInfos: BankInfos, callback):
         super().__init__()
+        self.callback = callback
         self.infos = bankInfos
+        self.requestTimer = None
 
     def pushed(self) -> bool:
-        logger.debug("BotBankInteractionFrame pushed")
         self.state = BankUnloadStateEnum.IDLE
+        self.requestTimer = None
         self.talkToBankMan()
         return True
 
     def pulled(self) -> bool:
-        logger.debug("BotBankInteractionFrame pulled")
         return True
 
     @property
@@ -60,57 +69,74 @@ class BotBankInteractionFrame(Frame):
         return Priority.VERY_LOW
 
     def start(self):
-        logger.debug("Bank infos: %s", self.infos.__dict__)
-        
+        Logger().debug("Bank infos: %s", self.infos.__dict__)
 
     def process(self, msg: Message) -> bool:
 
         if isinstance(msg, NpcDialogCreationMessage):
             self.state = BankUnloadStateEnum.WAITING_FOR_BANKMAN_QUESTION
-    
+
         elif isinstance(msg, NpcDialogQuestionMessage):
             if self.state == BankUnloadStateEnum.WAITING_FOR_BANKMAN_QUESTION:
-                logger.debug("bank man dialog engaged")
-                self.openBankExchange()
-                self.requestTimer = BenchmarkTimer(3, self.openBankExchange)
+                Logger().debug("bank man dialog engaged")
+                if self.requestTimer:
+                    self.requestTimer.cancel()
+                self.requestTimer = BenchmarkTimer(5, self.openBankExchange)
                 self.requestTimer.start()
-                logger.debug("Bank reply to open bank storage sent")
+                self.putAllItemsInBank()
+                Logger().debug("Bank reply to open bank storage sent")
                 return True
 
-            
         elif isinstance(msg, ExchangeStartedWithStorageMessage):
+            Logger().info("Bank storage opened")
             if self.requestTimer:
                 self.requestTimer.cancel()
-            rmsg = ExchangeObjectTransfertAllFromInvMessage()
-            rmsg.init()
-            ConnectionsHandler()._conn.send(rmsg)
-            self.state = BankUnloadStateEnum.UNLOAD_REQUEST_SENT
+            self.requestTimer = BenchmarkTimer(7, self.leaveBank)
+            self.requestTimer.start()
+            self.putAllItemsInBank()
+            Logger().info("unload items in bank request sent")
             return True
 
         elif isinstance(msg, InventoryWeightMessage):
+            if self.requestTimer:
+                self.requestTimer.cancel()
             if self.state == BankUnloadStateEnum.UNLOAD_REQUEST_SENT:
-                rmsg = LeaveDialogRequestMessage()
-                rmsg.init()
-                ConnectionsHandler()._conn.send(rmsg)
-                self.state = BankUnloadStateEnum.LEAVE_BANK_REQUESTED
+                self.requestTimer = BenchmarkTimer(5, self.leaveBank)
+                self.requestTimer.start()
+                self.leaveBank()
             return True
 
         elif isinstance(msg, ExchangeLeaveMessage):
+            Logger().info("Bank storage closed")
+            if self.requestTimer:
+                self.requestTimer.cancel()
             if self.state == BankUnloadStateEnum.LEAVE_BANK_REQUESTED:
                 Kernel().worker.removeFrame(self)
-                Kernel().worker.processImmediately(BankInteractionEndedMessage())
+                self.callback(True, None)
                 return True
+
+    def leaveBank(self):
+        rmsg = LeaveDialogRequestMessage()
+        rmsg.init()
+        ConnectionsHandler().send(rmsg)
+        self.state = BankUnloadStateEnum.LEAVE_BANK_REQUESTED
+
+    def putAllItemsInBank(self):
+        rmsg = ExchangeObjectTransfertAllFromInvMessage()
+        rmsg.init()
+        ConnectionsHandler().send(rmsg)
+        self.state = BankUnloadStateEnum.UNLOAD_REQUEST_SENT
 
     def talkToBankMan(self):
         rmsg = NpcGenericActionRequestMessage()
         rmsg.init(self.infos.npcId, self.infos.npcActionId, self.infos.npcMapId)
-        ConnectionsHandler()._conn.send(rmsg)
-        logger.debug("Open bank man dialog sent")
+        ConnectionsHandler().send(rmsg)
+        Logger().debug("Open bank man dialog sent")
         self.state = BankUnloadStateEnum.WAITING_FOR_BANKMAN_DIALOG
 
     def openBankExchange(self):
         rmsg = NpcDialogReplyMessage()
-        logger.debug(f"Open bank request sent")
+        Logger().debug(f"Open bank request sent")
         rmsg.init(self.infos.openBankReplyId)
-        ConnectionsHandler()._conn.send(rmsg)
+        ConnectionsHandler().send(rmsg)
         self.state = BankUnloadStateEnum.BANK_OPEN_REQUESTED

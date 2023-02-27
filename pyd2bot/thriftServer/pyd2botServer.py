@@ -13,12 +13,13 @@ from pyd2bot.thriftServer.pyd2botService.ttypes import (
 )
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEventsManager,
-    KernelEvts,
+    KernelEvent,
 )
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import (
     InventoryManager,
 )
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
 import sys
@@ -32,9 +33,7 @@ def getTrace(e):
     error_trace = "\n".join([str(e), str(exc_type), str(exc_value), "\n".join(traceback_in_var)])
     return error_trace
 
-
 lock = threading.Lock()
-
 
 def sendTrace(func):
     @functools.wraps(func)
@@ -45,22 +44,19 @@ def sendTrace(func):
             raise DofusError(0, getTrace(e))
 
     return wrapped
-
-
 class Pyd2botServer:
     def __init__(self, id: str):
         self.id = id
-        self.logger = Logger()
 
     @sendTrace
     def fetchUsedServers(self, token: str) -> list[Server]:
         from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import (
             GameServerInformations,
         )
-        self.logger.debug("fetchUsedServers called with token: " + token)
+        self.Logger().debug("fetchUsedServers called with token: " + token)
         DofusClient().login(token)
-        servers: dict[str, list[GameServerInformations]] = KernelEventsManager().wait(KernelEvts.SERVERS_LIST, 60)
-        self.logger.info(f"list servers: {[s.to_json() for s in servers['used']]}")
+        servers: dict[str, list[GameServerInformations]] = KernelEventsManager().wait(KernelEvent.SERVERS_LIST, 60)
+        self.Logger().info(f"list servers: {[s.to_json() for s in servers['used']]}")
         result = [
             Server(
                 server.id,
@@ -86,7 +82,7 @@ class Pyd2botServer:
 
         result = list()
         DofusClient().login(token, serverId)
-        charactersList: list[BasicCharacterWrapper] = KernelEventsManager().wait(KernelEvts.CHARACTERS_LIST, 60)
+        charactersList: list[BasicCharacterWrapper] = KernelEventsManager().wait(KernelEvent.CHARACTERS_LIST, 60)
         if charactersList is None:
             raise Exception("Timeout!")
         result = [
@@ -157,7 +153,7 @@ class Pyd2botServer:
         from pyd2bot.logic.roleplay.messages.LeaderPosMessage import LeaderPosMessage
 
         v = Vertex(**json.loads(vertex))
-        self.logger.debug(f"Leader pos given, leader in vertex {v}.")
+        self.Logger().debug(f"Leader pos given, leader in vertex {v}.")
         Kernel().worker.process(LeaderPosMessage(v))
 
     def followTransition(self, transition: str):
@@ -173,25 +169,21 @@ class Pyd2botServer:
     def getStatus(self) -> str:
         from pyd2bot.apis.PlayerAPI import PlayerAPI
 
-        status = PlayerAPI.status()
+        status = PlayerAPI().status
         print(f"get staus called -> Status: {status}")
         return status
 
     def comeToBankToCollectResources(self, bankInfos: str, guestInfos: str):
         from pyd2bot.misc.Localizer import BankInfos
-        from pyd2bot.logic.roleplay.frames.BotSellerCollectFrame import BotSellerCollectFrame
+        from pyd2bot.logic.roleplay.behaviors.CollectItems import CollectItems
 
         with lock:
             bankInfos = BankInfos(**json.loads(bankInfos))
             guestInfos = json.loads(guestInfos)
-            Kernel().worker.addFrame(BotSellerCollectFrame(bankInfos, guestInfos))
+            CollectItems(bankInfos, guestInfos, None, lambda r, err: Logger().info(f"CollectItems finished: {r} {err}"))
 
     def getCurrentVertex(self) -> str:
-        from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import (
-            WorldPathFinder,
-        )
-
-        return json.dumps(WorldPathFinder().currPlayerVertex.to_json())
+        return json.dumps(PlayedCharacterManager().currVertex.to_json())
 
     def getInventoryKamas(self) -> int:
         kamas = int(InventoryManager().inventory.kamas)

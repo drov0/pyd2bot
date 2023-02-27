@@ -1,15 +1,21 @@
-from pyd2bot.thriftServer.pyd2botService.ttypes import Session, SessionType, Character, UnloadType
-from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
-from pyd2bot.logic.managers.PathManager import PathManager
 from enum import Enum
-logger = Logger()
+
+from pyd2bot.logic.managers.PathFactory import PathFactory
+from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Session, SessionType, UnloadType
+from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
+
 
 class CharacterRoleEnum(Enum):
     LEADER = 0
     FOLLOWER = 1
     SELLER = 2
+
+
 class BotConfig(metaclass=Singleton):
+    defaultBreedConfig = {
+        10: {"primarySpellId": 13516, "primaryStat": 10},  # sadida  # ronce  #  force
+        4: {"primarySpellId": 12902, "primaryStat": 10},  # sram  # Truanderie  # force
+    }
 
     def __init__(self) -> None:
         self.character: Character = None
@@ -23,50 +29,63 @@ class BotConfig(metaclass=Singleton):
         self.sessionType: SessionType = None
         self.seller: Character = None
         self.unloadType: UnloadType = None
-        
-    def initFromSession(self, session: Session, role: CharacterRoleEnum):
+        self.monsterLvlCoefDiff = float("inf")
+        self.fightOptionsSent = False
+        self.lastFightTime = 0
+        self.fightOptions = []
+        self.followersIds = []
+        self.fightPartyMembers = list[Character]()
+
+    def getPrimarySpellId(self, breedId: int) -> int:
+        return self.defaultBreedConfig[breedId]["primarySpellId"]
+    
+    @property
+    def primarySpellId(self) -> int:
+        return self.defaultBreedConfig[self.character.breedId]["primarySpellId"]
+
+    @property
+    def primaryStatId(self) -> int:
+        return self.defaultBreedConfig[self.character.breedId]["primaryStat"]
+
+    @property
+    def unloadInBank(self) -> bool:
+        return self.unloadType == UnloadType.BANK
+
+    @property
+    def unloadInSeller(self) -> bool:
+        return self.unloadType == UnloadType.SELLER
+
+    @property
+    def isFarmSession(self) -> bool:
+        return self.sessionType == SessionType.FARM
+
+    @property
+    def isFightSession(self) -> bool:
+        return self.sessionType == SessionType.FIGHT
+
+    def getPlayerById(self, playerId: int) -> Character:
+        if playerId == self.character.id:
+            return self.character
+        for follower in self.followers:
+            if follower.id == playerId:
+                return follower
+        return None
+    
+    def initFromSession(self, session: Session, role: CharacterRoleEnum, character: Character):
         self.id = session.id
         self.sessionType = session.type
-        if session.type == SessionType.FARM:
-            if role == CharacterRoleEnum.LEADER:
-                self.leader = True
-                self.character = session.leader
-                self.unloadType = session.unloadType
-                self.followers = session.followers
-                self.path = PathManager.from_thriftObj(session.path)
-                self.monsterLvlCoefDiff = session.monsterLvlCoefDiff
-                if len(self.followers) > 0:
-                    self.party = True
-            elif role == CharacterRoleEnum.FOLLOWER:
-                self.character = session.followers[0]
-                self.leader = session.leader
-                self.path = PathManager.from_thriftObj(session.path)
-                self.monsterLvlCoefDiff = session.monsterLvlCoefDiff
-                self.party = True
+        self.unloadType = session.unloadType
+        self.followers = session.followers
+        self.followersIds = [follower.id for follower in self.followers]
+        self.party = self.followers is not None and len(self.followers) > 0
+        self.character = character
+        self.isLeader = (role == CharacterRoleEnum.LEADER)
+        self.seller = session.seller
+        if self.isFightSession and self.isLeader:
+            self.path = PathFactory.from_thriftObj(session.path)
+            self.monsterLvlCoefDiff = (
+                session.monsterLvlCoefDiff if session.monsterLvlCoefDiff is not None else float("inf")
+            )
+            self.fightPartyMembers = self.followers + [self.character]
         else:
-            raise Exception(f"Unsupported session type: {session.type}")
-        
-    def loadFromJson(self, sessionJson: dict):
-        self.id = sessionJson.get("id")
-        self.sessionType = sessionJson.get("type")
-        self.character = sessionJson.get("character")
-        self.unloadType = sessionJson.get("unloadType")
-        self.seller = sessionJson.get("seller")
-        if self.sessionType == SessionType.FARM:
-            self.path = sessionJson.get("path")
-            self.jobIds = sessionJson.get("jobIds")
-            self.resourceIds = sessionJson.get("resourceIds")
-        elif self.sessionType == SessionType.FIGHT:
-            self.followers : list[str] = sessionJson.get("followers")
-            self.monsterLvlCoefDiff = float(sessionJson.get("monsterLvlCoefDiff"))
-            if self.followers is not None:
-                self.party = True
-                self.isLeader = True
-                logger.info(f"Running path {self.path}")
-            else:
-                self.isLeader = False
-                self.leader : int = sessionJson.get("leader")
-        self.path = sessionJson.get("path")
-        if self.path:
-            self.path = PathManager.from_json(sessionJson["path"])
-
+            self.leader = session.leader

@@ -1,6 +1,5 @@
 import threading
 import time
-from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pyd2bot.thriftServer.pyd2botServer import Pyd2botServer
 from thrift.protocol.THeaderProtocol import THeaderProtocolFactory
 from thrift.protocol.TJSONProtocol import TJSONProtocolFactory
@@ -16,36 +15,33 @@ from pyd2bot.thriftServer.HttpRequestHandler import getReqHandler
 class PyD2Bot(metaclass=Singleton):
     _stop = threading.Event()
     id: str
-    logger = None
     _running_threads = list[threading.Thread]()
     _daemon: int
     processor = None
     serverTransport = None
     inputTransportFactory = None
     inputProtocolFactory = None
-    
-    def __init__(self, id:str, host: str, port: int, deamon=False) -> None:
+
+    def __init__(self, id: str, host: str, port: int, deamon=False) -> None:
         self.id = id
         self.host = host
         self.port = port
         self._daemon = deamon
-        Logger.prefix = id
-        self.logger = Logger()
-        self.handler = Pyd2botServer(self.id)       
+        self.handler = Pyd2botServer(self.id)
         self.processor = Pyd2botService.Processor(self.handler)
-    
+
     def runHttpServer(self):
         self.serverTransport = THttpServer.THttpServer(self.processor, (self.host, self.port), TJSONProtocolFactory())
         self.serverTransport.httpd.RequestHandlerClass = getReqHandler(self.serverTransport)
-        self.logger.info(f"[Server - {self.id}] Started serving on {self.host}:{self.port}")
+        self.Logger().info(f"[Server - {self.id}] Started serving on {self.host}:{self.port}")
         self.serverTransport.serve()
-        
+
     def runSocketServer(self):
         self._stop.clear()
         self.serverTransport = TServerSocket(host=self.host, port=self.port)
-        self.logger.info(f"[Server - {self.id}] Threads started")
+        self.Logger().info(f"[Server - {self.id}] Threads started")
         self.serverTransport.listen()
-        self.logger.info(f"[Server - {self.id}] Started listening on {self.host}:{self.port}")
+        self.Logger().info(f"[Server - {self.id}] Started listening on {self.host}:{self.port}")
         while not self._stop.is_set():
             try:
                 client: TSocket = self.serverTransport.accept()
@@ -55,10 +51,10 @@ class PyD2Bot(metaclass=Singleton):
                 t.setDaemon(self._daemon)
                 t.start()
                 self._running_threads.append(t)
-                self.logger.info(f"[Server - {self.id}] Accepted client: {client}")
+                self.Logger().info(f"[Server - {self.id}] Accepted client: {client}")
             except Exception as x:
                 self.logger.exception(x)
-        self.logger.info(f"[Server - {self.id}] Goodbye crual world!")
+        self.Logger().info(f"[Server - {self.id}] Goodbye crual world!")
 
     def runClient(self, host: str, port: int):
         transport = TSocket(host, port)
@@ -74,7 +70,7 @@ class PyD2Bot(metaclass=Singleton):
                 time.sleep(5)
                 continue
         raise Exception("Can't connect to server")
-        
+
     def serveClient(self, client: TSocket):
         itrans = self.inputTransportFactory.getTransport(client)
         iprot = self.inputProtocolFactory.getProtocol(itrans)
@@ -95,7 +91,7 @@ class PyD2Bot(metaclass=Singleton):
         if otrans:
             otrans.close()
         client.close()
-            
+
     def stopServer(self):
-        self.logger.info(f"[Server - {self.id}] Stop called")
+        self.Logger().info(f"[Server - {self.id}] Stop called")
         self._stop.set()

@@ -1,12 +1,28 @@
 import collections
 import random
-from typing import Iterator
-from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import AStar
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import Transition
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import Vertex
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldPathFinder import WorldPathFinder
+import time
+from typing import Iterator, Tuple
+
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
+from pyd2bot.thriftServer.pyd2botService.ttypes import Path
+from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import \
+    AStar
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
+    Edge
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
+    Transition
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
+    Vertex
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
+    WorldGraph
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
+    BenchmarkTimer
+from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
+    Pathfinding
+from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 
 
 class RandomSubAreaFarmPath(AbstractFarmPath):
@@ -22,23 +38,41 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         self._currentVertex = None
         self._verticies = list[Vertex]()
         self.onlyDirections = onlyDirections
+        self._recent_visited = list[Tuple['Vertex', float]]()
 
-    def __next__(self) -> Transition:
-        outgoingEdges = WorldPathFinder().worldGraph.getOutgoingEdgesFromVertex(self.currentVertex)
-        transitions = []
+    def recentVisitedVerticies(self):
+        self._recent_visited = [(_, time_added) for (_, time_added) in self._recent_visited if (time.time() - time_added) < 30]
+        return [v for v, _ in self._recent_visited]
+    
+    def __next__(self) -> Tuple[Transition, Edge]:
+        outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(self.currentVertex)
+        transitions = list[Tuple[Edge, Transition]]()
         for edge in outgoingEdges:
             if edge.dst.mapId in self.subArea.mapIds:
                 if AStar.hasValidTransition(edge):
                     for tr in edge.transitions:
                         if not self.onlyDirections or tr.direction != -1:
-                            transitions.append(tr)
-        return random.choice(transitions)
+                            if tr.cell:
+                                currMP = PlayedCharacterManager().entity.position
+                                candidate = MapPoint.fromCellId(tr.cell)
+                                movePath = Pathfinding().findPath(currMP, candidate)
+                                if movePath.end == candidate:
+                                    transitions.append((edge, tr))
+                            else:
+                                transitions.append((edge, tr))
+        notrecent = [(edge, tr) for edge, tr in transitions if edge.dst not in self.recentVisitedVerticies()]
+        if notrecent:
+            edge, tr = random.choice(notrecent)
+        else:
+            edge, tr = random.choice(transitions)
+        self._recent_visited.append((self.currentVertex, time.time()))
+        return tr, edge
 
     def currNeighbors(self) -> Iterator[Vertex]:
         return self.neighbors(self.currentVertex)
 
     def neighbors(self, vertex: Vertex) -> Iterator[Vertex]:
-        outgoingEdges = WorldPathFinder().worldGraph.getOutgoingEdgesFromVertex(vertex)
+        outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
         for edge in outgoingEdges:
             if edge.dst.mapId in self.subArea.mapIds:
                 found = False
@@ -82,11 +116,8 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         }
 
     @classmethod
-    def from_json(cls, pathJson: dict) -> "RandomSubAreaFarmPath":
-        startVertex = WorldPathFinder().worldGraph.getVertex(**pathJson["startVertex"])
+    def from_thriftObj(cls, path: Path) -> "RandomSubAreaFarmPath":
+        startVertex = WorldGraph().getVertex(path.startVertex.mapId, path.startVertex.zoneId)
         if startVertex is None:
-            raise ValueError("Could not find start vertex from json startVertex : " + str(pathJson["startVertex"]))
-        return cls(
-            pathJson["name"],
-            startVertex,
-        )
+            raise ValueError("Could not find start vertex from startVertex : " + str(path.startVertex))
+        return cls(path.id, startVertex)
