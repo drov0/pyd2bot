@@ -8,6 +8,8 @@ from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
+from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import \
+    MovementPath
 
 if TYPE_CHECKING:
     from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import \
@@ -68,9 +70,9 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
         self.once(BotEventsManager.ALL_MEMBERS_JOINED_PARTY, onEvt)
 
     def onceFighterMoved(self, fighterId, callback, args=[]):
-        def onEvt(event, movedFighterId):
+        def onEvt(event, movedFighterId, movePath: MovementPath):
             if movedFighterId == fighterId:
-                callback(*args)
+                callback(movePath, *args)
             else:
                 KernelEventsManager().once(KernelEvent.FIGHTER_MOVEMENT_APPLIED, onEvt)
         KernelEventsManager().once(KernelEvent.FIGHTER_MOVEMENT_APPLIED, onEvt)

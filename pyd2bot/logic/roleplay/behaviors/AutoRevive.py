@@ -1,8 +1,7 @@
-import threading
 from typing import TYPE_CHECKING
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
 from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
@@ -18,7 +17,6 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.death
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
     BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-
 if TYPE_CHECKING:
     from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import \
         RoleplayInteractivesFrame
@@ -64,13 +62,13 @@ class AutoRevive(AbstractBehavior):
         interactives: "RoleplayInteractivesFrame" = Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
         if interactives:
             reviveSkill = interactives.getReviveIe()
-            interactives.useSkill(reviveSkill.element, self.finish)
+            UseSkill.start(reviveSkill.element, self.finish)
         else:
             KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", self.onPhenixMapReached)
 
     def releaseSoulRequest(self):
         def ontimeout():
-            self.finish(True, "[PhenixAutorevive] Player release saoul request timeout!")
+            self.finish(False, "[PhenixAutorevive] Player release saoul request timeout!")
         self.requestTimer = BenchmarkTimer(20, ontimeout)
         self.requestTimer.start()
         ConnectionsHandler().send(GameRolePlayFreeSoulRequestMessage())

@@ -33,6 +33,11 @@ class AutoTrip(AbstractBehavior):
         self.path: list[Edge] = None
         self.running.set()
         self.walkToNextStep()
+        AStar().resetForbinedEdges()
+
+    def finish(self, success: bool, error: str):
+        AStar().resetForbinedEdges()
+        super().finish(success, error)
 
     def currentEdgeIndex(self):
         v = PlayedCharacterManager().currVertex
@@ -49,7 +54,7 @@ class AutoTrip(AbstractBehavior):
             dstMapId = self.path[-1].dst.mapId
             if currMapId == dstMapId:
                 Logger().info(f"[AutoTrip] Trip reached destination Map : {dstMapId}")
-                return self.finish(True)
+                return self.finish(True, None)
             currentIndex = self.currentEdgeIndex()
             if currentIndex is None:
                 return self.finish(False, "Current player vertex not found in path")
