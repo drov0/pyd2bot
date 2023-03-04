@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
@@ -17,6 +18,7 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.death
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
     BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+
 if TYPE_CHECKING:
     from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import \
         RoleplayInteractivesFrame
@@ -33,6 +35,8 @@ class AutoRevive(AbstractBehavior):
         self.running.set()
         self.callback = callback
         Logger().info("[PhenixAutorevive] Started.")
+        if not PlayedCharacterManager().currentMap:
+            return KernelEventsManager().onceMapProcessed(self.start, [callback])
         KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_PHANTOM:
             AutoTrip().start(Localizer.phenixMapId(), 1, self.onPhenixMapReached)
@@ -46,23 +50,24 @@ class AutoRevive(AbstractBehavior):
         elif playerState == PlayerLifeStatusEnum.STATUS_ALIVE_AND_KICKING:
             Logger().info("[PhenixAutorevive] Player is alive and kicking")
             KernelEventsManager().remove_listener(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange)
-            self.finish(True)
+            self.finish(True, None)
 
     def onCimetaryMapLoaded(self, event_id=None):
         Logger().debug(f"[PhenixAutorevive] Cimetary map loaded.")
         if self.requestTimer:
             self.requestTimer.cancel()
         KernelEventsManager().remove_listener(KernelEvent.MAPPROCESSED, self.onCimetaryMapLoaded)
-        AutoTrip.start(Localizer.phenixMapId(), 1, self.onPhenixMapReached)
+        AutoTrip().start(Localizer.phenixMapId(), 1, self.onPhenixMapReached)
 
     def onPhenixMapReached(self, status, error):
         if error:
-            self.finish(status, error)
-            return
+            return self.finish(status, error)
         interactives: "RoleplayInteractivesFrame" = Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
         if interactives:
             reviveSkill = interactives.getReviveIe()
-            UseSkill.start(reviveSkill.element, self.finish)
+            def onPhenixSkillUsed(status, error):
+                Logger().info("Phenix revive skill used")
+            UseSkill().start(reviveSkill, onPhenixSkillUsed, waitForSkillUsed=False)
         else:
             KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", self.onPhenixMapReached)
 

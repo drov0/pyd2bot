@@ -4,6 +4,7 @@ from pyd2bot.apis.PlayerAPI import PlayerAPI
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AttackMonsters import AttackMonsters
+from pyd2bot.logic.roleplay.behaviors.AutoRevive import AutoRevive
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
 from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
@@ -13,6 +14,7 @@ from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.dofus.datacenter.monsters.Monster import Monster
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
@@ -100,7 +102,8 @@ class FarmPath(AbstractBehavior):
         self._currTransition, edge = next(self.farmPath)
         def onMapChanged(success, error):
             if error:
-                raise Exception("[FarmPath] Error while moving to next step: %s" % error)
+                Logger().error("[FarmPath] Error while moving to next step: %s" % error)
+                return KernelEventsManager().send(KernelEvent.RESTART, "[FarmPath] Error while moving to next step: %s" % error)
             callback()
         ChangeMap().start(transition=self._currTransition, dstMapId=edge.dst.mapId, callback=onMapChanged)
         if self.partyFrame:
@@ -119,10 +122,19 @@ class FarmPath(AbstractBehavior):
                 totalGrpLvl = infos.staticInfos.mainCreatureLightInfos.level + sum(
                     [ul.level for ul in infos.staticInfos.underlings]
                 )
+                mainMonster = Monster.getMonsterById(infos.staticInfos.mainCreatureLightInfos.genericId)
                 if totalGrpLvl < BotConfig().monsterLvlCoefDiff * PlayedCharacterManager().limitedLevel:
                     availableMonsterFights.append(
-                        {"info": infos, "distance": len(movePath)}
+                        {"id": infos.contextualId, "distance": len(movePath), "totalLvl": totalGrpLvl, "mainMonsterName": mainMonster.name, "cell": infos.disposition.cellId}
                     )
+        if len(availableMonsterFights) > 0:
+            headers = ["mainMonsterName", "id", "cell", "totalLvl", "distance"]
+            format_row = f"{{:>0}} {{:>15}} {{:>15}} {{:>15}} {{:>15}}"
+            row_delimiter = "-" * 65
+            Logger().info(format_row.format(*headers))
+            Logger().info(row_delimiter)
+            for e in availableMonsterFights:
+                Logger().info(format_row.format(*[e[h] for h in headers]))
         return availableMonsterFights
 
     def attackMonsterGroup(self, callback):
@@ -133,10 +145,10 @@ class FarmPath(AbstractBehavior):
                 if error == "Entity vanished":
                     if len(availableMonsterFights) == 0:
                         return callback(False, "No resource")
-                    AttackMonsters().start(availableMonsterFights.pop()["info"].contextualId, onResp)
+                    AttackMonsters().start(availableMonsterFights.pop()['id'], onResp)
                 else:
                     callback(status, error)
-            AttackMonsters().start(availableMonsterFights.pop()["info"].contextualId, onResp)
+            AttackMonsters().start(availableMonsterFights.pop()['id'], onResp)
         else:
             callback(False, "No resource")
 
@@ -156,6 +168,9 @@ class FarmPath(AbstractBehavior):
             return Logger().warning("[FarmPath] Not running")
         self.state = FarmerStates.IDLE
         Logger().info("[FarmPath] doFarm called")
+        if AutoRevive().isRunning():
+            Logger().warning("Cant farm is player is dead")
+            return self.stop()
         if PlayerAPI().isProcessingMapData():
             KernelEventsManager().onceMapProcessed(self._start)
             Logger().info("[FarmPath] Waiting for map to be processed...")
@@ -180,7 +195,12 @@ class FarmPath(AbstractBehavior):
             Logger().info("[FarmPath] Waiting for map to be processed...")
             return KernelEventsManager().onceMapProcessed(self._start)
         if PlayedCharacterManager().currVertex not in self.farmPath:
-            AutoTrip().start(self.farmPath.startVertex.mapId, self.farmPath.startVertex.zoneId, self._start)
+            def onFarmPathMapReached(status, error):
+                if error:
+                    Logger().error(f"[FarmPath] Go to farmPath first map failed for reason : {error}")
+                    return KernelEventsManager().send(KernelEvent.RESTART, f"[FarmPath] Go to farmPath first map failed for reason : {error}")
+                self._start()
+            AutoTrip().start(self.farmPath.startVertex.mapId, self.farmPath.startVertex.zoneId, onFarmPathMapReached)
             if self.partyFrame:
                 self.partyFrame.askMembersToMoveToVertex(self.farmPath.startVertex)
             return
@@ -188,7 +208,15 @@ class FarmPath(AbstractBehavior):
             if not self.partyFrame.allMembersOnSameMap:
                 self.state = FarmerStates.WAITING_PARTY_MEMBERS_SHOW
                 self.partyFrame.askMembersToMoveToVertex(self.farmPath.currentVertex)
-                return BotEventsManager().onceAllPartyMembersShowed(self._start)
+                def onPartyMembersShower(error=None, memberLeftId=None):
+                    if error:
+                        if error != "member left party":
+                            Logger().error(f"[FarmPath] Error while waiting for members to show up: {error}")
+                            return KernelEventsManager().send(KernelEvent.RESTART)
+                        else:
+                            Logger().warning(f"[FarmPath] Member {memberLeftId} left party while waiting for them to show up!")
+                    self._start()
+                return BotEventsManager().onceAllPartyMembersShowed(onPartyMembersShower)
         if BotConfig().isFightSession:
             self.attackMonsterGroup(self.onAttackMonstersResult)
         elif BotConfig().isFarmSession:

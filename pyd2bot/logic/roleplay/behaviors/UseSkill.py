@@ -31,9 +31,10 @@ class UseSkill(AbstractBehavior):
     def worldFrame(self) -> "RoleplayWorldFrame":
         return Kernel().worker.getFrameByName("RoleplayWorldFrame")
     
-    def start(self, ie: InteractiveElementData, callback, cell=None, exactDistination=True):
+    def start(self, ie: InteractiveElementData, callback, cell=None, exactDistination=False, waitForSkillUsed=True):
         if self.running.is_set():
-            return callback(False, f"Already using skill {self.ie}!")
+            return callback(False, f"Already using skill {self.elementId} at {self.elementPosition.cellId}")
+        Logger().info(f"Using skill ")
         self.running.set()
         self.targetIe = ie
         self.skillUID = ie.skillUID
@@ -43,6 +44,7 @@ class UseSkill(AbstractBehavior):
         self.cell = cell
         self.callback = callback
         self.exactDistination = exactDistination
+        self.waitForSkillUsed = waitForSkillUsed
         self.useSkill()
 
     def useSkill(self) -> None:
@@ -56,8 +58,9 @@ class UseSkill(AbstractBehavior):
             if error:
                 return self.finish(errType, error)
             self.requestActivateSkill()
-        KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_BEING_USED, self.onUsingInteractive)
-        KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_USED, self.onUsingInteractive)
+        if self.waitForSkillUsed:
+            KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_BEING_USED, self.onUsingInteractive)
+            KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_USED, self.onUsingInteractive)
         MapMove().start(cell, onmoved, self.exactDistination)
         
     def ontimeout(self):
@@ -92,10 +95,11 @@ class UseSkill(AbstractBehavior):
         KernelEventsManager().remove_listener(KernelEvent.INTERACTIVE_ELEMENT_USED, self.onUsingInteractive)
         
     def requestActivateSkill(self, additionalParam=0) -> None:
-        KernelEventsManager().once(KernelEvent.INTERACTIVE_USE_ERROR, self.onUseError)
-        self.requestTimer = BenchmarkTimer(7, self.ontimeout)
-        self.requestTimer.start()
-        self.currentRequestedElementId = self.elementId
+        if self.waitForSkillUsed:
+            KernelEventsManager().once(KernelEvent.INTERACTIVE_USE_ERROR, self.onUseError)
+            self.requestTimer = BenchmarkTimer(7, self.ontimeout)
+            self.requestTimer.start()
+            self.currentRequestedElementId = self.elementId
         if additionalParam == 0:
             iurmsg = InteractiveUseRequestMessage()
             iurmsg.init(int(self.elementId), int(self.skillUID))
@@ -104,4 +108,5 @@ class UseSkill(AbstractBehavior):
             iuwprmsg = InteractiveUseWithParamRequestMessage()
             iuwprmsg.init(int(self.elementId), int(self.skillUID), int(additionalParam))
             ConnectionsHandler().send(iuwprmsg)
-        self.canMove = False
+        if not self.waitForSkillUsed:
+            super().finish(True, None)

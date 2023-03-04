@@ -9,14 +9,9 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.achievement.Achievemen
     AchievementRewardRequestMessage,
 )
 from pydofus2.com.ankamagames.dofus.network.messages.game.character.stats.CharacterLevelUpInformationMessage import CharacterLevelUpInformationMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.character.stats.CharacterLevelUpMessage import (
-    CharacterLevelUpMessage,
-)
+
 from pydofus2.com.ankamagames.dofus.network.messages.game.character.stats.CharacterStatsListMessage import (
     CharacterStatsListMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.stats.StatsUpgradeRequestMessage import (
-    StatsUpgradeRequestMessage,
 )
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
@@ -91,10 +86,16 @@ class BotCharacterUpdatesFrame(Frame):
 
         if isinstance(msg, CharacterLevelUpInformationMessage):
             if msg.id == PlayedCharacterManager().id:
+                newLevel = None
                 previousLevel = PlayedCharacterManager().infos.level
-                PlayedCharacterManager().infos.level = msg.newLevel
+                if msg.newLevel < PlayedCharacterManager().infos.level:
+                    Logger().warning(f"Recaived a player new level {msg.newLevel} < to player current level {PlayedCharacterManager().infos.level}.")
+                    newLevel = PlayedCharacterManager().infos.level + 1
+                else:
+                    newLevel = msg.newLevel
+                PlayedCharacterManager().infos.level = newLevel
                 if BotConfig().primaryStatId:
-                    pointsEarned = (msg.newLevel - previousLevel) * 5
+                    pointsEarned = (newLevel - previousLevel) * 5
                     self.boostStat(BotConfig().primaryStatId, pointsEarned)
             return True
 

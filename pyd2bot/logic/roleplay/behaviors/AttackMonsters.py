@@ -43,7 +43,7 @@ class AttackMonsters(AbstractBehavior):
         self.callback = callback
         self.entityInfo = self.entitiesFrame.getEntityInfos(self.entityId)
         if not self.entityInfo:
-            return callback(False, f"Can't find the entity {self.entityId}, maybe someone else is fighting it?")
+            return self.finish(False, f"Can't find the entity {self.entityId}, maybe someone else is fighting it?")
         self.entityMapPoint = MapPoint.fromCellId(self.entityInfo.disposition.cellId)
         self.entityMovedListener = KernelEventsManager().onceEntityMoved(self.entityId, self.onEntityMoved)
         self.entityVanishedListener = KernelEventsManager().onceEntityVanished(self.entityId, self.onEntityVanished)

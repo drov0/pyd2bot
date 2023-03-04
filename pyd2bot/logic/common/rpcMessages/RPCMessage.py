@@ -1,6 +1,6 @@
 import threading
-from time import perf_counter
 import uuid
+from time import perf_counter
 
 
 class RPCMessage:
@@ -14,4 +14,4 @@ class RPCMessage:
         self.data = data
 
     def __str__(self) -> str:
-        return f"RPCMessage({self.sender}, {self.dest}, {self.data})"
+        return f"{type(self).__name__}({self.sender}, {self.dest}, {self.data})"

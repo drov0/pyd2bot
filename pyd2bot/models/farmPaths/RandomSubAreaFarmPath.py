@@ -14,6 +14,8 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import 
     Edge
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
     Transition
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import \
+    TransitionTypeEnum
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
     Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
@@ -52,7 +54,7 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
                 if AStar.hasValidTransition(edge):
                     for tr in edge.transitions:
                         if not self.onlyDirections or tr.direction != -1:
-                            if tr.cell:
+                            if TransitionTypeEnum(tr.type) != TransitionTypeEnum.INTERACTIVE:
                                 currMP = PlayedCharacterManager().entity.position
                                 candidate = MapPoint.fromCellId(tr.cell)
                                 movePath = Pathfinding().findPath(currMP, candidate)
@@ -64,6 +66,8 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         if notrecent:
             edge, tr = random.choice(notrecent)
         else:
+            if len(transitions) == 0:
+                raise Exception("Couldnt find next transition in path from current vertex.")
             edge, tr = random.choice(transitions)
         self._recent_visited.append((self.currentVertex, time.time()))
         return tr, edge

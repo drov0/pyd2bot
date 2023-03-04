@@ -16,8 +16,8 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.misc.DofusEntities import 
     DofusEntities
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import \
     RoleplayMovementFrame
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailReason import \
-    MovementFailReason
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
+    MovementFailError
 from pydofus2.com.ankamagames.dofus.network.enums.PlayerLifeStatusEnum import \
     PlayerLifeStatusEnum
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovementCancelMessage import \
@@ -53,7 +53,7 @@ class MapMove(AbstractBehavior):
     def start(self, destCell, callback=None, exactDistination=True) -> None:
         if self.running.is_set():
             if callback:
-                callback(False, "Already running")
+                callback(False, "[MapMove] Already running")
             return
         self.running.set()
         self.callback = callback
@@ -63,7 +63,7 @@ class MapMove(AbstractBehavior):
         elif isinstance(destCell, MapPoint):
             self.dstCell = destCell
         else:
-            self.finish(False, "Invalid destination cell")
+            self.finish(False, "[MapMove] Invalid destination cell")
         self.move()
 
     def stop(self) -> None:
@@ -86,20 +86,20 @@ class MapMove(AbstractBehavior):
         if not rpmframe:
             return KernelEventsManager().onceFramePushed("RoleplayMovementFrame", self.move)
         playerEntity = DofusEntities().getEntity(PlayedCharacterManager().id)
-        self.errMsg = f"Move to cell {self.dstCell} failed for reason %s"
+        self.errMsg = f"[MapMove] Move to cell {self.dstCell} failed for reason %s"
         currentCellId = playerEntity.position.cellId
         if playerEntity is None:
-            return self.fail(MovementFailReason.PLAYER_NOT_FOUND)
+            return self.fail(MovementFailError.PLAYER_NOT_FOUND)
         if MapDisplayManager().dataMap is None:
-            return self.fail(MovementFailReason.MAP_NOT_LOADED)
+            return self.fail(MovementFailError.MAP_NOT_LOADED)
         if currentCellId == self.dstCell.cellId:
-            Logger().info("[RPPlayMove] Destination cell is the same as the current player cell")
+            Logger().info(f"[MapMove] Destination cell {self.dstCell.cellId} is the same as the current player cell")
             return self.finish(True, None)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
-            return self.fail(MovementFailReason.PLAYER_IS_DEAD)
+            return self.fail(MovementFailError.PLAYER_IS_DEAD)
         self.movePath = Pathfinding().findPath(playerEntity.position, self.dstCell)
         if self.exactDestination and self.movePath.end.cellId != self.dstCell.cellId:
-            return self.fail(MovementFailReason.CANT_REACH_DEST_CELL)
+            return self.fail(MovementFailError.CANT_REACH_DEST_CELL)
         self.movementStoppedListener = KernelEventsManager().once(KernelEvent.MOVEMENT_STOPPED, self.onMovementRejected)
         self.requestMovement()
         return True
@@ -107,7 +107,7 @@ class MapMove(AbstractBehavior):
     def onMovementRejected(self, event, newpos) -> None:
         self.nbrFails += 1
         if self.nbrFails > 3:
-            return self.fail(MovementFailReason.MOVE_REQUEST_REJECTED)
+            return self.fail(MovementFailError.MOVE_REQUEST_REJECTED)
         Logger().debug(f"[MapMove] server reject called by event {event.name}.")
         if self.requestTimer:
             self.requestTimer.cancel()
@@ -120,7 +120,7 @@ class MapMove(AbstractBehavior):
         mirmsg.init(MapDisplayManager().currentMapPoint.mapId)
         ConnectionsHandler().send(mirmsg)
         
-    def fail(self, reason: MovementFailReason) -> None:
+    def fail(self, reason: MovementFailError) -> None:
         self.finish(reason, self.errMsg % reason.name)
 
     def onMovementAnimEnd(self) -> None:
@@ -145,6 +145,8 @@ class MapMove(AbstractBehavior):
         Logger().info("[MapMove] Movement anim started")
         
     def requestMovement(self) -> None:
+        if len(self.movePath) == 0:
+            return self.finish(True, None)
         self.entityMovedListener = KernelEventsManager().onceEntityMoved(PlayedCharacterManager().id, self.onMovementRequestAccepted)
         gmmrmsg = GameMapMovementRequestMessage()
         gmmrmsg.init(self.movePath.keyMoves(), MapDisplayManager().currentMapPoint.mapId)
@@ -154,19 +156,21 @@ class MapMove(AbstractBehavior):
             if perf_counter() < nexPossibleMovementTime:
                 Kernel().worker.terminated.wait(nexPossibleMovementTime - perf_counter())
         def onTimeout():
-            self.fail(MovementFailReason.MOVE_REQUEST_TIMEOUT)
+            self.fail(MovementFailError.MOVE_REQUEST_TIMEOUT)
         self.requestTimer = BenchmarkTimer(20, onTimeout)
         self.requestTimer.start()
         ConnectionsHandler().send(gmmrmsg)
         self.LAST_MOVE_REQUEST = perf_counter()
-        
-    def onMovementRequestAccepted(self, clientMovePath):
+            
+    def onMovementRequestAccepted(self, clientMovePath: MovementPath):
         if self.movementStoppedListener:
             KernelEventsManager().remove_listener(KernelEvent.MOVEMENT_STOPPED, self.movementStoppedListener)
             self.movementStoppedListener = None
         self.entityMovedListener = None
-        Logger().info(f"[MapMove] Move request accepted.")
         if self.requestTimer:
             self.requestTimer.cancel()
             self.requestTimer = None
+        Logger().info(f"[MapMove] Move request accepted.")
+        if clientMovePath.end.cellId != self.dstCell.cellId:
+            Logger().warning(f"[MapMove] Landed on cell {clientMovePath.end.cellId} not on dst {self.dstCell.cellId}!") 
         self.simulateMoveAnimation(clientMovePath)

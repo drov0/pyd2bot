@@ -7,8 +7,8 @@ from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailReason import \
-    MovementFailReason
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
+    MovementFailError
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import \
     AStar
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
@@ -66,8 +66,8 @@ class AutoTrip(AbstractBehavior):
                 Logger().debug(f"\t\t|- direction : {tr.direction}, skill : {tr.skillId}, cell : {tr.cell}")
             def onProcessed(errType, error):
                 if error:
-                    if errType == MovementFailReason.CANT_REACH_DEST_CELL:
-                        Logger().warning(f"[AutoTrip] Can't reach destination cell, retrying with another path...")
+                    if errType == MovementFailError.CANT_REACH_DEST_CELL or errType == MovementFailError.MAPCHANGE_TIMEOUT:
+                        Logger().warning(f"[AutoTrip] Can't reach destination for reason : {errType.name}")
                         AStar().addForbidenEdge(nextEdge)
                         return self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)
                     else:

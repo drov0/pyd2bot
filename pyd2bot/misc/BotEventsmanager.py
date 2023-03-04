@@ -49,6 +49,11 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
             for follower in BotConfig().followers:
                 if int(follower.id) == int(infos.contextualId):
                     onTeamMemberShowed(e, infos)
+        def onPartyMemberLeft(event, memberId):
+            KernelEventsManager().remove_listener(KernelEvent.ACTORSHOWED, onActorShowed)
+            KernelEventsManager().remove_listener(KernelEvent.ACTORSHOWED, onTeamMemberShowed)
+            callback(*args, error="member left party", memberLeftId=memberId)
+        KernelEventsManager().once(KernelEvent.PARTY_MEMBER_LEFT, onPartyMemberLeft)
         KernelEventsManager().on(KernelEvent.ACTORSHOWED, onActorShowed)
 
     def onceAllPartyMembersIdle(self, callback, args=[]):

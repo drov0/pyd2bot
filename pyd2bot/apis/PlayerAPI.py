@@ -1,10 +1,7 @@
 import threading
 from typing import TYPE_CHECKING
 
-from pyd2bot.logic.roleplay.behaviors.AutoRevive import AutoRevive
-from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
-from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
+
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -39,6 +36,11 @@ class PlayerAPI(metaclass=Singleton):
         from pyd2bot.logic.roleplay.behaviors.FarmPath import FarmPath
         from pyd2bot.logic.roleplay.behaviors.GiveItems import GiveItems
         from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank
+        from pyd2bot.logic.roleplay.behaviors.AutoRevive import AutoRevive
+        from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+        from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
+        from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
+        from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
         bpframe: "BotPartyFrame" = Kernel().worker.getFrameByName("BotPartyFrame")
         mvframe: "RoleplayMovementFrame" = Kernel().worker.getFrameByName("RoleplayMovementFrame")
         iframe: "RoleplayInteractivesFrame" = Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
@@ -52,10 +54,6 @@ class PlayerAPI(metaclass=Singleton):
             status = f"FollowingLeaderTransition"
         elif bpframe and bpframe.joiningLeaderVertex is not None:
             status = f"joiningLeaderVertex"
-        elif MapMove().isRunning():
-            status = f"movingToCell:{MapMove().dstCell}"
-        elif ChangeMap().isRunning():
-            status = f"changingMap"
         elif CollectItems().isRunning():
             status = f"collectingSellerItems:{CollectItems().state.name}"
         elif UnloadInBank().isRunning():
@@ -67,7 +65,13 @@ class PlayerAPI(metaclass=Singleton):
         elif AutoTrip().isRunning():
             status = f"inAutoTripTo:{AutoTrip().dstMapId}"
         elif FarmPath().isRunning():
-            status = f"Farm:{FarmPath().state.name}"
+            status = f"Farm:{FarmPath().state.name}"        
+        elif MapMove().isRunning():
+            status = f"movingToCell:{MapMove().dstCell}"
+        elif ChangeMap().isRunning():
+            status = f"changingMap"
+        elif UseSkill().isRunning():
+            status = f"usingSkill:{UseSkill().skillUID} at {UseSkill().cell}"
         elif iframe and iframe._usingInteractive:
             status = "interacting"
         elif mvframe and mvframe.isMoving:

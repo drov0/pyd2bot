@@ -6,11 +6,13 @@ from pyd2bot.logic.roleplay.behaviors.FarmPath import FarmPath
 from pyd2bot.logic.roleplay.behaviors.GiveItems import GiveItems
 from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank
 from pyd2bot.logic.roleplay.frames.BotPartyFrame import BotPartyFrame
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import \
+    RoleplayEntitiesFrame
 from pydofus2.com.ankamagames.dofus.network.enums.GameContextEnum import \
     GameContextEnum
 from pydofus2.com.ankamagames.dofus.network.enums.PlayerLifeStatusEnum import \
@@ -33,7 +35,9 @@ class BotWorkflowFrame(Frame):
         super().__init__()
 
     def pushed(self) -> bool:
+        KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange)
         self._delayedAutoUnlaod = False
+        self.mapProcessedListeners = []
         return True
 
     def pulled(self) -> bool:
@@ -54,9 +58,9 @@ class BotWorkflowFrame(Frame):
             if self.currentContext == GameContextEnum.ROLE_PLAY:
                 if PlayedCharacterManager().inventoryWeight / PlayedCharacterManager().inventoryWeightMax > 0.95:
                     Logger().warning(f"[BotWorkflow] Inventory is almost full will trigger auto unload...")
-                    return KernelEventsManager().onceMapProcessed(self.unloadInventory)
+                    return self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(self.unloadInventory))
                 if BotConfig().path and not FarmPath().isRunning():
-                    KernelEventsManager().onceMapProcessed(FarmPath().start)
+                    self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(FarmPath().start))
             elif self.currentContext == GameContextEnum.FIGHT:
                 if BotConfig().isLeader:
                     Kernel().worker.addFrame(BotFightFrame())
@@ -80,17 +84,24 @@ class BotWorkflowFrame(Frame):
         elif isinstance(msg, GameRolePlayGameOverMessage):
             self.onPlayerStateChange(None, PlayerLifeStatusEnum.STATUS_TOMBSTONE)
 
-    def onPlayerStateChange(self, event, state):
+    def onPlayerStateChange(self, event, state):            
+        PlayedCharacterManager().state = state
         if state == PlayerLifeStatusEnum.STATUS_TOMBSTONE or state == PlayerLifeStatusEnum.STATUS_PHANTOM:
+            for listener in self.mapProcessedListeners:
+                KernelEventsManager().remove_listener(KernelEvent.MAPPROCESSED, listener)
             if BotConfig().isLeader:
                 FarmPath().stop()
-            Kernel().worker.removeFrameByName("BotPartyFrame")
-            PlayedCharacterManager().state = state
+            if not PlayedCharacterManager().currentMap:
+                return KernelEventsManager().onceMapProcessed(AutoRevive().start, [self.onPhenixAutoReviveEnded])
+            rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
+            if not rpeframe or not rpeframe.mcidm_processessed:
+                return KernelEventsManager().onceMapProcessed(AutoRevive().start, [self.onPhenixAutoReviveEnded])
             AutoRevive().start(self.onPhenixAutoReviveEnded)
         
-    def onPhenixAutoReviveEnded(self, e=None):
-        Logger().debug(f"[BotWorkflow] Phenix auto revive ended.")
-        if BotConfig().path:
+    def onPhenixAutoReviveEnded(self, status, error):
+        if error:
+            raise Exception(f"[BotWorkflow] Error while autoreviving player: {error}")
+        if BotConfig().path and not FarmPath().isRunning():
             FarmPath().start()
         if BotConfig().party and not Kernel().worker.contains("BotPartyFrame"):
             Kernel().worker.addFrame(BotPartyFrame())
