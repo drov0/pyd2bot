@@ -41,6 +41,9 @@ class AttackMonsters(AbstractBehavior):
         self.running.set()
         self.entityId = entityId
         self.callback = callback
+        if not self.entitiesFrame:
+            self.running.clear()
+            return KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self.start, [entityId, callback])
         self.entityInfo = self.entitiesFrame.getEntityInfos(self.entityId)
         if not self.entityInfo:
             return self.finish(False, f"Can't find the entity {self.entityId}, maybe someone else is fighting it?")

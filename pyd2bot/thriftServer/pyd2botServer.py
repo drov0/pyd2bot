@@ -45,6 +45,7 @@ def sendTrace(func):
 
     return wrapped
 class Pyd2botServer:
+
     def __init__(self, id: str):
         self.id = id
 
@@ -53,10 +54,15 @@ class Pyd2botServer:
         from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import (
             GameServerInformations,
         )
-        self.Logger().debug("fetchUsedServers called with token: " + token)
-        DofusClient().login(token)
-        servers: dict[str, list[GameServerInformations]] = KernelEventsManager().wait(KernelEvent.SERVERS_LIST, 60)
-        self.Logger().info(f"list servers: {[s.to_json() for s in servers['used']]}")
+        Logger().debug("fetchUsedServers called with token: " + token)
+        client = DofusClient("fetchServersThread")
+        client._loginToken = token
+        client._serverId = 0
+        result = None
+        client.start()
+        KernelEventsManager.WaitThreadRegister("fetchServersThread", 25)
+        servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance("fetchServersThread").wait(KernelEvent.SERVERS_LIST, 60)
+        Logger().info(f"List servers: {[s.to_json() for s in servers['used']]}")
         result = [
             Server(
                 server.id,
@@ -70,7 +76,7 @@ class Pyd2botServer:
             )
             for server in servers["used"]
         ]
-        DofusClient().shutdown()
+        client.shutdown()
         return result
 
     @sendTrace
@@ -79,12 +85,14 @@ class Pyd2botServer:
         from pydofus2.com.ankamagames.dofus.internalDatacenter.connection.BasicCharacterWrapper import (
             BasicCharacterWrapper,
         )
-
         result = list()
-        DofusClient().login(token, serverId)
-        charactersList: list[BasicCharacterWrapper] = KernelEventsManager().wait(KernelEvent.CHARACTERS_LIST, 60)
-        if charactersList is None:
-            raise Exception("Timeout!")
+        client = DofusClient("fetchCharactersThread")
+        client._loginToken = token
+        client._serverId = serverId
+        result = None
+        client.start()
+        KernelEventsManager.WaitThreadRegister("fetchCharactersThread", 25)
+        charactersList: list[BasicCharacterWrapper] = KernelEventsManager.getInstance("fetchCharactersThread").wait(KernelEvent.CHARACTERS_LIST, 60)
         result = [
             Character(
                 character.name,
@@ -97,7 +105,7 @@ class Pyd2botServer:
             )
             for character in charactersList
         ]
-        DofusClient().shutdown()
+        client.shutdown()
         return result
 
     @sendTrace
@@ -153,7 +161,7 @@ class Pyd2botServer:
         from pyd2bot.logic.roleplay.messages.LeaderPosMessage import LeaderPosMessage
 
         v = Vertex(**json.loads(vertex))
-        self.Logger().debug(f"Leader pos given, leader in vertex {v}.")
+        Logger().debug(f"Leader pos given, leader in vertex {v}.")
         Kernel().worker.process(LeaderPosMessage(v))
 
     def followTransition(self, transition: str):
