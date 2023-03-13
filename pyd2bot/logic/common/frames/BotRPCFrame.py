@@ -29,6 +29,9 @@ from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 
 
 class BotRPCFrame(Frame):
+    DEST_KERNEL_NOT_FOUND = "dest kernel not found"
+    CALL_TIMEOUT = "call timeout"
+    
     def __init__(self):
         self._waitingForResp = {}
         super().__init__()
@@ -91,16 +94,15 @@ class BotRPCFrame(Frame):
         return False
 
     def onTimeout(self, msg: RPCMessage, timeout):
-        ConnectionsHandler.removeListener(msg.dest, lambda: self.send(msg, None, timeout))
         if msg.uid in self._waitingForResp:
             respw = self._waitingForResp[msg.uid]
             if "callback" in respw:
                 self._waitingForResp.pop(msg.uid)
-                respw["callback"](result=None, error="call timeout", sender=msg.sender)
+                respw["callback"](result=None, error=self.CALL_TIMEOUT, sender=msg.sender)
             if "event" in respw:
                 respw["event"].set()
                 respw["result"] = None
-                respw["err"] = "RPC call timeout"
+                respw["err"] = self.CALL_TIMEOUT
 
     def askForStatus(self, dst, callback):
         msg = GetStatusMessage(dst)
@@ -130,10 +132,11 @@ class BotRPCFrame(Frame):
         msg = ComeToCollectMessage(dst, bankInfo, guestInfo)
         self.send(msg)
 
-    def send(self, msg: RPCMessage, callback=None, timeout=20) -> None:
+    def send(self, msg: RPCMessage, callback=None, timeout=60) -> None:
         inst = Kernel.getInstance(msg.dest)
         if not inst:
-            return
+            if callback:
+                return callback(result=None, error=self.DEST_KERNEL_NOT_FOUND, sender=msg.sender)
         if not msg.oneway and msg.uid not in self._waitingForResp:
             self._waitingForResp[msg.uid] = {}
             self._waitingForResp[msg.uid]["timeout"] = BenchmarkTimer(timeout, self.onTimeout, [msg, timeout])
@@ -141,7 +144,7 @@ class BotRPCFrame(Frame):
             self._waitingForResp[msg.uid]["timeout"].start()
         inst.worker.process(msg)
 
-    def sendSync(self, msg: RPCMessage, timeout=20) -> RPCResponseMessage:
+    def sendSync(self, msg: RPCMessage, timeout=60) -> RPCResponseMessage:
         if msg.oneway:
             raise Exception("sendSync can't be used with oneway message")
         if msg.uid not in self._waitingForResp:
@@ -154,7 +157,7 @@ class BotRPCFrame(Frame):
         inst = Kernel.getInstance(msg.dest)
         inst.worker.process(msg)
         if not resw["event"].wait(10):
-            raise TimeoutError("RPC call timeout")
+            raise TimeoutError(self.CALL_TIMEOUT)
         result = resw["result"]
         error = resw.get("err")
         self._waitingForResp.pop(msg.uid)

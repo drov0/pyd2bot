@@ -3,25 +3,24 @@ from queue import PriorityQueue
 from time import perf_counter
 from types import FunctionType
 from typing import TYPE_CHECKING, Tuple
+from pyd2bot.logic.fight.messages.MuleSwitchedToCombatContext import MuleSwitchedToCombatContext
 
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
+from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.atouin.AtouinConstants import AtouinConstants
 from pydofus2.com.ankamagames.atouin.managers.EntitiesManager import \
     EntitiesManager
-from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
-    MapDisplayManager
-from pydofus2.com.ankamagames.atouin.messages.MapLoadedMessage import \
-    MapLoadedMessage
 from pydofus2.com.ankamagames.atouin.utils.DataMapProvider import \
     DataMapProvider
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
-from pydofus2.com.ankamagames.dofus.datacenter.communication.InfoMessage import \
-    InfoMessage
 from pydofus2.com.ankamagames.dofus.datacenter.effects.EffectInstance import \
     EffectInstance
 from pydofus2.com.ankamagames.dofus.datacenter.monsters.Monster import Monster
+from pydofus2.com.ankamagames.dofus.datacenter.spells.Spell import Spell
+from pydofus2.com.ankamagames.dofus.datacenter.spells.SpellLevel import SpellLevel
 from pydofus2.com.ankamagames.dofus.internalDatacenter.spells.SpellWrapper import \
     SpellWrapper
 from pydofus2.com.ankamagames.dofus.internalDatacenter.stats.EntityStats import \
@@ -160,7 +159,6 @@ class BotFightFrame(Frame):
         self._wantcastSpell = None
         self.currentPlayer = None
         self._lastPlayerId = None
-        self.spellw = None
         self._reachableCells = None
         self._seqQueue = []
         self._waitingSeqEnd = False
@@ -174,6 +172,12 @@ class BotFightFrame(Frame):
         self._forbidenCells = set()
         self._turnStartPlaying = False
         self._suspectedUnreachableCell = None
+        self.fightResumed = False
+        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerTextInfo)
+        KernelEventsManager().once(KernelEvent.FIGHT_RESUMED, self.onFightResumed)
+
+    def onFightResumed(self, event):
+        self.fightResumed = True
 
     def pushed(self) -> bool:
         self.init()
@@ -193,6 +197,9 @@ class BotFightFrame(Frame):
 
     @property
     def playerManager(self) -> "PlayedCharacterManager":
+        if not self.currentPlayer:
+            Logger().warning("Asking for player manager for None current player")
+            return None
         return PlayedCharacterManager.getInstance(self.currentPlayer.login)
 
     @property
@@ -228,6 +235,7 @@ class BotFightFrame(Frame):
         if self._reachableCells:
             self._reachableCells.clear()
         self._turnAction.clear()
+        KernelEventsManager().remove_listener(KernelEvent.TEXT_INFO, self.onServerTextInfo)
         return True
 
     @property
@@ -371,7 +379,7 @@ class BotFightFrame(Frame):
                     "cell": entity.disposition.cellId,
                     "id": entity.contextualId,
                     "reason": reason,
-                    "hitpoints": f"{round(100*hp/maxhp, 1) if maxhp > 0 else 0}%",
+                    "hitpoints": f"{hp}",
                     "isMonster": ismonster
                 }
                 infosTable.append(entry)
@@ -394,6 +402,8 @@ class BotFightFrame(Frame):
         return result
 
     def playTurn(self):
+        if not self.currentPlayer:
+            Logger().warning(f"Play turn called withour defined currentPlayer")
         self._currentPath = None
         self._currentTarget = None
         Logger().info(f"[FightBot] Turn playing : {self.currentPlayer.name} ({self.currentPlayer.id}).")
@@ -530,9 +540,29 @@ class BotFightFrame(Frame):
 
     def canCastSpell(self, targetId: int=0) -> bool:
         return CurrentPlayedFighterManager().canCastThisSpell(self.spellId, self.spellw.spellLevel, targetId)
-
+            
+    def onMemberJoinedFight(self, player: Character):
+        if not ConnectionsHandler.getInstance(player.login) or not ConnectionsHandler.getInstance(player.login).inGameServer():
+            Logger().warning(f"Member {player.name} is still disconnected waiting for him to conect ...")
+            return BotEventsManager().onceMuleJoinedFightContext(player.id, lambda: self.onMemberJoinedFight(player))
+        PlayedCharacterManager.getInstance(player.login).isFighting = True
+        if not self.fightResumed:
+            startFightMsg = GameFightReadyMessage()
+            startFightMsg.init(True)
+            ConnectionsHandler.getInstance(player.login).send(startFightMsg)
+            notjoined = [
+                m.name for m in BotConfig().fightPartyMembers if not self.entitiesFrame.getEntityInfos(m.id)
+            ]
+            if not notjoined:
+                Logger().info(f"[FightBot] All party members joined fight.")
+                startFightMsg = GameFightReadyMessage()
+                startFightMsg.init(True)
+                ConnectionsHandler().send(startFightMsg)
+                self.fightReadySent = True
+    
     def process(self, msg: Message) -> bool:
         
+    
         if isinstance(msg, GameFightOptionStateUpdateMessage):
             if msg.option not in BotConfig().fightOptions:
                 BotConfig().fightOptions.append(msg.option)
@@ -563,6 +593,8 @@ class BotFightFrame(Frame):
             return True
 
         elif isinstance(msg, GameActionFightNoSpellCastMessage):
+            if not self.currentPlayer:
+                return
             Logger().error(f"[FightBot] Failed to cast spell")
             if self._requestingCastSpell:
                 self._turnAction.clear()
@@ -575,6 +607,8 @@ class BotFightFrame(Frame):
             return True
 
         elif isinstance(msg, GameMapNoMovementMessage):
+            if not self.currentPlayer:
+                return
             Logger().error(f"[FightBot] Failed to move")
             if self._isRequestingMovement and self.turnFrame and self.turnFrame.myTurn:
                 self._turnAction.clear()
@@ -595,19 +629,7 @@ class BotFightFrame(Frame):
                 if player:
                     if player.id != BotConfig().character.id:
                         Logger().info(f"[FightBot] Party member {player.name} joined fight.")
-                        PlayedCharacterManager.getInstance(player.login).isFighting = True
-                        startFightMsg = GameFightReadyMessage()
-                        startFightMsg.init(True)
-                        ConnectionsHandler.getInstance(player.login).send(startFightMsg)
-                        notjoined = [
-                            m.name for m in BotConfig().fightPartyMembers if not self.entitiesFrame.getEntityInfos(m.id)
-                        ]
-                        if not notjoined:
-                            Logger().info(f"[FightBot] All party members joined fight.")
-                            startFightMsg = GameFightReadyMessage()
-                            startFightMsg.init(True)
-                            ConnectionsHandler().send(startFightMsg)
-                            self.fightReadySent = True
+                        self.onMemberJoinedFight(player)
                     else:
                         Logger().info(f"[FightBot] Party Leader {player.name} joined fight.")
                 elif fighterId > 0 and fighterId != BotConfig().character.id:
@@ -668,25 +690,6 @@ class BotFightFrame(Frame):
             else:
                 self._turnStartPlaying = True
 
-        elif isinstance(msg, TextInformationMessage):
-            msgInfo = InfoMessage.getInfoMessageById(msg.msgType * 10000 + msg.msgId)
-            if msgInfo:
-                textId = msgInfo.textId
-            else:
-                if msg.msgType == TextInformationTypeEnum.TEXT_INFORMATION_ERROR:
-                    textId = InfoMessage.getInfoMessageById(10231).textId
-                else:
-                    textId = InfoMessage.getInfoMessageById(207).textId
-            if textId == 4993:  # Wants to use more than the pms available
-                self.turnEnd()
-            if textId == 4897:  # Something is blocking the way
-                pass
-            if textId == 144451:  # An obstacle is blocking LOS
-                self._requestingCastSpell = False
-                self._turnAction.clear()
-                self.turnEnd()
-            return True
-
         elif isinstance(msg, GameFightTurnReadyRequestMessage):
             if self.battleFrame._executingSequence:
                 Logger().warn("[FightBot] Delaying turn end acknowledgement because we're still in a sequence.")
@@ -696,13 +699,51 @@ class BotFightFrame(Frame):
                 self._turnStartPlaying = False
             return True
 
+        elif isinstance(msg, MuleSwitchedToCombatContext):
+            Logger().info(f"Mule {msg.muleId} in fight context")
+            BotEventsManager().send(BotEventsManager.MULE_FIGHT_CONTEXT, msg.muleId)
+            return True
         return False
 
+    def onServerTextInfo(self, event, msgId, msgType, textId, text):
+        if textId == 4993: # Wants to use more than the pms available
+            self.turnEnd()
+        if textId == 4897: # Something is blocking the way
+            pass
+        if textId == 144451: # An obstacle is blocking LOS
+            self._requestingCastSpell = False
+            self._turnAction.clear()
+            self.turnEnd()
+        return True
+
+    @property
+    def spellw(self) -> SpellWrapper:
+        if not self.playerManager:
+            Logger().error("Asking for spellw when there is no player manager")
+            return None
+        res = self.playerManager.getSpellById(self.spellId)
+        if not res:
+            Logger().error(f"Plyaer {self.currentPlayer.name} doesn't have spelllist {self.playerManager.playerSpellList}")
+            res = SpellWrapper.create(self.spellId)
+            spell = Spell.getSpellById(self.spellId)
+            currentCharacterLevel = self.playerManager.limitedLevel
+            spellLevels = spell.spellLevelsInfo
+            index = 0
+            for i in range(len(spellLevels) - 1, -1, -1):
+                if currentCharacterLevel >= spellLevels[i].minPlayerLevel:
+                    index = i
+                    break
+            res._spellLevel = spellLevels[index]
+            res.spellLevel = index + 1
+            self.playerManager.playerSpellList.append(res)
+        return res
+        
     def onPlayer(self) -> None:
+        if not self.currentPlayer:
+            return Logger().error(f"Something weird happend, called onPlayer when currrentPlayer is None")
         if not self.playerManager:
             Logger().warning(f"[FightBot] {self.currentPlayer.name} seems to be disconnected")
-            PlayedCharacterManager.onceThreadRegister(self.currentPlayer.login, self.onPlayer)
-            return
+            return BotEventsManager().onceMuleJoinedFightContext(self.currentPlayer.id, lambda: self.onPlayer())
         Logger().info(f"[FightBot] It's {self.currentPlayer.name}'s turn to play")
         self._forbidenCells.clear()
         self._myTurn = True
@@ -721,7 +762,7 @@ class BotFightFrame(Frame):
         return stats.getStatTotalValue(StatIds.MOVEMENT_POINTS)
 
     def checkCanPlay(self):
-        if not self.turnFrame or not self.turnFrame.myTurn:
+        if not self.turnFrame or not self.turnFrame.myTurn or not self.currentPlayer or not self.playerManager:
             return
         if self._confirmTurnEnd:
             self.confirmTurnEnd()
@@ -731,7 +772,7 @@ class BotFightFrame(Frame):
             self.nextTurnAction("checkCanPlay")
                     
     def turnEnd(self) -> None:
-        if self.currentPlayer is not None:
+        if self.currentPlayer is not None and self.connection is not None:
             self._spellCastFails = 0
             self._myTurn = False
             self._seqQueue.clear()
@@ -843,7 +884,6 @@ class BotFightFrame(Frame):
         SpellWrapper.refreshAllPlayerSpellHolder(self._currentPlayerId)
         SpellInventoryManagementFrame().applySpellGlobalCoolDownInfo(self._currentPlayerId)
         CurrentPlayedFighterManager().playerManager.isFighting = True
-        self.spellw = self.playerManager.getSpellById(self.spellId)
         self._spellCastFails = 0
         self._moveRequestFails = 0
         self._seqQueue.clear()

@@ -3,6 +3,7 @@ import threading
 from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import BotCharacterUpdatesFrame
 from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig
+from pyd2bot.logic.roleplay.behaviors.ChangeServer import ChangeServer
 from pyd2bot.thriftServer.pyd2botService.ttypes import (
     Character,
     Spell,
@@ -16,6 +17,8 @@ from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent,
 )
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
+from pydofus2.com.ankamagames.dofus.logic.common.actions.ChangeServerAction import ChangeServerAction
+from pydofus2.com.ankamagames.dofus.logic.connection.actions.ServerSelectionAction import ServerSelectionAction
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import (
     InventoryManager,
 )
@@ -80,31 +83,42 @@ class Pyd2botServer:
         return result
 
     @sendTrace
-    def fetchCharacters(self, token: str, serverId: int) -> list[Character]:
+    def fetchCharacters(self, token: str) -> list[Character]:        
+        from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import (
+            GameServerInformations,
+        )
         from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
         from pydofus2.com.ankamagames.dofus.internalDatacenter.connection.BasicCharacterWrapper import (
             BasicCharacterWrapper,
         )
+        instanceName = "fetchCharactersThread"
         result = list()
-        client = DofusClient("fetchCharactersThread")
+        client = DofusClient(instanceName)
         client._loginToken = token
-        client._serverId = serverId
-        result = None
+        client._serverId = 0
         client.start()
-        KernelEventsManager.WaitThreadRegister("fetchCharactersThread", 25)
-        charactersList: list[BasicCharacterWrapper] = KernelEventsManager.getInstance("fetchCharactersThread").wait(KernelEvent.CHARACTERS_LIST, 60)
-        result = [
-            Character(
-                character.name,
-                character.id,
-                character.level,
-                character.breedId,
-                character.breed.name,
-                serverId,
-                PlayerManager().server.name,
-            )
-            for character in charactersList
-        ]
+        KernelEventsManager.WaitThreadRegister(instanceName, 25)
+        servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance(instanceName).wait(KernelEvent.SERVERS_LIST, 60)
+        first = True
+        for server in servers["used"]:
+            if first:
+                first = False
+                Kernel.getInstance(instanceName).worker.process(ServerSelectionAction.create(server.id))
+            else:
+                Kernel.getInstance(instanceName).worker.process(ChangeServerAction.create(server.id))
+            charactersList: list[BasicCharacterWrapper] = KernelEventsManager.getInstance(instanceName).wait(KernelEvent.CHARACTERS_LIST, 60)
+            result += [
+                Character(
+                    character.name,
+                    character.id,
+                    character.level,
+                    character.breedId,
+                    character.breed.name,
+                    PlayerManager.getInstance(instanceName).server.id,
+                    PlayerManager.getInstance(instanceName).server.name
+                )
+                for character in charactersList
+            ]
         client.shutdown()
         return result
 

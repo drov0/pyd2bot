@@ -9,12 +9,16 @@ class AbstractBehavior(metaclass=Singleton):
     def __init__(self) -> None:
         self.running = threading.Event()
         self.callback = None
+        self.listeners = []
         super().__init__()
 
     def start(self, *args, **kwargs) -> None:
         raise NotImplementedError("Abstract method.")
 
-    def finish(self, status: bool, error: str = None) -> None:
+    def onFinish(self, callback):
+        self.listeners.append(callback)
+
+    def finish(self, status: bool, error: str = None, **kwargs) -> None:
         if not self.running.is_set():
             return Logger().warning(f"[{type(self).__name__}] wants to finish but not running!")
         Logger().info(f"[{type(self).__name__}] Finished.")
@@ -22,8 +26,14 @@ class AbstractBehavior(metaclass=Singleton):
         self.callback = None
         self.running.clear()
         type(self).clear()
+        error = f"[{type(self).__name__}] failed for reason : {error}" if error else None
         if callback:
-            callback(status, error)
+            callback(status, error, **kwargs)
+        else:
+            Logger().debug(error)
+        if self.listeners:
+            for callback in self.listeners:
+                callback(status, error)
     
     def isRunning(self):
         return self.running.is_set()

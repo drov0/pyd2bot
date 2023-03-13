@@ -1,7 +1,4 @@
-import threading
 from typing import TYPE_CHECKING
-
-
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -26,9 +23,12 @@ class PlayerAPI(metaclass=Singleton):
     def isIdle(self) -> bool:
         return self.status == "idle"
     
+    @property
+    def rpeframe(self) -> "RoleplayEntitiesFrame":
+        return Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
+    
     def isProcessingMapData(self) -> bool:
-        rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
-        return not rpeframe or not rpeframe.mcidm_processessed
+        return not self.rpeframe.mcidm_processed
 
     @property
     def status(self) -> str:
@@ -41,37 +41,45 @@ class PlayerAPI(metaclass=Singleton):
         from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
         from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
         from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
+        from pyd2bot.logic.roleplay.behaviors.CreateNewCharacter import CreateNewCharacter
+        from pyd2bot.logic.roleplay.behaviors.NpcDialog import NpcDialog
         bpframe: "BotPartyFrame" = Kernel().worker.getFrameByName("BotPartyFrame")
         mvframe: "RoleplayMovementFrame" = Kernel().worker.getFrameByName("RoleplayMovementFrame")
         iframe: "RoleplayInteractivesFrame" = Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
-        if MapDisplayManager().currentDataMap is None:
+        if PlayedCharacterManager().isInFight:
+            status = "fighting"
+        if CreateNewCharacter().isRunning():
+            status = f"isCreatingCharacter:{CreateNewCharacter().state.name}"
+        elif NpcDialog.getInstance(PlayedCharacterManager().instanceId) and NpcDialog().isRunning():
+            status = f"inNpcDialog"
+        elif MapDisplayManager().currentDataMap is None:
             status = "loadingMap"
+        elif not self.rpeframe:
+            status = "outOfRolePlay"
         elif self.isProcessingMapData():
             status = "processingMapData"
-        elif PlayedCharacterManager().isInFight:
-            status = "fighting"
         elif bpframe and bpframe.followingLeaderTransition:
-            status = f"FollowingLeaderTransition"
+            status = f"followingLeaderTransition"
         elif bpframe and bpframe.joiningLeaderVertex is not None:
             status = f"joiningLeaderVertex"
-        elif CollectItems().isRunning():
-            status = f"collectingSellerItems:{CollectItems().state.name}"
-        elif UnloadInBank().isRunning():
+        elif CollectItems.getInstance(PlayedCharacterManager().instanceId) and CollectItems().isRunning():
+            status = f"collectingItems from:{CollectItems().guest.name}:{CollectItems().state.name}"
+        elif UnloadInBank.getInstance(PlayedCharacterManager().instanceId) and UnloadInBank().isRunning():
             status = f"inBankAutoUnload:{UnloadInBank().state.name}"
-        elif GiveItems().isRunning():
+        elif GiveItems.getInstance(PlayedCharacterManager().instanceId) and GiveItems().isRunning():
             status = f"inSellerAutoUnload:{GiveItems().state.name}"
-        elif AutoRevive().isRunning():
+        elif AutoRevive.getInstance(PlayedCharacterManager().instanceId) and AutoRevive().isRunning():
             status = "inPhenixAutoRevive"
-        elif AutoTrip().isRunning():
+        elif AutoTrip.getInstance(PlayedCharacterManager().instanceId) and AutoTrip().isRunning():
             status = f"inAutoTripTo:{AutoTrip().dstMapId}"
         elif FarmPath().isRunning():
-            status = f"Farm:{FarmPath().state.name}"        
-        elif MapMove().isRunning():
+            status = f"Farm:{FarmPath().state.name}"
+        elif ChangeMap.getInstance(PlayedCharacterManager().instanceId) and ChangeMap().isRunning():
+            status = f"changingMap to {ChangeMap().dstMapId}"
+        elif UseSkill.getInstance(PlayedCharacterManager().instanceId) and UseSkill().isRunning():
+            status = f"usingSkill:{UseSkill().skillUID} at {UseSkill().cell}"  
+        elif MapMove.getInstance(PlayedCharacterManager().instanceId) and MapMove().isRunning():
             status = f"movingToCell:{MapMove().dstCell}"
-        elif ChangeMap().isRunning():
-            status = f"changingMap"
-        elif UseSkill().isRunning():
-            status = f"usingSkill:{UseSkill().skillUID} at {UseSkill().cell}"
         elif iframe and iframe._usingInteractive:
             status = "interacting"
         elif mvframe and mvframe.isMoving:

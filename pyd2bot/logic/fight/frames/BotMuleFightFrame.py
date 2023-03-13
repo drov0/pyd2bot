@@ -1,10 +1,13 @@
 
 
+from pyd2bot.logic.fight.messages.MuleSwitchedToCombatContext import MuleSwitchedToCombatContext
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.network.messages.game.actions.fight.GameActionFightNoSpellCastMessage import GameActionFightNoSpellCastMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.basic.TextInformationMessage import TextInformationMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.character.stats.FighterStatsListMessage import FighterStatsListMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameContextReadyMessage import GameContextReadyMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovementMessage import GameMapMovementMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapNoMovementMessage import GameMapNoMovementMessage
@@ -29,6 +32,7 @@ class BotMuleFightFrame(Frame):
 
     def pushed(self) -> bool:
         Logger().info("BotMuleFightFrame pushed")
+        Kernel.getInstance(BotConfig().leader.login).worker.process(MuleSwitchedToCombatContext(PlayedCharacterManager().id))
         return True
 
     def pulled(self) -> bool:
@@ -42,7 +46,7 @@ class BotMuleFightFrame(Frame):
             turnEnd.init(True)
             ConnectionsHandler().send(turnEnd)
             return True
-        
+
         elif isinstance(msg, CurrentMapMessage):
             gcrmsg = GameContextReadyMessage()
             gcrmsg.init(int(msg.mapId))

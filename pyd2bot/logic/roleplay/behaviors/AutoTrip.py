@@ -1,6 +1,4 @@
 from time import perf_counter
-from typing import Tuple
-
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \

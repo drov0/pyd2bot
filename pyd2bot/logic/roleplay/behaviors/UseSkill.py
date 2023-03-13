@@ -8,7 +8,7 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import \
-    InteractiveElementData
+    InteractiveElementData, RoleplayInteractivesFrame
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayWorldFrame import \
     RoleplayWorldFrame
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
@@ -31,11 +31,27 @@ class UseSkill(AbstractBehavior):
     def worldFrame(self) -> "RoleplayWorldFrame":
         return Kernel().worker.getFrameByName("RoleplayWorldFrame")
     
-    def start(self, ie: InteractiveElementData, callback, cell=None, exactDistination=False, waitForSkillUsed=True):
+    def start(self, ie: InteractiveElementData, callback, cell=None, exactDistination=False, waitForSkillUsed=True, elementId=None, skilluid=None):
         if self.running.is_set():
             return callback(False, f"Already using skill {self.elementId} at {self.elementPosition.cellId}")
         Logger().info(f"Using skill ")
         self.running.set()
+        if ie is None:
+            if elementId:
+                def onIeFound(ie: InteractiveElementData):
+                    self.targetIe = ie
+                    self.skillUID = ie.skillUID
+                    self.elementId = ie.element.elementId
+                    self.elementPosition = ie.position
+                    self.element = ie.element
+                    self.cell = cell
+                    self.callback = callback
+                    self.exactDistination = exactDistination
+                    self.waitForSkillUsed = waitForSkillUsed
+                    self.useSkill()
+                return UseSkill.getInteractiveElement(elementId, skilluid, onIeFound)
+            else:
+                return self.finish(False, "No interactive element provided")
         self.targetIe = ie
         self.skillUID = ie.skillUID
         self.elementId = ie.element.elementId
@@ -60,7 +76,7 @@ class UseSkill(AbstractBehavior):
             self.requestActivateSkill()
         if self.waitForSkillUsed:
             KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_BEING_USED, self.onUsingInteractive)
-            KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_USED, self.onUsingInteractive)
+            KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_USED, self.onUsedInteractive)
         MapMove().start(cell, onmoved, self.exactDistination)
         
     def ontimeout(self):
@@ -110,3 +126,11 @@ class UseSkill(AbstractBehavior):
             ConnectionsHandler().send(iuwprmsg)
         if not self.waitForSkillUsed:
             super().finish(True, None)
+            
+    @classmethod
+    def getInteractiveElement(cls, elementId, skilluid, callback) -> InteractiveElementData:
+        rpif: "RoleplayInteractivesFrame" = Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
+        if rpif is None:
+            Logger().error("No roleplay interactive frame found")
+            return KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", cls.getInteractiveElement, [elementId, skilluid, callback])
+        callback(rpif.getInteractiveElement(elementId, skilluid))

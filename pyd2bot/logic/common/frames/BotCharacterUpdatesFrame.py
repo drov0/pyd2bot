@@ -1,4 +1,6 @@
-import pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler as connh
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
+from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pydofus2.com.ankamagames.dofus.datacenter.breeds.Breed import Breed
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
@@ -8,35 +10,55 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.achievement.Achievemen
 from pydofus2.com.ankamagames.dofus.network.messages.game.achievement.AchievementRewardRequestMessage import (
     AchievementRewardRequestMessage,
 )
-from pydofus2.com.ankamagames.dofus.network.messages.game.character.stats.CharacterLevelUpInformationMessage import CharacterLevelUpInformationMessage
-
-from pydofus2.com.ankamagames.dofus.network.messages.game.character.stats.CharacterStatsListMessage import (
-    CharacterStatsListMessage,
-)
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.stats.StatsUpgradeRequestMessage import StatsUpgradeRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 from pydofus2.damageCalculation.tools.StatIds import StatIds
-
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import RoleplayEntitiesFrame
 
 class BotCharacterUpdatesFrame(Frame):
     def __init__(self):
-        self._statsInitialized = False
         super().__init__()
 
     def pushed(self) -> bool:
+        KernelEventsManager().on(KernelEvent.LEVEL_UP, self.onBotLevelUp)
+        KernelEventsManager().on(KernelEvent.CHARACTER_STATS, self.onPlayerStats)
         return True
 
     def pulled(self) -> bool:
+        KernelEventsManager().remove_listener(KernelEvent.LEVEL_UP, self.onBotLevelUp)
+        KernelEventsManager().remove_listener(KernelEvent.CHARACTER_STATS, self.onPlayerStats)
         return True
 
     @property
     def priority(self) -> int:
         return Priority.VERY_LOW
 
+    def onPlayerStats(self, event):
+        unusedStatPoints = PlayedCharacterManager().stats.getStatBaseValue(StatIds.STATS_POINTS)
+        if unusedStatPoints > 0:
+            # Logger().debug(f"Have {unusedStatPoints} unused stat points")
+            boost, usedCapital = self.getBoost(unusedStatPoints)
+            if boost > 0:
+                Logger().info(f"can boost point with {boost}")
+                self.boostCharacs(usedCapital, BotConfig().primaryStatId)
+
+    def onBotLevelUp(self, event, previousLevel, newLevel):
+        previousLevel = PlayedCharacterManager().infos.level
+        Logger().warning(f"Reccived a player new level {newLevel}, player current level {previousLevel}.")
+        PlayedCharacterManager().infos.level = newLevel
+        if PlayedCharacterManager().stats and BotConfig().primaryStatId is not None:
+            pointsEarned = 5 * (newLevel - previousLevel)
+            boost, usedCapital = self.getBoost(pointsEarned)
+            if boost > 0:
+                self.boostCharacs(usedCapital, BotConfig().primaryStatId)
+
     def getStatFloor(self, statId: int):
-        breed = Breed.getBreedById(PlayedCharacterManager().infos.breed)
+        breed = Breed.getBreedById(statId)
         statFloors = {
             StatIds.STRENGTH: breed.statsPointsForStrength,
             StatIds.VITALITY: breed.statsPointsForVitality,
@@ -47,33 +69,50 @@ class BotCharacterUpdatesFrame(Frame):
         }
         return statFloors[statId]
 
-    def boostStat(self, statId: int, points: int):
-        stat_floors = self.getStatFloor(statId)
+    def getCurrCost(self, x, statFloors):
+        currCost = None
+        currFloorIdx = None
+        for idx, interval in enumerate(statFloors):
+            start, cost = interval
+            if start <= x:
+                currCost = cost
+                currFloorIdx = idx
+            else:
+                break
+        return currFloorIdx, currCost
+
+    def getBoost(self, capital):
+        statId = BotConfig().primaryStatId
+        statFloors = self.getStatFloor(statId)
         additional = PlayedCharacterManager().stats.getStatAdditionalValue(statId)
         base = PlayedCharacterManager().stats.getStatBaseValue(statId)
-        current_stat_points = base + additional
-
-        try:
-            current_floor_cost = next(floor[1] for floor in stat_floors if floor[0] > current_stat_points)
-        except StopIteration:
-            # if there's no floor that the current stat points is less than
-            current_floor_cost = 4
-
+        currentBase = base + additional
+        idxCurrFloor, currentCost = self.getCurrCost(currentBase, statFloors)
         boost = 0
-        for i in range(len(stat_floors)):
-            next_floor = stat_floors[i + 1][0] if i + 1 < len(stat_floors) else float("inf")
-            pts_to_invest = min(points, next_floor - current_stat_points)
-            additional_boost = pts_to_invest // current_floor_cost
-            if additional_boost == 0:
+        usedCapital = 0
+        while True:
+            nextFloor = statFloors[idxCurrFloor + 1][0] if idxCurrFloor + 1 < len(statFloors) else float("inf")
+            capitalUntilNextFloor = (nextFloor - currentBase) * currentCost
+            if capital <= capitalUntilNextFloor:
+                boost += capital // currentCost
+                usedCapital += currentCost * (capital // currentCost)
                 break
-            boost += additional_boost
-            points -= additional_boost * current_floor_cost
-            current_floor_cost = stat_floors[i + 1][1] if i + 1 < len(stat_floors) else 4
-        if boost > 0:
-            Logger().info("Boosting stat {} by {}".format(statId, boost))
-            # sumsg = StatsUpgradeRequestMessage()
-            # sumsg.init(False, statId, boost)
-            # connh.ConnectionsHandler().send(sumsg)
+            else:
+                usedCapital += capitalUntilNextFloor
+                boost += nextFloor - currentBase
+                currentBase = nextFloor
+                capital -= capitalUntilNextFloor
+                idxCurrFloor += 1
+                currentCost = statFloors[idxCurrFloor][1] if idxCurrFloor < len(statFloors) else statFloors[len(statFloors) - 1][0]
+        return boost, usedCapital
+    
+    def boostCharacs(self, boost, statId):
+        rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
+        if not rpeframe or not rpeframe.mcidm_processed:
+            return KernelEventsManager().onceMapProcessed(self.boostCharacs, [boost, statId])
+        sumsg = StatsUpgradeRequestMessage()
+        sumsg.init(False, statId, boost)
+        ConnectionsHandler().send(sumsg)
 
     def process(self, msg: Message) -> bool:
 
@@ -81,28 +120,7 @@ class BotCharacterUpdatesFrame(Frame):
             msg.achievement.id
             arrmsg = AchievementRewardRequestMessage()
             arrmsg.init(msg.achievement.id)
-            connh.ConnectionsHandler().send(arrmsg)
+            ConnectionsHandler().send(arrmsg)
             return False
 
-        if isinstance(msg, CharacterLevelUpInformationMessage):
-            if msg.id == PlayedCharacterManager().id:
-                newLevel = None
-                previousLevel = PlayedCharacterManager().infos.level
-                if msg.newLevel < PlayedCharacterManager().infos.level:
-                    Logger().warning(f"Recaived a player new level {msg.newLevel} < to player current level {PlayedCharacterManager().infos.level}.")
-                    newLevel = PlayedCharacterManager().infos.level + 1
-                else:
-                    newLevel = msg.newLevel
-                PlayedCharacterManager().infos.level = newLevel
-                if BotConfig().primaryStatId:
-                    pointsEarned = (newLevel - previousLevel) * 5
-                    self.boostStat(BotConfig().primaryStatId, pointsEarned)
-            return True
 
-        elif isinstance(msg, CharacterStatsListMessage):
-            if not self._statsInitialized:
-                unusedStatPoints = PlayedCharacterManager().stats.getStatBaseValue(StatIds.STATS_POINTS)
-                if unusedStatPoints > 0:
-                    self.boostStat(BotConfig().primaryStatId, unusedStatPoints)
-                self._statsInitialized = True
-            return True

@@ -1,9 +1,8 @@
 from enum import Enum
-
+import threading
 from pyd2bot.logic.managers.PathFactory import PathFactory
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Session, SessionType, UnloadType
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
-
 
 class CharacterRoleEnum(Enum):
     LEADER = 0
@@ -12,6 +11,9 @@ class CharacterRoleEnum(Enum):
 
 
 class BotConfig(metaclass=Singleton):
+    SELLER_VACANT = threading.Event()
+    SELLER_LOCK = threading.Lock()
+
     defaultBreedConfig = {
         10: {"primarySpellId": 13516, "primaryStat": 10},  # sadida  # ronce  #  force
         4: {"primarySpellId": 12902, "primaryStat": 10},  # sram  # Truanderie  # force
@@ -49,12 +51,15 @@ class BotConfig(metaclass=Singleton):
 
     @property
     def unloadInBank(self) -> bool:
-        return self.unloadType == UnloadType.BANK
+        return self.isSeller or self.unloadType == UnloadType.BANK
 
     @property
     def unloadInSeller(self) -> bool:
-        return self.unloadType == UnloadType.SELLER
-
+        return not self.isSeller and self.unloadType == UnloadType.SELLER 
+    
+    @property
+    def isSeller(self) -> bool:
+        return self.seller and self.character.id == self.seller.id
     @property
     def isFarmSession(self) -> bool:
         return self.sessionType == SessionType.FARM

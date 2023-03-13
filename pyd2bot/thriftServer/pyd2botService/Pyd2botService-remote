@@ -24,7 +24,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('Usage: ' + sys.argv[0] + ' [-h host[:port]] [-u url] [-f[ramed]] [-s[sl]] [-novalidate] [-ca_certs certs] [-keyfile keyfile] [-certfile certfile] function [arg1 [arg2...]]')
     print('')
     print('Functions:')
-    print('   fetchCharacters(string token, int serverId)')
+    print('   fetchCharacters(string token)')
     print('   fetchUsedServers(string token)')
     print('  void runSession(string token, Session session)')
     print('   fetchBreedSpells(int breedId)')
@@ -109,10 +109,10 @@ client = Pyd2botService.Client(protocol)
 transport.open()
 
 if cmd == 'fetchCharacters':
-    if len(args) != 2:
-        print('fetchCharacters requires 2 args')
+    if len(args) != 1:
+        print('fetchCharacters requires 1 args')
         sys.exit(1)
-    pp.pprint(client.fetchCharacters(args[0], eval(args[1]),))
+    pp.pprint(client.fetchCharacters(args[0],))
 
 elif cmd == 'fetchUsedServers':
     if len(args) != 1:

@@ -39,15 +39,15 @@ struct Spell {
     2:string name
 }
 struct Character {
-    1:string name,
-    2:double id,
-    3:int level,
-    4:int breedId,
-    5:string breedName,
-    6:int serverId,
-    7:string serverName,
-    8:string login,
-    9:int accountId,
+    1: string name,
+    2: double id,
+    3: int level,
+    4: int breedId,
+    5: string breedName,
+    6: int serverId,
+    7: string serverName,
+    8: optional string login,
+    9: optional int accountId,
 }
 struct Session {
     1: double id,
@@ -64,7 +64,7 @@ exception DofusError {
     2: string message
 }
 service Pyd2botService {
-    list<Character> fetchCharacters(1: string token, 2: int serverId) throws (1: DofusError error),
+    list<Character> fetchCharacters(1: string token) throws (1: DofusError error),
     list<Server> fetchUsedServers(1: string token) throws (1: DofusError error),
     void runSession(1: string token, 6:Session session) throws (1: DofusError error),
     list<Spell> fetchBreedSpells(1: int breedId) throws (1: DofusError error),

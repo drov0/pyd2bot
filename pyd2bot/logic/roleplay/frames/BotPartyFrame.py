@@ -146,11 +146,15 @@ class BotPartyFrame(Frame):
         self.allMembersIdle = False
         self._followerStatus = {follower.login: None for follower in self.followers}
         for member in self.followers:
+            if not self.rpcFrame:
+                if Kernel().worker.terminated.is_set():
+                    return Logger().info("Worker terminated while fetching followers status")
+                return KernelEventsManager().onceFramePushed("BotRPCFrame", self.checkAllMembersIdle)
             self.rpcFrame.askForStatus(member.login, self.onFollowerStatus)
 
     def onFollowerStatus(self, result: str, error: str, sender: str):
         if error is not None:
-            raise Exception(f"Error while fetching follower status: {error}")
+            raise Exception(f"Error while fetching follower {sender} status: {error}")
         self._followerStatus[sender] = result
         if all(status is not None for status in self._followerStatus.values()):
             nonIdleMemberNames = [f"- {name} : {status}" for name, status in self._followerStatus.items() if status != "idle"]

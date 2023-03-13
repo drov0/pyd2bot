@@ -1,19 +1,15 @@
 from enum import Enum
-
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.frames.BotBankInteractionFrame import \
-    BotBankInteractionFrame
+from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank    
 from pyd2bot.logic.roleplay.frames.BotExchangeFrame import (
     BotExchangeFrame, ExchangeDirectionEnum)
+from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.misc.Localizer import BankInfos
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
+from pyd2bot.thriftServer.pyd2botService.ttypes import Character
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
-    PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-
 
 class CollecteState(Enum):
     WATING_MAP = 0
@@ -32,9 +28,10 @@ class CollecteState(Enum):
 class CollectItems(AbstractBehavior):
 
     def __init__(self):
+        self.guestDisconnectedListener: Listener = None
         super().__init__()
 
-    def start(self, bankInfos: BankInfos, guest: dict, items: list = None, callback=None) -> bool:
+    def start(self, bankInfos: BankInfos, guest: Character, items: list = None, callback=None) -> bool:
         if self.running.is_set():
             return self.finish(False, "[CollectFromGuest] Already running")
         self.running.set()
@@ -42,44 +39,34 @@ class CollectItems(AbstractBehavior):
         self.bankInfos = bankInfos
         self.items = items
         self.callback = callback
-        self.state = CollecteState.WATING_MAP
-        if PlayedCharacterManager().currentMap is not None:
-            self.state = CollecteState.GOING_TO_BANK
-            self.goToBank()
-        else:
-            Logger().info("[CollectFromGuest] Waiting for map...")
-            KernelEventsManager().onceMapProcessed(self.goToBank)
-        return True
-
-    def goToBank(self):
         self.state = CollecteState.GOING_TO_BANK
-        currentMapId = PlayedCharacterManager().currentMap.mapId
-        if currentMapId != self.bankInfos.npcMapId:
-            AutoTrip().start(self.bankInfos.npcMapId, 1, self.onTripEnded)
-        else:
-            self.state = CollecteState.INSIDE_BANK
-            Kernel().worker.addFrame(BotExchangeFrame(ExchangeDirectionEnum.RECEIVE, self.guest, self.onExchangeConcluded, self.items))
-            self.state = CollecteState.EXCHANGING_WITH_GUEST
+        self.guestDisconnectedListener = BotEventsManager().onceBotDisconnected(self.guest.login, self.onGuestDisconnected)
+        AutoTrip().start(self.bankInfos.npcMapId, 1, self.onTripEnded)
+
+    def onGuestDisconnected(self):
+        Logger().error("Guest disconnected!")
+        if self.state == CollecteState.EXCHANGING_WITH_GUEST:
+            Kernel().worker.removeFrameByName("BotExchangeFrame")
+        self.finish(True, None)
 
     def onTripEnded(self, status, error):
+        if not self.isRunning():
+            return
         if error is not None:
-            return self.finish(False, error)
-        if self.state == CollecteState.GOING_TO_BANK:
-            self.state = CollecteState.INSIDE_BANK
-            Kernel().worker.addFrame(BotExchangeFrame(ExchangeDirectionEnum.RECEIVE, self.guest, self.onExchangeConcluded, self.items))
-            self.state = CollecteState.EXCHANGING_WITH_GUEST
-        else:
-            return self.finish(False, "[CollectFromGuest] Trip ended but state is not GOING_TO_BANK")
+            return self.finish(False, error)        
+        self.state = CollecteState.EXCHANGING_WITH_GUEST
+        Kernel().worker.addFrame(BotExchangeFrame(ExchangeDirectionEnum.RECEIVE, self.guest, self.onExchangeConcluded, self.items))
     
-    def onExchangeConcluded(self, status, error):
+    def onExchangeConcluded(self, errorId, error):
+        self.guestDisconnectedListener.delete()
         if error:
-            return self.finish(status, error)
+            if errorId == 516493: # Inventory full
+                Logger().error(error)
+                UnloadInBank().start(self.finish, True, self.bankInfos)
+                self.state = CollecteState.UNLOADING_IN_BANK
+                return
+            return self.finish(errorId, error)
         Logger().info("[CollectFromGuest] Exchange with guest ended successfully.")
+        UnloadInBank().start(self.finish, True, self.bankInfos)        
         self.state = CollecteState.UNLOADING_IN_BANK
-        Kernel().worker.addFrame(BotBankInteractionFrame(self.bankInfos, self.onBankInteractionEnded))
-        return True
-    
-    def onBankInteractionEnded(self, status, error):
-        if error:
-            return self.finish(status, error)
-        self.finish(True, None)
+

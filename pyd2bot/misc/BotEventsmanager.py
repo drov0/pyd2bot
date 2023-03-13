@@ -1,8 +1,9 @@
+from time import perf_counter
 from typing import TYPE_CHECKING
 
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import \
-    EventsHandler
+    Event, EventsHandler
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -22,44 +23,17 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
     MEMBERS_READY = 0
     ALL_PARTY_MEMBERS_IDLE = 1
     ALL_MEMBERS_JOINED_PARTY = 2
+    MULE_FIGHT_CONTEXT = 3
+    BOT_CONNECTED = 4
+    BOT_DOSCONNECTED = 5
 
     def __init__(self):
         super().__init__()
 
-    def onceAllPartyMembersShowed(self, callback, args=[]):
-        Logger().debug("[BotEventsManager] Waiting for party members to show up.")
-
-        def onTeamMemberShowed(e, infos: "GameRolePlayHumanoidInformations"):
-            entitiesFrame: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
-            if entitiesFrame is None:
-                KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", onTeamMemberShowed, [e, infos])
-            notShowed = []
-            for follower in BotConfig().followers:
-                if not entitiesFrame.getEntityInfos(follower.id):
-                    notShowed.append(follower.name)
-            if len(notShowed) > 0:
-                Logger().info(f"[BotEventsManager] Waiting for party members {notShowed} to show up.")
-                return
-            Logger().info("[BotEventsManager] All party members showed.")
-            KernelEventsManager().remove_listener(KernelEvent.ACTORSHOWED, onActorShowed)
-            KernelEventsManager().remove_listener(KernelEvent.ACTORSHOWED, onTeamMemberShowed)
-            callback(*args)
-        def onActorShowed(e, infos: "GameRolePlayHumanoidInformations"):
-            Logger().info(f"[BotEventsManager] Actor {infos.name} showed.")
-            for follower in BotConfig().followers:
-                if int(follower.id) == int(infos.contextualId):
-                    onTeamMemberShowed(e, infos)
-        def onPartyMemberLeft(event, memberId):
-            KernelEventsManager().remove_listener(KernelEvent.ACTORSHOWED, onActorShowed)
-            KernelEventsManager().remove_listener(KernelEvent.ACTORSHOWED, onTeamMemberShowed)
-            callback(*args, error="member left party", memberLeftId=memberId)
-        KernelEventsManager().once(KernelEvent.PARTY_MEMBER_LEFT, onPartyMemberLeft)
-        KernelEventsManager().on(KernelEvent.ACTORSHOWED, onActorShowed)
-
     def onceAllPartyMembersIdle(self, callback, args=[]):
         def onEvt(e):
             callback(e, *args)
-        self.once(BotEventsManager.ALL_PARTY_MEMBERS_IDLE, onEvt)
+        return self.once(BotEventsManager.ALL_PARTY_MEMBERS_IDLE, onEvt)
 
     def oncePartyMemberShowed(self, callback, args=[]):
         def onActorShowed(e, infos: "GameRolePlayHumanoidInformations"):
@@ -67,25 +41,59 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
                 if int(follower.id) == int(infos.contextualId):
                     Logger().info("[BotEventsManager] Party member %s showed" % follower.name)
                     callback(e, *args)
-        KernelEventsManager().on(KernelEvent.ACTORSHOWED, onActorShowed)
+        return KernelEventsManager().on(KernelEvent.ACTORSHOWED, onActorShowed)
 
     def onceAllMembersJoinedParty(self, callback, args=[]):
         def onEvt(e):
             callback(e, *args)
-        self.once(BotEventsManager.ALL_MEMBERS_JOINED_PARTY, onEvt)
+        return self.once(BotEventsManager.ALL_MEMBERS_JOINED_PARTY, onEvt)
 
     def onceFighterMoved(self, fighterId, callback, args=[]):
-        def onEvt(event, movedFighterId, movePath: MovementPath):
+        def onEvt(event: Event, movedFighterId, movePath: MovementPath):
             if movedFighterId == fighterId:
+                event.listener.delete()
                 callback(movePath, *args)
-            else:
-                KernelEventsManager().once(KernelEvent.FIGHTER_MOVEMENT_APPLIED, onEvt)
-        KernelEventsManager().once(KernelEvent.FIGHTER_MOVEMENT_APPLIED, onEvt)
+        return KernelEventsManager().on(KernelEvent.FIGHTER_MOVEMENT_APPLIED, onEvt)
     
     def onceFighterCastedSpell(self, fighterId, cellId, callback, args=[]):
-        def onEvt(e, sourceId, destinationCellId, sourceCellId, spellId):
+        def onEvt(event: Event, sourceId, destinationCellId, sourceCellId, spellId):
             if sourceId == fighterId and cellId == destinationCellId:
+                event.listener.delete()
                 callback(*args)
-            else:
-                KernelEventsManager().once(KernelEvent.FIGHTER_CASTED_SPELL, onEvt)
-        KernelEventsManager().once(KernelEvent.FIGHTER_CASTED_SPELL, onEvt)
+        return KernelEventsManager().on(KernelEvent.FIGHTER_CASTED_SPELL, onEvt)
+        
+    def onceMuleJoinedFightContext(self, tgt_muleId, callback):
+        def onMuleJoinedFightContext(event: Event, muleId):
+            if muleId == tgt_muleId:
+                event.listener.delete()
+                callback()
+        return self.on(BotEventsManager.MULE_FIGHT_CONTEXT, onMuleJoinedFightContext)
+
+    def onceBotConnected(self, instanceId, callback, timeout=None, ontimeout=None):
+        started = perf_counter()
+        def onBotConnected(event: Event, conenctedBotInstanceId):
+            if conenctedBotInstanceId == instanceId:
+                event.listener.delete()
+                callback()
+            remaining = perf_counter() - started
+            if timeout:
+                if remaining > 0:
+                    event.listener.armTimer()
+                else:
+                    ontimeout()
+        return self.on(BotEventsManager.BOT_CONNECTED, onBotConnected, timeout=timeout, ontimeout=ontimeout)
+
+    def onceBotDisconnected(self, instanceId, callback, timeout=None, ontimeout=None):
+        started = perf_counter()
+        def onBotConnected(event: Event, conenctedBotInstanceId):
+            if conenctedBotInstanceId == instanceId:
+                event.listener.delete()
+                callback()
+            if timeout:
+                remaining = perf_counter() - started
+                if remaining > 0:
+                    event.listener.armTimer()
+                else:
+                    ontimeout()
+        return self.on(BotEventsManager.BOT_DOSCONNECTED, onBotConnected, timeout=timeout, ontimeout=ontimeout)
+            
