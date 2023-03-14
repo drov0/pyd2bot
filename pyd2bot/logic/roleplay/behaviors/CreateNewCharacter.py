@@ -58,14 +58,14 @@ class CreateNewCharacter(AbstractBehavior):
             KernelEventsManager().remove_listener(KernelEvent.CHARACTER_NAME_SUGGESTION, self.charNameSuggListener)
             return self.finish(False, "failed to get character name suggestion")
         sleep(3)
-        KernelEventsManager().once(KernelEvent.CHARACTER_NAME_SUGGESTION_FAILED, self.onCharacterNameSuggestionFail)
+        KernelEventsManager().once(KernelEvent.CHARACTER_NAME_SUGGESTION_FAILED, self.onCharacterNameSuggestionFail, originator=self)
         msg = CharacterNameSuggestionRequestMessage()
         msg.init()
         ConnectionsHandler().send(msg)
     
     def askNameSuggestion(self):
-        self.charNameSuggListener = KernelEventsManager().once(KernelEvent.CHARACTER_NAME_SUGGESTION, self.onCharacterNameSuggestion)
-        self.charNameSuggFailListener = KernelEventsManager().once(KernelEvent.CHARACTER_NAME_SUGGESTION_FAILED, self.onCharacterNameSuggestionFail)
+        self.charNameSuggListener = KernelEventsManager().once(KernelEvent.CHARACTER_NAME_SUGGESTION, self.onCharacterNameSuggestion, originator=self)
+        self.charNameSuggFailListener = KernelEventsManager().once(KernelEvent.CHARACTER_NAME_SUGGESTION_FAILED, self.onCharacterNameSuggestionFail, originator=self)
         msg = CharacterNameSuggestionRequestMessage()
         msg.init()
         ConnectionsHandler().send(msg)
@@ -87,30 +87,30 @@ class CreateNewCharacter(AbstractBehavior):
                 errorMsg = I18n.getUiText("ui.charSel.deletionErrorUnsecureMode")
             self.finish(False, f"create character error : {errorMsg}")
         else:
-            KernelEventsManager().once(KernelEvent.CHARACTERS_LIST, self.onCharacterList)
+            KernelEventsManager().once(KernelEvent.CHARACTERS_LIST, self.onCharacterList, originator=self)
 
     def onMapProcessed(self):
         if self.state == NewCharacterStates.CHARACTER_SELECTION:
-            KernelEventsManager().onceMapProcessed(self.onMapProcessed)
+            KernelEventsManager().onceMapProcessed(self.onMapProcessed, originator=self)
             def onquest(event, msg):
                 msg = GuidedModeQuitRequestMessage()
                 self.state = NewCharacterStates.TUTORIAL
                 ConnectionsHandler().send(msg)
-            KernelEventsManager().once(KernelEvent.QUEST_START, onquest)
+            KernelEventsManager().once(KernelEvent.QUEST_START, onquest, originator=self)
         elif self.state == NewCharacterStates.TUTORIAL:
-            KernelEventsManager().onceMapProcessed(self.onMapProcessed)
+            KernelEventsManager().onceMapProcessed(self.onMapProcessed, originator=self)
             self.state = NewCharacterStates.OUT_OF_TUTORIAL
         elif self.state == NewCharacterStates.OUT_OF_TUTORIAL:
             def onSkillUsed(status, error):
                 if error:
                    return self.finish(status, error)
-                KernelEventsManager().onceMapProcessed(lambda:self.finish(True, None), mapId=152046597)
+                KernelEventsManager().onceMapProcessed(lambda:self.finish(True, None), mapId=152046597, originator=self)
             UseSkill().start(None, onSkillUsed, elementId=489318, skilluid=148931090, waitForSkillUsed=True)
         
     def onCharacterList(self, event, return_value):
         for ch in PlayerManager().charactersList:
             if ch.name == self.name: 
-                KernelEventsManager().onceMapProcessed(self.onMapProcessed)
+                KernelEventsManager().onceMapProcessed(self.onMapProcessed, originator=self)
                 msg = CharacterFirstSelectionMessage()
                 msg.init(True, ch.id)
                 ConnectionsHandler().send(msg)
@@ -121,7 +121,7 @@ class CreateNewCharacter(AbstractBehavior):
     def requestNewCharacter(self):
         def onTimeout():
             self.finish(False, "Request character create timedout")
-        KernelEventsManager().once(KernelEvent.CHARACTER_CRATION_RESULT, self.onNewCharacterResult)
+        KernelEventsManager().once(KernelEvent.CHARACTER_CRATION_RESULT, self.onNewCharacterResult, originator=self)
         self.requestTimer = BenchmarkTimer(10, onTimeout)
         msg = CharacterCreationRequestMessage()
         msg.init(self.name, self.breedId, True, [12215600, 12111183, 4803893, 9083451, 13358995], 153)

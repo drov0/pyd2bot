@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     pass
 
 class WaitForPartyMembersToShow(AbstractBehavior):
-    MEMBER_LEFT_PARTY = 0
+    MEMBER_LEFT_PARTY = 991
     
     def __init__(self) -> None:
         super().__init__()
@@ -20,17 +20,17 @@ class WaitForPartyMembersToShow(AbstractBehavior):
 
     def start(self, callback) -> bool:
         if self.running.is_set():
-            return self.finish(False, "[WaitForPartyMembersToShow] Already running.")
+            return self.finish(self.ALREADY_RUNNING, "[WaitForPartyMembersToShow] Already running.")
         self.running.set()
         self.callback = callback
         Logger().debug("[WaitForPartyMembersToShow] Waiting for party members to show up.")
-        self.partyMemberLeftPartyListener = KernelEventsManager().once(KernelEvent.PARTY_MEMBER_LEFT, self.onPartyMemberLeft)
+        self.partyMemberLeftPartyListener = KernelEventsManager().once(KernelEvent.PARTY_MEMBER_LEFT, self.onPartyMemberLeft, originator=self)
         self.actorShowedListener = KernelEventsManager().on(KernelEvent.ACTORSHOWED, self.onActorShowed)
 
     def onTeamMemberShowed(self, event, infos: "GameRolePlayHumanoidInformations"):
         entitiesFrame: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
         if entitiesFrame is None:
-            KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self.onTeamMemberShowed, [event, infos])
+            KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self.onTeamMemberShowed, [event, infos], originator=self)
         notShowed = []
         for follower in BotConfig().followers:
             if not entitiesFrame.getEntityInfos(follower.id):
@@ -50,4 +50,4 @@ class WaitForPartyMembersToShow(AbstractBehavior):
 
     def onPartyMemberLeft(self, event, memberId):
         self.actorShowedListener.delete()
-        self.finish(memberId, error=self.MEMBER_LEFT_PARTY)
+        self.finish(self.MEMBER_LEFT_PARTY, error=memberId)

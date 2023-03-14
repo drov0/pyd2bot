@@ -43,5 +43,5 @@ class DeleteCharacter(AbstractBehavior):
                 if c == characterId:
                     return self.finish(False, "Character wasent deleted and still in chars list")
             self.finish(True, None)
-        KernelEventsManager().once(KernelEvent.CHARACTERS_LIST, oncharList)
+        KernelEventsManager().once(KernelEvent.CHARACTERS_LIST, oncharList, originator=self)
         ConnectionsHandler().send(cdrmsg)

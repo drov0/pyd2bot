@@ -56,7 +56,8 @@ class FarmerStates(Enum):
     WAITING_PARTY_MEMBERS_SHOW = 10
 
 class FarmPath(AbstractBehavior):
-    
+    NO_RESOUCE = 701
+
     def __init__(self):
         super().__init__()
         self.state = FarmerStates.IDLE
@@ -143,16 +144,16 @@ class FarmPath(AbstractBehavior):
         availableMonsterFights = self.findMonstersToAttack()
         if availableMonsterFights:
             availableMonsterFights.sort(key=lambda x: x["distance"])
-            def onResp(status, error):
-                if error == "Entity vanished":
+            def onResp(code, error):
+                if code == AttackMonsters.ENTITY_VANISHED:
                     if len(availableMonsterFights) == 0:
-                        return callback(False, "No resource")
+                        return callback(self.NO_RESOUCE, "No resource to farm in the current map")
                     AttackMonsters().start(availableMonsterFights.pop()['id'], onResp)
                 else:
-                    callback(status, error)
+                    callback(code, error)
             AttackMonsters().start(availableMonsterFights.pop()['id'], onResp)
         else:
-            callback(False, "No resource")
+            callback(self.NO_RESOUCE, "Map with no reachable monster group")
 
     def insideCurrentPlayerZoneRp(self, cellId):
         tgtRpZone = MapDisplayManager().dataMap.cells[cellId].linkedZoneRP
@@ -174,7 +175,7 @@ class FarmPath(AbstractBehavior):
             Logger().warning("Cant farm is player is dead")
             return self.stop()
         if PlayerAPI().isProcessingMapData():
-            KernelEventsManager().onceMapProcessed(self._start)
+            KernelEventsManager().onceMapProcessed(self._start, originator=self)
             Logger().info("[FarmPath] Waiting for map to be processed...")
             self.state = FarmerStates.WAITING_MAP
             return
@@ -182,12 +183,12 @@ class FarmPath(AbstractBehavior):
             if not self.partyFrame.allMembersJoinedParty:
                 self.state = FarmerStates.WAITING_PARTY_MEMBERS_JOIN
                 Logger().info("[BotEventsManager] Waiting for party members to join party.")
-                BotEventsManager().onceAllMembersJoinedParty(self._start)
+                BotEventsManager().onceAllMembersJoinedParty(self._start, originator=self)
                 self.partyFrame.inviteAllFollowers()
             else:
                 self.state = FarmerStates.WAITING_PARTY_MEMBERS_IDLE
                 Logger().info("[BotEventsManager] Waiting for party members to be idle.")
-                BotEventsManager().onceAllPartyMembersIdle(self.doFarm)
+                BotEventsManager().onceAllPartyMembersIdle(self.doFarm, originator=self)
                 self.partyFrame.checkAllMembersIdle()
             return
         self.doFarm()
@@ -202,19 +203,18 @@ class FarmPath(AbstractBehavior):
         if self.partyFrame:
             self.partyFrame.askMembersToMoveToVertex(self.farmPath.startVertex)
 
-    def onPartyMembersShowed(self, memberLeftId, error):
-        if error:
-            if error == WaitForPartyMembersToShow.MEMBER_LEFT_PARTY:
-                Logger().warning(f"[FarmPath] Member {memberLeftId} left party while waiting for them to show up!")
+    def onPartyMembersShowed(self, code, errorInfo):
+        if errorInfo:
+            if code == WaitForPartyMembersToShow.MEMBER_LEFT_PARTY:
+                Logger().warning(f"[FarmPath] Member {errorInfo} left party while waiting for them to show up!")
             else:
-                Logger().error(f"[FarmPath] Error while waiting for members to show up: {error}")
-                return KernelEventsManager().send(KernelEvent.RESTART)
+                return KernelEventsManager().send(KernelEvent.RESTART, f"[FarmPath] Error while waiting for members to show up: {errorInfo}")
         self._start()
 
     def doFarm(self, event=None):
         if PlayedCharacterManager().currentMap is None:
             Logger().info("[FarmPath] Waiting for map to be processed...")
-            return KernelEventsManager().onceMapProcessed(self._start)
+            return KernelEventsManager().onceMapProcessed(self._start, originator=self)
         if PlayedCharacterManager().currVertex not in self.farmPath:
             return self.onBotOutOfFarmPath()
         if self.partyFrame:
@@ -234,11 +234,11 @@ class FarmPath(AbstractBehavior):
             self.moveToNextStep(self._start)
         self._start()
             
-    def onAttackMonstersResult(self, status, error=None):
-        if error is not None:
-            if error != "No resource" and error != "Entity vanished":
-                Logger().error(f"[FarmPath] Error while attacking monsters: {error}")
-            return self.moveToNextStep(self._start)
+    def onAttackMonstersResult(self, code, error=None):
+        if error is not None and code not in [AttackMonsters.MAP_CHANGED, self.NO_RESOUCE]:
+            Logger().error(f"[FarmPath] Error while attacking monsters: {error}")
+            return KernelEventsManager().send(KernelEvent.RESTART, f"[FarmPath] Error while attacking monsters: {error}")
+        self.moveToNextStep(self._start)
 
     def findResourceToCollect(self) -> InteractiveElementData:
         target = None

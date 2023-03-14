@@ -173,8 +173,8 @@ class BotFightFrame(Frame):
         self._turnStartPlaying = False
         self._suspectedUnreachableCell = None
         self.fightResumed = False
-        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerTextInfo)
-        KernelEventsManager().once(KernelEvent.FIGHT_RESUMED, self.onFightResumed)
+        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerTextInfo, originator=self)
+        KernelEventsManager().once(KernelEvent.FIGHT_RESUMED, self.onFightResumed, originator=self)
 
     def onFightResumed(self, event):
         self.fightResumed = True
@@ -235,7 +235,7 @@ class BotFightFrame(Frame):
         if self._reachableCells:
             self._reachableCells.clear()
         self._turnAction.clear()
-        KernelEventsManager().remove_listener(KernelEvent.TEXT_INFO, self.onServerTextInfo)
+        KernelEventsManager().clearAllByOrigin(self)
         return True
 
     @property
@@ -524,7 +524,7 @@ class BotFightFrame(Frame):
                     f"currently executing {self.battleFrame._executingSequence} ..."
             )
             self.battleFrame.logState()
-            KernelEventsManager().once(KernelEvent.SEQUENCE_EXEC_FINISHED, self.nextTurnAction)
+            KernelEventsManager().once(KernelEvent.SEQUENCE_EXEC_FINISHED, self.nextTurnAction, originator=self)
             return
         if self.VERBOSE:
             Logger().info(f"[FightBot] Next turn actions, {[a['fct'].__name__ for a in self._turnAction]}")
@@ -544,7 +544,7 @@ class BotFightFrame(Frame):
     def onMemberJoinedFight(self, player: Character):
         if not ConnectionsHandler.getInstance(player.login) or not ConnectionsHandler.getInstance(player.login).inGameServer():
             Logger().warning(f"Member {player.name} is still disconnected waiting for him to conect ...")
-            return BotEventsManager().onceMuleJoinedFightContext(player.id, lambda: self.onMemberJoinedFight(player))
+            return BotEventsManager().onceMuleJoinedFightContext(player.id, lambda: self.onMemberJoinedFight(player), originator=self)
         PlayedCharacterManager.getInstance(player.login).isFighting = True
         if not self.fightResumed:
             startFightMsg = GameFightReadyMessage()
@@ -655,7 +655,7 @@ class BotFightFrame(Frame):
 
         elif isinstance(msg, GameFightTurnStartMessage):
             if not self.entitiesFrame:
-                return KernelEventsManager().onceFramePushed("FightEntitiesFrame", self.process, [msg])
+                return KernelEventsManager().onceFramePushed("FightEntitiesFrame", self.process, [msg], originator=self)
             Logger().separator(f"Player {msg.id} turn to play", "~")
             self._currentPlayerId = msg.id
             if not self._lastPlayerId:
@@ -743,7 +743,7 @@ class BotFightFrame(Frame):
             return Logger().error(f"Something weird happend, called onPlayer when currrentPlayer is None")
         if not self.playerManager:
             Logger().warning(f"[FightBot] {self.currentPlayer.name} seems to be disconnected")
-            return BotEventsManager().onceMuleJoinedFightContext(self.currentPlayer.id, lambda: self.onPlayer())
+            return BotEventsManager().onceMuleJoinedFightContext(self.currentPlayer.id, lambda: self.onPlayer(), originator=self)
         Logger().info(f"[FightBot] It's {self.currentPlayer.name}'s turn to play")
         self._forbidenCells.clear()
         self._myTurn = True
@@ -779,7 +779,10 @@ class BotFightFrame(Frame):
             self._turnAction.clear()
             gftfmsg = GameFightTurnFinishMessage()
             gftfmsg.init(False)
-            self.connection.send(gftfmsg)
+            if self.connection and self.connection.inGameServer():
+                self.connection.send(gftfmsg)
+            else:
+                Logger().warning("Dropped turn end message coz player seems to be out of server game")
 
     @property
     def fighterInfos(self) -> "GameFightFighterInformations":
@@ -807,7 +810,7 @@ class BotFightFrame(Frame):
                     self._forbidenCells.add(cellId)
                     return self.nextTurnAction("from cast spell")
                 self._requestingCastSpell = True
-                BotEventsManager().onceFighterCastedSpell(self._currentPlayerId, cellId, self.onSpellCasted)
+                BotEventsManager().onceFighterCastedSpell(self._currentPlayerId, cellId, self.onSpellCasted, originator=self)
                 gafcrmsg = GameActionFightCastRequestMessage()
                 gafcrmsg.init(spellId, cellId)
                 self.connection.send(gafcrmsg)
@@ -852,7 +855,7 @@ class BotFightFrame(Frame):
                             self._forbidenCells.add(unreachableCell)
                         self._turnAction.clear()
                 self.checkCanPlay()
-        BotEventsManager().onceFighterMoved(self._currentPlayerId, onMovementApplied)
+        BotEventsManager().onceFighterMoved(self._currentPlayerId, onMovementApplied, originator=self)
         self.connection.send(gmmrmsg)
         self._lastMoveRequestTime = perf_counter()
         return True

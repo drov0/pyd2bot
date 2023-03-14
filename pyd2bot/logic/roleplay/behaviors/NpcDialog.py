@@ -35,7 +35,7 @@ class NpcDialog(AbstractBehavior):
         msg = NpcDialogReplyMessage()
         msg.init(self.npcQuestionsReplies[self.currentNpcQuestionReplyIdx])
         self.currentNpcQuestionReplyIdx += 1
-        KernelEventsManager().once(KernelEvent.NPC_QUESTION, self.onNpcQuestion)
+        KernelEventsManager().once(KernelEvent.NPC_QUESTION, self.onNpcQuestion, originator=self)
         ConnectionsHandler().send(msg)
     
     def onNpcDialogleft(self, event):
@@ -46,6 +46,6 @@ class NpcDialog(AbstractBehavior):
             return self.finish(status, f"Move to npc Map failed with error : {error}")
         msg = NpcGenericActionRequestMessage()
         msg.init(self.npcId, self.npcOpenDialogId, self.npcMapId)
-        self.dialogLeftListener = KernelEventsManager().once(KernelEvent.NPC_DIALOG_LEFT, self.onNpcDialogleft)
-        KernelEventsManager().once(KernelEvent.NPC_QUESTION, self.onNpcQuestion)
+        self.dialogLeftListener = KernelEventsManager().once(KernelEvent.NPC_DIALOG_LEFT, self.onNpcDialogleft, originator=self)
+        KernelEventsManager().once(KernelEvent.NPC_QUESTION, self.onNpcQuestion, originator=self)
         ConnectionsHandler().send(msg) 

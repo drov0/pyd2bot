@@ -37,6 +37,11 @@ class BotConfig(metaclass=Singleton):
         self.fightOptions = []
         self.followersIds = []
         self.fightPartyMembers = list[Character]()
+        self.hasSellerLock = False
+
+    def releaseSellerLock(self):
+        if self.hasSellerLock and BotConfig.SELLER_LOCK.locked():
+            BotConfig.SELLER_LOCK.release()
 
     def getPrimarySpellId(self, breedId: int) -> int:
         return self.defaultBreedConfig[breedId]["primarySpellId"]

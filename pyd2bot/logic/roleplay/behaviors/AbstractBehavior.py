@@ -1,10 +1,12 @@
 import threading
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 
 
 class AbstractBehavior(metaclass=Singleton):
+    ALREADY_RUNNING = 666
     
     def __init__(self) -> None:
         self.running = threading.Event()
@@ -26,6 +28,10 @@ class AbstractBehavior(metaclass=Singleton):
         self.callback = None
         self.running.clear()
         type(self).clear()
+        KernelEventsManager().clearAllByOrigin(self)
+        from pyd2bot.misc.BotEventsmanager import BotEventsManager
+
+        BotEventsManager().clearAllByOrigin(self)
         error = f"[{type(self).__name__}] failed for reason : {error}" if error else None
         if callback:
             callback(status, error, **kwargs)

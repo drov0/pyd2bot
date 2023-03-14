@@ -11,6 +11,7 @@ from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.datacenter.communication.InfoMessage import \
@@ -149,12 +150,18 @@ class BotPartyFrame(Frame):
             if not self.rpcFrame:
                 if Kernel().worker.terminated.is_set():
                     return Logger().info("Worker terminated while fetching followers status")
-                return KernelEventsManager().onceFramePushed("BotRPCFrame", self.checkAllMembersIdle)
+                return KernelEventsManager().onceFramePushed("BotRPCFrame", self.checkAllMembersIdle, originator=self)
             self.rpcFrame.askForStatus(member.login, self.onFollowerStatus)
 
     def onFollowerStatus(self, result: str, error: str, sender: str):
         if error is not None:
-            raise Exception(f"Error while fetching follower {sender} status: {error}")
+            Logger().error(f"Error while fetching follower {sender} status: {error}")
+            def onSenderReconnect():
+                self.checkAllMembersIdle()
+            def ontimeout(listener):
+                listener.delete()
+                KernelEventsManager().send(KernelEvent.RESTART, "Can't get follower status")
+            return BotEventsManager().onceBotConnected(sender, onSenderReconnect, timeout=10, ontimeout=ontimeout)
         self._followerStatus[sender] = result
         if all(status is not None for status in self._followerStatus.values()):
             nonIdleMemberNames = [f"- {name} : {status}" for name, status in self._followerStatus.items() if status != "idle"]
@@ -169,6 +176,7 @@ class BotPartyFrame(Frame):
                 BotEventsManager().send(BotEventsManager.ALL_PARTY_MEMBERS_IDLE)
 
     def pulled(self):
+        KernelEventsManager().clearAllByOrigin(self)
         self.leaveParty()
         self.partyMembers.clear()
         if self.partyInviteTimers:
@@ -243,19 +251,19 @@ class BotPartyFrame(Frame):
         ConnectionsHandler().send(pfmrm)
 
     def joinFight(self, fightId: int):
-        def ontimeout() -> None:
-            Logger().error("Join fight request timeout")
-            self.joinFight(fightId)
-        self.JoinFightRequestTimer = BenchmarkTimer(10, ontimeout)
+        def ontimeout(listener: Listener) -> None:
+            Logger().warning("Join fight request timeout")
+            listener.armTimer()
+            self.sendJoinFightRequest(fightId)
         def onfight(event_id) -> None:
-            if self.JoinFightRequestTimer:
-                self.JoinFightRequestTimer.cancel()
-            self.JoinFightRequestTimer = None
+            Logger().info("Leader fight joigned successfully")
             self.joiningFightId = None
-        KernelEventsManager().once(KernelEvent.FIGHT_STARTED, onfight)
+        KernelEventsManager().once(KernelEvent.FIGHT_STARTED, onfight, timeout=3, ontimeout=ontimeout, originator=self)
+        self.sendJoinFightRequest(fightId)
+
+    def sendJoinFightRequest(self, fightId):
         gfjrmsg = GameFightJoinRequestMessage()
         gfjrmsg.init(self.leader.id, fightId)
-        self.JoinFightRequestTimer.start()
         self.joiningFightId = fightId
         ConnectionsHandler().send(gfjrmsg)
 
@@ -375,7 +383,7 @@ class BotPartyFrame(Frame):
                     f"[BotPartyFrame] Leader '{self.leader.name}' is heading to my current map '{msg.transition.transitionMapId}', nothing to do."
                 )
             else:
-                Logger().info(f"[BotPartyFrame] Will follow '{self.leader.name}'")
+                Logger().info(f"[BotPartyFrame] Will follow '{self.leader.name}' transision {msg.transition}")
                 self.followingLeaderTransition = msg.transition
                 def onresp(errType, error):
                     self.followingLeaderTransition = None
@@ -493,9 +501,9 @@ class BotPartyFrame(Frame):
                         pcinCancelerName = member.name;
                 if guestRefusingId:
                     del self.partyMembers[guestRefusingId]
-            pcinText = I18n().getUiText("ui.party.invitationCancelled",[pcinCancelerName,pcinGuestName])
-            Logger().warn(f"[BotPartyFrame] {pcinText}")
-            return True
+                pcinText = I18n().getUiText("ui.party.invitationCancelled",[pcinCancelerName,pcinGuestName])
+                Logger().warn(f"[BotPartyFrame] {pcinText}")
+                return True
     def askMembersToFollowTransit(self, transition: Transition, dstMapId):
         for follower in self.followers:
             self.rpcFrame.askFollowTransition(follower.login, transition, dstMapId)

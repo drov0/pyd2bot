@@ -46,7 +46,7 @@ class AutoTrip(AbstractBehavior):
     def walkToNextStep(self, event_id=None):
         if PlayedCharacterManager().currentMap is None:
             Logger().warning("[AutoTrip] Waiting for Map to be processed...")
-            return KernelEventsManager().onceMapProcessed(self.walkToNextStep)
+            return KernelEventsManager().onceMapProcessed(self.walkToNextStep, originator=self)
         if self.path:
             currMapId = PlayedCharacterManager().currVertex.mapId
             dstMapId = self.path[-1].dst.mapId
@@ -92,7 +92,7 @@ class AutoTrip(AbstractBehavior):
             linkedZone = 1
         src = PlayedCharacterManager().currVertex
         if src is None:
-            return KernelEventsManager().onceMapProcessed(self.findPath, [dst, linkedZone, callback])
+            return KernelEventsManager().onceMapProcessed(self.findPath, [dst, linkedZone, callback], originator=self)
         Logger().info(
             f"[WoldPathFinder] Start searching path from {src} to destMapId {dst}"
         )

@@ -1,4 +1,5 @@
 from enum import Enum
+from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank    
@@ -35,17 +36,19 @@ class CollectItems(AbstractBehavior):
         if self.running.is_set():
             return self.finish(False, "[CollectFromGuest] Already running")
         self.running.set()
+        Logger().info(f"[CollectFromGuest] collect from {guest.login} started")
         self.guest = guest
         self.bankInfos = bankInfos
         self.items = items
         self.callback = callback
         self.state = CollecteState.GOING_TO_BANK
-        self.guestDisconnectedListener = BotEventsManager().onceBotDisconnected(self.guest.login, self.onGuestDisconnected)
+        self.guestDisconnectedListener = BotEventsManager().onceBotDisconnected(self.guest.login, self.onGuestDisconnected, originator=self)
         AutoTrip().start(self.bankInfos.npcMapId, 1, self.onTripEnded)
 
     def onGuestDisconnected(self):
         Logger().error("Guest disconnected!")
         if self.state == CollecteState.EXCHANGING_WITH_GUEST:
+            BotConfig.SELLER_VACANT.set()
             Kernel().worker.removeFrameByName("BotExchangeFrame")
         self.finish(True, None)
 

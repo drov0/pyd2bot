@@ -37,10 +37,10 @@ Corner cases:
 
 
 class AttackMonsters(AbstractBehavior):
-    ENTITY_VANISHED = "Entity vanished"
-    ENTITY_MOVED = "Entity moved"
-    MAP_CHANGED = "Map changed unexpectedly"
-    TIMEOUT = "attack entity timeout"
+    ENTITY_VANISHED = 801
+    ENTITY_MOVED = 802
+    MAP_CHANGED = 803
+    TIMEOUT = 804
     FIGHT_REQ_TIMEOUT = 3
 
     def __init__(self) -> None:
@@ -61,7 +61,7 @@ class AttackMonsters(AbstractBehavior):
     
     def getEntityCellId(self) -> int:
         if not self.entityInfo:
-            self.tearDown(self.ENTITY_VANISHED, "Entity not found on map")
+            return None
         return self.entityInfo.disposition.cellId
 
     def start(self, entityId, callback):
@@ -71,17 +71,21 @@ class AttackMonsters(AbstractBehavior):
         self.entityId = entityId
         self.callback = callback
         cellId = self.getEntityCellId()
-        self.entityMovedListener = KernelEventsManager().onEntityMoved(self.entityId, self.onEntityMoved)
+        if not cellId:
+            return self.finish(self.ENTITY_VANISHED, "Entity not more on the map")
+        self.entityMovedListener = KernelEventsManager().onEntityMoved(self.entityId, self.onEntityMoved, originator=self)
         self.fightShwordListener = KernelEventsManager().onceFightSword(
-            self.entityId, cellId, self.onFightWithEntityTaken
+            self.entityId, cellId, self.onFightWithEntityTaken, originator=self
         )
-        self.mapChangeListener = KernelEventsManager().on(KernelEvent.CURRENT_MAP, self.onCurrentMap)
+        self.mapChangeListener = KernelEventsManager().on(KernelEvent.CURRENT_MAP, self.onCurrentMap, originator=self)
         self._start()
 
     def _start(self):
         if not self.entitiesFrame:
-            return KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self._start)
+            return KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self._start, originator=self)
         cellId = self.getEntityCellId()
+        if not cellId:
+            return self.finish(self.ENTITY_VANISHED, "Entity not more on the map")
         Logger().info(f"[AttackMonsters] Moving to monster {self.entityId} cell {cellId}")
         MapMove().start(MapPoint.fromCellId(cellId), self.onEntityReached)
 
@@ -91,14 +95,17 @@ class AttackMonsters(AbstractBehavior):
             MapMove().stop()
         elif self.attackMonsterListener:
             error = "Entity vanished while attacking it"
-        return self.tearDown(self.ENTITY_VANISHED, error)
+        return self.finish(self.ENTITY_VANISHED, error)
 
     def onEntityReached(self, status, error):
         if error:
             return self.finish(status, error)
         Logger().info(f"[AttackMonsters] Reached monster group cell")
         self.attackMonsterListener = KernelEventsManager().onceFightStarted(
-            lambda event: self.tearDown(True, None), self.FIGHT_REQ_TIMEOUT, self.onRequestTimeout
+            lambda event: self.finish(True, None), 
+            timeout=self.FIGHT_REQ_TIMEOUT, 
+            ontimeout=self.onRequestTimeout, 
+            originator=self
         )
         self.requestAttackMonsters()
 
@@ -112,31 +119,22 @@ class AttackMonsters(AbstractBehavior):
         self.restart()
 
     def onRequestTimeout(self, listener: Listener):
+        Logger().warning(f"Fight entity {self.entityId} request timeout")
         self.nbrFails += 1
         if self.nbrFails > 3:
-            self.tearDown(False, self.TIMEOUT)
+            self.finish(False, self.TIMEOUT)
         else:
             self.restart()
-
-    def removeListeners(self):
-        if self.attackMonsterListener:
-            self.attackMonsterListener.delete()
-        self.mapChangeListener.delete()        
-        self.entityMovedListener.delete()
-        self.fightShwordListener.delete()
         
     def restart(self):
-        self.removeListeners()
+        KernelEventsManager().clearAllByOrigin(self)
         RequestMapData().start(lambda code, err: self._start())
-
-    def tearDown(self, status, error) -> None:
-        self.removeListeners()
-        self.finish(status, error)
 
     def requestAttackMonsters(self) -> None:
         grpamrmsg = GameRolePlayAttackMonsterRequestMessage()
         grpamrmsg.init(self.entityId)
         ConnectionsHandler().send(grpamrmsg)
 
-    def onCurrentMap(self):
-        self.tearDown(self.MAP_CHANGED, "Map changed after landing on entity cell")
+    def onCurrentMap(self, event, mapId):
+        Logger().warning("Monster moved and was on a Map action cell, we changed to a new map")
+        self.finish(self.MAP_CHANGED, "Map changed after landing on entity cell")

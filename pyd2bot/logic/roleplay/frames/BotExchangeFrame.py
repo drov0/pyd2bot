@@ -1,5 +1,4 @@
 from enum import Enum
-from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -71,6 +70,9 @@ class ExchangeStateEnum(Enum):
 
 class BotExchangeFrame(Frame):
     PHENIX_MAPID = None
+    EXCHANGE_FAILED = 551
+    INVENTORY_STILL_FULL = 551
+    EXCHANGE_REQ_TIMEOUT = 3
 
     def __init__(self, direction: str, target: Character, callback, items: list = None):
         self.direction = direction
@@ -182,26 +184,26 @@ class BotExchangeFrame(Frame):
         def onTimeout():
             self.nbrFails += 1
             if self.nbrFails > 3:
-                return self.finish(False, "[ExchangeFrame] send exchange timedout")
+                return self.finish(self.EXCHANGE_REQ_TIMEOUT, "[ExchangeFrame] send exchange timedout")
             self.openExchangeTimer = BenchmarkTimer(5, onTimeout)
             self.openExchangeTimer.start()
             ConnectionsHandler().send(msg)
         self.openExchangeTimer = BenchmarkTimer(5, onTimeout)
         self.nbrFails = 0
         self.openExchangeTimer.start()
-        KernelEventsManager().once(KernelEvent.EXCHANGE_OPEN, self.onExchangeOpen)
+        KernelEventsManager().once(KernelEvent.EXCHANGE_OPEN, self.onExchangeOpen, originator=self)
         ConnectionsHandler().send(msg)
         Logger().debug("[ExchangeFrame] Exchange open request sent")
         
     def onServerNotif(self, event, msgId, msgType, textId, text):
-        KernelEventsManager().remove_listener(KernelEvent.TEXT_INFO, self.onServerNotif)
-        KernelEventsManager().remove_listener(KernelEvent.EXCHANGE_CLOSE, self.exchangeLeaveListener)
+    
+        self.exchangeLeaveListener.delete()
         if textId == 516493: # inventory full
             if self.acceptExchangeTimer:
                 self.acceptExchangeTimer.cancel()
             def onExchangeClose(event, msg):
                 self.finish(516493, "[ExchangeFrame] Can't take guest items because we don't have enough space in inventory")
-            KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, onExchangeClose)
+            KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, onExchangeClose, originator=self)
             ConnectionsHandler().send(LeaveDialogRequestMessage()) 
         elif textId == 5023: # the second player can't take all the load            
             timer = BenchmarkTimer(6, ConnectionsHandler().send, [LeaveDialogRequestMessage()])
@@ -211,7 +213,7 @@ class BotExchangeFrame(Frame):
                 if timer:
                     timer.cancel()
                 self.finish(5023, "Can't give to guest items because he doesn't have enough space in inventory")
-            KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, onExchangeClose)
+            KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, onExchangeClose, originator=self)
             timer.start()
 
     def onExchangeLeave(self, event, msg: ExchangeLeaveMessage):
@@ -220,19 +222,19 @@ class BotExchangeFrame(Frame):
         if msg.success == True:
             if self.giveAll:
                 if (PlayedCharacterManager().inventoryWeight / PlayedCharacterManager().inventoryWeightMax) > 0.9:
-                    return self.finish(False, "Inventory still full when i am supposed to have given all items")
+                    return self.finish(self.INVENTORY_STILL_FULL, "Inventory still full when i am supposed to have given all items")
             Logger().info("[ExchangeFrame] Exchange ended successfully.")
             self.finish(True, None)
         else:
-            self.finish(False, "Exchange failed")
+            self.finish(self.EXCHANGE_FAILED, "Exchange failed")
             
     def sendExchangeReady(self):
         readymsg = ExchangeReadyMessage()
         readymsg.init(ready_=True, step_=self.step)
         self.acceptExchangeTimer = BenchmarkTimer(5, self.sendExchangeReady)
         self.acceptExchangeTimer.start()
-        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerNotif)
-        self.exchangeLeaveListener = KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, self.onExchangeLeave)
+        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerNotif, originator=self)
+        self.exchangeLeaveListener = KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, self.onExchangeLeave, originator=self)
         ConnectionsHandler().send(readymsg)
         Logger().debug("[ExchangeFrame] Exchange is ready sent.")
 

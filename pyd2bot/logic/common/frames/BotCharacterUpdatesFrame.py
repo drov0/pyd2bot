@@ -30,8 +30,7 @@ class BotCharacterUpdatesFrame(Frame):
         return True
 
     def pulled(self) -> bool:
-        KernelEventsManager().remove_listener(KernelEvent.LEVEL_UP, self.onBotLevelUp)
-        KernelEventsManager().remove_listener(KernelEvent.CHARACTER_STATS, self.onPlayerStats)
+        KernelEventsManager().clearAllByOrigin(self)
         return True
 
     @property
@@ -109,7 +108,7 @@ class BotCharacterUpdatesFrame(Frame):
     def boostCharacs(self, boost, statId):
         rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
         if not rpeframe or not rpeframe.mcidm_processed:
-            return KernelEventsManager().onceMapProcessed(self.boostCharacs, [boost, statId])
+            return KernelEventsManager().onceMapProcessed(self.boostCharacs, [boost, statId], originator=self)
         sumsg = StatsUpgradeRequestMessage()
         sumsg.init(False, statId, boost)
         ConnectionsHandler().send(sumsg)

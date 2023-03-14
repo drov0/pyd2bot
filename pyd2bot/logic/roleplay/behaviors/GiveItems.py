@@ -60,7 +60,7 @@ class GiveItems(AbstractBehavior):
     def _start(self):
         if PlayedCharacterManager().currentMap is None:
             Logger().warning(f"[GiveItems] Player map not processed yet")
-            return KernelEventsManager().onceMapProcessed(self._start)
+            return KernelEventsManager().onceMapProcessed(self._start, originator=self)
         Logger().debug(f"[GiveItems] Asked for seller status ...")
         self.rpcFrame.askForStatus(self.seller.login, self.onGuestStatus)
 
@@ -72,7 +72,7 @@ class GiveItems(AbstractBehavior):
                     self.seller.login, 
                     lambda:self.rpcFrame.askForStatus(self.seller.login, self.onGuestStatus),
                     timeout=30,
-                    ontimeout=lambda: self.finish(False, f"Wait for seller {self.seller.login} to connect timedout")
+                    ontimeout=lambda: self.finish(False, f"Wait for seller {self.seller.login} to connect timedout"), originator=self
                 )
             return self.finish(False, f"Error while fetching guest {sender} status: {error}")
         Logger().info(f"[GiveItems] Seller status: {result}.")
@@ -103,9 +103,9 @@ class GiveItems(AbstractBehavior):
                 self.state = GiveItelsStates.IN_EXCHANGE_WITH_SELLER
                 return True
             else:
-                KernelEventsManager().onceActorShowed(self.seller.id, self.waitForGuestToComme)
+                KernelEventsManager().onceActorShowed(self.seller.id, self.waitForGuestToComme, originator=self)
         else:
-            KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self.waitForGuestToComme)
+            KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self.waitForGuestToComme, originator=self)
 
     def onExchangeConcluded(self, errorId, error) -> bool:
         if error:            

@@ -36,12 +36,12 @@ class AutoRevive(AbstractBehavior):
         self.callback = callback
         Logger().info("[PhenixAutorevive] Started.")
         if not PlayedCharacterManager().currentMap:
-            return KernelEventsManager().onceMapProcessed(self.start, [callback])
+            return KernelEventsManager().onceMapProcessed(self.start, [callback], originator=self)
         KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_PHANTOM:
             AutoTrip().start(Localizer.phenixMapId(), 1, self.onPhenixMapReached)
         elif PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
-            KernelEventsManager().onceMapProcessed(self.onCimetaryMapLoaded)
+            KernelEventsManager().onceMapProcessed(self.onCimetaryMapLoaded, originator=self)
             self.releaseSoulRequest()
 
     def onPlayerStateChange(self, event, playerState: PlayerLifeStatusEnum):
@@ -69,7 +69,7 @@ class AutoRevive(AbstractBehavior):
                 Logger().info("Phenix revive skill used")
             UseSkill().start(reviveSkill, onPhenixSkillUsed, waitForSkillUsed=False)
         else:
-            KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", self.onPhenixMapReached)
+            KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", self.onPhenixMapReached, originator=self)
 
     def releaseSoulRequest(self):
         def ontimeout():

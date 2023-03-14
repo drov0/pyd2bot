@@ -1,3 +1,4 @@
+import threading
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.logic.common.rpcMessages.BotConnectedMessage import BotConnectedMessage
 from pyd2bot.logic.fight.frames.BotFightFrame import BotFightFrame
@@ -11,6 +12,7 @@ from pyd2bot.logic.roleplay.frames.BotPartyFrame import BotPartyFrame
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.kernel.net.PlayerDisconnectedMessage import PlayerDisconnectedMessage
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
@@ -20,6 +22,7 @@ from pydofus2.com.ankamagames.dofus.network.enums.GameContextEnum import \
     GameContextEnum
 from pydofus2.com.ankamagames.dofus.network.enums.PlayerLifeStatusEnum import \
     PlayerLifeStatusEnum
+from pydofus2.com.ankamagames.dofus.network.messages.common.basic.BasicPingMessage import BasicPingMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameContextCreateErrorMessage import GameContextCreateErrorMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameContextCreateMessage import \
     GameContextCreateMessage
@@ -40,12 +43,14 @@ class BotWorkflowFrame(Frame):
         super().__init__()
 
     def pushed(self) -> bool:
-        KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange)
+        KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange, originator=self)
+        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerNotif)
         self._delayedAutoUnlaod = False
         self.mapProcessedListeners = []
         return True
 
     def pulled(self) -> bool:
+        KernelEventsManager().clearAllByOrigin(self)
         return True
 
     @property
@@ -57,7 +62,7 @@ class BotWorkflowFrame(Frame):
         if isinstance(msg, GameContextCreateMessage):
             if self.currentContext is None:
                 for instId, inst in Kernel.getInstances():
-                    inst.worker.process(BotConnectedMessage(instId))
+                    inst.worker.process(BotConnectedMessage(threading.current_thread().name))
             ctxname = "Fight" if msg.context == GameContextEnum.FIGHT else "Roleplay"
             Logger().separator(f"{ctxname} Game Context Created")
             self.currentContext = msg.context
@@ -65,10 +70,10 @@ class BotWorkflowFrame(Frame):
                 Kernel().worker.addFrame(BotPartyFrame())
             if self.currentContext == GameContextEnum.ROLE_PLAY:
                 if PlayedCharacterManager().inventoryWeightMax > 0 and PlayedCharacterManager().inventoryWeight / PlayedCharacterManager().inventoryWeightMax > 0.95:
-                    Logger().warning(f"[BotWorkflow] Inventory is almost full will trigger auto unload...")
-                    return self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(self.unloadInventory))
+                    Logger().warning(f"[BotWorkflow] Inventory is almost full will trigger auto unload ...")
+                    return self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(self.unloadInventory, originator=self))
                 if BotConfig().path and not FarmPath().isRunning():
-                    self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(FarmPath().start))
+                    self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(FarmPath().start, originator=self))
             elif self.currentContext == GameContextEnum.FIGHT:
                 if BotConfig().isLeader:
                     Kernel().worker.addFrame(BotFightFrame())
@@ -110,21 +115,21 @@ class BotWorkflowFrame(Frame):
         
         elif isinstance(msg, PlayerDisconnectedMessage):
             Logger().info(f"Bot {msg.instanceId} disconnected")
-            BotEventsManager().send(BotEventsManager.BOT_DOSCONNECTED, msg.instanceId)
+            BotEventsManager().send(BotEventsManager.BOT_DOSCONNECTED, msg.instanceId, msg.connectionType)
             return True
     
     def onPlayerStateChange(self, event, state):            
         PlayedCharacterManager().state = state
         if state == PlayerLifeStatusEnum.STATUS_TOMBSTONE or state == PlayerLifeStatusEnum.STATUS_PHANTOM:
             for listener in self.mapProcessedListeners:
-                KernelEventsManager().remove_listener(KernelEvent.MAPPROCESSED, listener)
+                listener.delete()
             if BotConfig().isLeader:
                 FarmPath().stop()
             if not PlayedCharacterManager().currentMap:
-                return KernelEventsManager().onceMapProcessed(AutoRevive().start, [self.onPhenixAutoReviveEnded])
+                return KernelEventsManager().onceMapProcessed(AutoRevive().start, [self.onPhenixAutoReviveEnded], originator=self)
             rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
             if not rpeframe or not rpeframe.mcidm_processed:
-                return KernelEventsManager().onceMapProcessed(AutoRevive().start, [self.onPhenixAutoReviveEnded])
+                return KernelEventsManager().onceMapProcessed(AutoRevive().start, [self.onPhenixAutoReviveEnded], originator=self)
             AutoRevive().start(self.onPhenixAutoReviveEnded)
         
     def onPhenixAutoReviveEnded(self, status, error):
@@ -136,11 +141,21 @@ class BotWorkflowFrame(Frame):
             Kernel().worker.addFrame(BotPartyFrame())
         return True
 
+    def onServerNotif(self, event, msgId, msgType, textId, text):
+        if textId == 5123:
+            if not BotConfig().isSeller:
+                KernelEventsManager().send(KernelEvent.RESTART, "Bot stayed inactive for too long, must have a bug")
+            else:
+                pingMsg = BasicPingMessage()
+                pingMsg.init(True)
+                ConnectionsHandler().send(pingMsg)
+                
     def unloadInventory(self, callback=None):
         Logger().info("Unload inventory called")
         def onInventoryUnloaded(status, error):
             BotConfig.SELLER_VACANT.set()
             BotConfig.SELLER_LOCK.release()
+            BotConfig().hasSellerLock = False
             if error:
                 Logger().error(f"[BotWorkflow] Error while unloading inventory: {error}")
                 return KernelEventsManager().send(KernelEvent.RESTART, f"[BotWorkflow] Error while unloading inventory: {error}")
@@ -163,10 +178,10 @@ class BotWorkflowFrame(Frame):
             if BotConfig.SELLER_LOCK.locked():
                 Logger().info("Seller is already dealing with another client, waiting for it to be free")
             BotConfig.SELLER_LOCK.acquire()
+            BotConfig().hasSellerLock = True
             BotConfig.SELLER_VACANT.clear()            
             Logger().info("seller lock aquired")
             GiveItems().start(BotConfig().seller, onInventoryUnloaded)
-
         if BotConfig().path and FarmPath().isRunning():
             FarmPath().stop()
     
