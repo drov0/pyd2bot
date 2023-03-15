@@ -12,13 +12,12 @@ from pyd2bot.logic.common.rpcMessages.MoveToVertexMessage import \
 from pyd2bot.logic.common.rpcMessages.RCPResponseMessage import \
     RPCResponseMessage
 from pyd2bot.logic.common.rpcMessages.RPCMessage import RPCMessage
+from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.CollectItems import CollectItems
 from pyd2bot.logic.roleplay.messages.LeaderPosMessage import LeaderPosMessage
 from pyd2bot.logic.roleplay.messages.LeaderTransitionMessage import \
     LeaderTransitionMessage
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
-    ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
@@ -88,6 +87,9 @@ class BotRPCFrame(Frame):
                 def onresponse(result, error):
                     if error:
                         Logger().error("Error while trying to meet guest to collect resources: {}".format(error))
+                    BotConfig.SELLER_VACANT.set()
+                    if BotConfig.SELLER_LOCK.locked():
+                        BotConfig.SELLER_LOCK.release()
                 CollectItems().start(msg.bankInfos, msg.guestInfos, None, onresponse)
                 return True
 

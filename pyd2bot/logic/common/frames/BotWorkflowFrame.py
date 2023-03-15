@@ -154,7 +154,8 @@ class BotWorkflowFrame(Frame):
         Logger().info("Unload inventory called")
         def onInventoryUnloaded(status, error):
             BotConfig.SELLER_VACANT.set()
-            BotConfig.SELLER_LOCK.release()
+            if BotConfig.SELLER_LOCK.locked():
+                BotConfig.SELLER_LOCK.release()
             BotConfig().hasSellerLock = False
             if error:
                 Logger().error(f"[BotWorkflow] Error while unloading inventory: {error}")

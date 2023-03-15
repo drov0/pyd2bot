@@ -20,8 +20,6 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
     Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
-    BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
     Pathfinding
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint

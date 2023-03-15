@@ -1,19 +1,16 @@
 import json
 import os
 
-from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
-    MapDisplayManager
+from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
-    PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import \
-    AStar
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
-    WorldGraph
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import (
+    PlayedCharacterManager,
+)
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import AStar
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import WorldGraph
 
 
 class BankInfos:
-
     def __init__(
         self,
         npcActionId: int,
@@ -35,6 +32,7 @@ class BankInfos:
             "npcMapId": self.npcMapId,
             "openBankReplyId": self.openBankReplyId,
         }
+
 
 class Localizer:
     _phenixesByAreaId = dict[int, list]()

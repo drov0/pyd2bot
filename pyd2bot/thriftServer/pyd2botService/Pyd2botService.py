@@ -6,8 +6,7 @@
 #  options string: py
 #
 
-from thrift.Thrift import TType, TMessageType, TFrozenDict, TException, TApplicationException
-from thrift.protocol.TProtocol import TProtocolException
+from thrift.Thrift import TType, TMessageType, TApplicationException
 from thrift.TRecursive import fix_spec
 
 import sys
@@ -25,7 +24,6 @@ class Iface(object):
          - token
 
         """
-        pass
 
     def fetchUsedServers(self, token):
         """
@@ -33,7 +31,6 @@ class Iface(object):
          - token
 
         """
-        pass
 
     def runSession(self, token, session):
         """
@@ -42,7 +39,6 @@ class Iface(object):
          - session
 
         """
-        pass
 
     def fetchBreedSpells(self, breedId):
         """
@@ -50,7 +46,6 @@ class Iface(object):
          - breedId
 
         """
-        pass
 
     def fetchJobsInfosJson(self):
         pass

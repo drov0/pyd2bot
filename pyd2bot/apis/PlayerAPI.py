@@ -1,19 +1,22 @@
 from typing import TYPE_CHECKING
-from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
-    MapDisplayManager
+from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
-    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import (
+    PlayedCharacterManager,
+)
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 
 if TYPE_CHECKING:
     from pyd2bot.logic.roleplay.frames.BotPartyFrame import BotPartyFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import \
-        RoleplayEntitiesFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import \
-        RoleplayInteractivesFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import \
-        RoleplayMovementFrame
+    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import (
+        RoleplayEntitiesFrame,
+    )
+    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
+        RoleplayInteractivesFrame,
+    )
+    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import (
+        RoleplayMovementFrame,
+    )
 
 
 class PlayerAPI(metaclass=Singleton):
@@ -22,11 +25,11 @@ class PlayerAPI(metaclass=Singleton):
 
     def isIdle(self) -> bool:
         return self.status == "idle"
-    
+
     @property
     def rpeframe(self) -> "RoleplayEntitiesFrame":
         return Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
-    
+
     def isProcessingMapData(self) -> bool:
         return not self.rpeframe.mcidm_processed
 
@@ -43,6 +46,7 @@ class PlayerAPI(metaclass=Singleton):
         from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
         from pyd2bot.logic.roleplay.behaviors.CreateNewCharacter import CreateNewCharacter
         from pyd2bot.logic.roleplay.behaviors.NpcDialog import NpcDialog
+
         bpframe: "BotPartyFrame" = Kernel().worker.getFrameByName("BotPartyFrame")
         mvframe: "RoleplayMovementFrame" = Kernel().worker.getFrameByName("RoleplayMovementFrame")
         iframe: "RoleplayInteractivesFrame" = Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
@@ -77,7 +81,7 @@ class PlayerAPI(metaclass=Singleton):
         elif ChangeMap.getInstance(PlayedCharacterManager().instanceId) and ChangeMap().isRunning():
             status = f"changingMap to {ChangeMap().dstMapId}"
         elif UseSkill.getInstance(PlayedCharacterManager().instanceId) and UseSkill().isRunning():
-            status = f"usingSkill:{UseSkill().skillUID} at {UseSkill().cell}"  
+            status = f"usingSkill:{UseSkill().skillUID} at {UseSkill().cell}"
         elif MapMove.getInstance(PlayedCharacterManager().instanceId) and MapMove().isRunning():
             status = f"movingToCell:{MapMove().dstCell}"
         elif iframe and iframe._usingInteractive:

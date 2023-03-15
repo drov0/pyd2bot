@@ -45,7 +45,6 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.Ex
 from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.items.ExchangeKamaModifiedMessage import (
     ExchangeKamaModifiedMessage,
 )
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.items.ObjectDeleteMessage import ObjectDeleteMessage
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame

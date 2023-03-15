@@ -1,9 +1,11 @@
 import json
 import threading
+from time import sleep
 from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import BotCharacterUpdatesFrame
 from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig
-from pyd2bot.logic.roleplay.behaviors.ChangeServer import ChangeServer
+from pyd2bot.logic.roleplay.behaviors.CreateNewCharacter import CreateNewCharacter
+from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
 from pyd2bot.thriftServer.pyd2botService.ttypes import (
     Character,
     Spell,
@@ -17,12 +19,18 @@ from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent,
 )
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.logic.common.actions.ChangeServerAction import ChangeServerAction
-from pydofus2.com.ankamagames.dofus.logic.connection.actions.ServerSelectionAction import ServerSelectionAction
+from pydofus2.com.ankamagames.dofus.logic.common.actions.ChangeServerAction import (
+    ChangeServerAction,
+)
+from pydofus2.com.ankamagames.dofus.logic.connection.actions.ServerSelectionAction import (
+    ServerSelectionAction,
+)
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import (
     InventoryManager,
 )
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import (
+    PlayedCharacterManager,
+)
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
 import sys
@@ -36,7 +44,9 @@ def getTrace(e):
     error_trace = "\n".join([str(e), str(exc_type), str(exc_value), "\n".join(traceback_in_var)])
     return error_trace
 
+
 lock = threading.Lock()
+
 
 def sendTrace(func):
     @functools.wraps(func)
@@ -47,8 +57,9 @@ def sendTrace(func):
             raise DofusError(0, getTrace(e))
 
     return wrapped
-class Pyd2botServer:
 
+
+class Pyd2botServer:
     def __init__(self, id: str):
         self.id = id
 
@@ -57,6 +68,7 @@ class Pyd2botServer:
         from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import (
             GameServerInformations,
         )
+
         Logger().debug("fetchUsedServers called with token: " + token)
         client = DofusClient("fetchServersThread")
         client._loginToken = token
@@ -64,7 +76,9 @@ class Pyd2botServer:
         result = None
         client.start()
         KernelEventsManager.WaitThreadRegister("fetchServersThread", 25)
-        servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance("fetchServersThread").wait(KernelEvent.SERVERS_LIST, 60)
+        servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance("fetchServersThread").wait(
+            KernelEvent.SERVERS_LIST, 60
+        )
         Logger().info(f"List servers: {[s.to_json() for s in servers['used']]}")
         result = [
             Server(
@@ -83,7 +97,7 @@ class Pyd2botServer:
         return result
 
     @sendTrace
-    def fetchCharacters(self, token: str) -> list[Character]:        
+    def fetchCharacters(self, token: str) -> list[Character]:
         from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import (
             GameServerInformations,
         )
@@ -91,6 +105,7 @@ class Pyd2botServer:
         from pydofus2.com.ankamagames.dofus.internalDatacenter.connection.BasicCharacterWrapper import (
             BasicCharacterWrapper,
         )
+
         instanceName = "fetchCharactersThread"
         result = list()
         client = DofusClient(instanceName)
@@ -98,7 +113,9 @@ class Pyd2botServer:
         client._serverId = 0
         client.start()
         KernelEventsManager.WaitThreadRegister(instanceName, 25)
-        servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance(instanceName).wait(KernelEvent.SERVERS_LIST, 60)
+        servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance(instanceName).wait(
+            KernelEvent.SERVERS_LIST, 60
+        )
         first = True
         for server in servers["used"]:
             if first:
@@ -106,7 +123,9 @@ class Pyd2botServer:
                 Kernel.getInstance(instanceName).worker.process(ServerSelectionAction.create(server.id))
             else:
                 Kernel.getInstance(instanceName).worker.process(ChangeServerAction.create(server.id))
-            charactersList: list[BasicCharacterWrapper] = KernelEventsManager.getInstance(instanceName).wait(KernelEvent.CHARACTERS_LIST, 60)
+            charactersList: list[BasicCharacterWrapper] = KernelEventsManager.getInstance(instanceName).wait(
+                KernelEvent.CHARACTERS_LIST, 60
+            )
             result += [
                 Character(
                     character.name,
@@ -115,7 +134,7 @@ class Pyd2botServer:
                     character.breedId,
                     character.breed.name,
                     PlayerManager.getInstance(instanceName).server.id,
-                    PlayerManager.getInstance(instanceName).server.name
+                    PlayerManager.getInstance(instanceName).server.name,
                 )
                 for character in charactersList
             ]
@@ -202,7 +221,12 @@ class Pyd2botServer:
         with lock:
             bankInfos = BankInfos(**json.loads(bankInfos))
             guestInfos = json.loads(guestInfos)
-            CollectItems(bankInfos, guestInfos, None, lambda r, err: Logger().info(f"CollectItems finished: {r} {err}"))
+            CollectItems(
+                bankInfos,
+                guestInfos,
+                None,
+                lambda r, err: Logger().info(f"CollectItems finished: {r} {err}"),
+            )
 
     def getCurrentVertex(self) -> str:
         return json.dumps(PlayedCharacterManager().currVertex.to_json())
@@ -210,3 +234,34 @@ class Pyd2botServer:
     def getInventoryKamas(self) -> int:
         kamas = int(InventoryManager().inventory.kamas)
         return int(kamas)
+
+    def startUp(self, token):
+        client = DofusClient("startup")
+        client._loginToken = token
+        client._serverId = 294
+        client.start()
+        KernelEventsManager.WaitThreadRegister("startup", 25)
+        Logger().info("kernel event manager instance created")
+
+        def onGetOutOfIncarnamEnded(status, error):
+            if error:
+                Logger().info(error)
+            else:
+                Logger().info("Character now is in astrub")
+            client.shutdown()
+
+        def onNewCharacterEnded(status, error):
+            if error:
+                Logger().info(error)
+                return client.shutdown()
+            else:
+                Logger().info("character created successfully")
+            GetOutOfAnkarnam().start(onGetOutOfIncarnamEnded)
+
+        def onCharactersList(event, return_value):
+            Logger().info("characters list received")
+            sleep(3)
+            CreateNewCharacter().start(10, onNewCharacterEnded)
+
+        KernelEventsManager.getInstance("startup").once(KernelEvent.CHARACTERS_LIST, onCharactersList)
+        Logger().info("ended in peace")

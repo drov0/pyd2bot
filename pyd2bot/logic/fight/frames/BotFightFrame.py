@@ -13,14 +13,12 @@ from pydofus2.com.ankamagames.atouin.managers.EntitiesManager import \
     EntitiesManager
 from pydofus2.com.ankamagames.atouin.utils.DataMapProvider import \
     DataMapProvider
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.datacenter.effects.EffectInstance import \
     EffectInstance
 from pydofus2.com.ankamagames.dofus.datacenter.monsters.Monster import Monster
 from pydofus2.com.ankamagames.dofus.datacenter.spells.Spell import Spell
-from pydofus2.com.ankamagames.dofus.datacenter.spells.SpellLevel import SpellLevel
 from pydofus2.com.ankamagames.dofus.internalDatacenter.spells.SpellWrapper import \
     SpellWrapper
 from pydofus2.com.ankamagames.dofus.internalDatacenter.stats.EntityStats import \
@@ -46,8 +44,6 @@ from pydofus2.com.ankamagames.dofus.logic.game.fight.miscs.TackleUtil import \
     TackleUtil
 from pydofus2.com.ankamagames.dofus.network.enums.FightOptionsEnum import \
     FightOptionsEnum
-from pydofus2.com.ankamagames.dofus.network.enums.TextInformationTypeEnum import \
-    TextInformationTypeEnum
 from pydofus2.com.ankamagames.dofus.network.messages.game.actions.fight.GameActionFightCastRequestMessage import \
     GameActionFightCastRequestMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.actions.fight.GameActionFightNoSpellCastMessage import \
@@ -56,8 +52,6 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.actions.sequence.Seque
     SequenceEndMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.actions.sequence.SequenceStartMessage import \
     SequenceStartMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.basic.TextInformationMessage import \
-    TextInformationMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.character.GameFightShowFighterMessage import \
     GameFightShowFighterMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.GameFightEndMessage import \
@@ -93,7 +87,6 @@ from pydofus2.com.ankamagames.dofus.network.types.game.context.fight.GameFightFi
 from pydofus2.com.ankamagames.dofus.network.types.game.context.fight.GameFightMonsterInformations import \
     GameFightMonsterInformations
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.ankamagames.jerakine.map.LosDetector import LosDetector
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
@@ -102,8 +95,6 @@ from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import \
     MovementPath
-from pydofus2.com.ankamagames.jerakine.types.positions.PathElement import \
-    PathElement
 from pydofus2.com.ankamagames.jerakine.types.zones.Cross import Cross
 from pydofus2.com.ankamagames.jerakine.types.zones.IZone import IZone
 from pydofus2.com.ankamagames.jerakine.types.zones.Lozenge import Lozenge
@@ -360,7 +351,7 @@ class BotFightFrame(Frame):
                 canCast, reason = self.canCastSpell(entity.contextualId)
                 stats = StatsManager().getStats(entity.contextualId)
                 hp = stats.getHealthPoints()
-                maxhp = stats.getMaxHealthPoints()
+                stats.getMaxHealthPoints()
                 ismonster = isinstance(entity, GameFightMonsterInformations)
                 name = "unknown"
                 level = "unknwon"

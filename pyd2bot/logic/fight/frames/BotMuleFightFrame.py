@@ -7,9 +7,7 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import Connect
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.network.messages.game.actions.fight.GameActionFightNoSpellCastMessage import GameActionFightNoSpellCastMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.basic.TextInformationMessage import TextInformationMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.character.stats.FighterStatsListMessage import FighterStatsListMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameContextReadyMessage import GameContextReadyMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovementMessage import GameMapMovementMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapNoMovementMessage import GameMapNoMovementMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.GameFightTurnReadyMessage import GameFightTurnReadyMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.GameFightTurnReadyRequestMessage import GameFightTurnReadyRequestMessage

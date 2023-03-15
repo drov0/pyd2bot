@@ -2,7 +2,6 @@ import threading
 
 
 class Watcher(threading.Thread):
-
     _runningWatchers = []
 
     def __init__(self, target=None, args=()) -> None:

@@ -2,9 +2,6 @@ from pyd2bot.logic.roleplay.behaviors.RequestMapData import RequestMapData
 from pydofus2.com.ankamagames.dofus.network.types.game.context.GameContextActorInformations import (
     GameContextActorInformations,
 )
-from pydofus2.com.ankamagames.dofus.network.types.game.context.fight.FightCommonInformations import (
-    FightCommonInformations,
-)
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event, Listener

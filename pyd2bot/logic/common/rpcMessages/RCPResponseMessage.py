@@ -1,5 +1,3 @@
-from time import perf_counter
-import uuid
 from pyd2bot.logic.common.rpcMessages.RPCMessage import RPCMessage
 
 

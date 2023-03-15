@@ -16,7 +16,6 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.Interactiv
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.skill.InteractiveUseWithParamRequestMessage import (
     InteractiveUseWithParamRequestMessage,
 )
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 

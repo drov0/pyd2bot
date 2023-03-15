@@ -1,5 +1,5 @@
 if __name__ == "__main__":
-    from pyd2bot.PyD2Bot import PyD2Bot
+    from pyd2bot.PyD2BotServer import PyD2Bot
     from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
     import argparse
