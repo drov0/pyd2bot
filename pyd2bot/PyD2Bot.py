@@ -1,9 +1,9 @@
-from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import BotCharacterUpdatesFrame
+from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import \
+    BotCharacterUpdatesFrame
 from pyd2bot.logic.common.frames.BotRPCFrame import BotRPCFrame
 from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.frames.BotPartyFrame import BotPartyFrame
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Session
 from pydofus2.com.DofusClient import DofusClient
 
@@ -45,7 +45,5 @@ class Pyd2Bot(DofusClient):
         BotConfig().initFromSession(self._session, self._role, self._character)
         self.registerInitFrame(BotWorkflowFrame)
         self.registerInitFrame(BotRPCFrame)
-        if BotConfig().party:
-            self.registerInitFrame(BotPartyFrame)
         self.registerGameStartFrame(BotCharacterUpdatesFrame)
         return super().run()

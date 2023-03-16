@@ -1,4 +1,4 @@
-class BotConnectedMessage:
+class PlayerConnectedMessage:
     
     def __init__(self, instance) -> None:
         self.instanceId = instance

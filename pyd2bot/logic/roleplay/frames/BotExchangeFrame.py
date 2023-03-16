@@ -1,55 +1,51 @@
 from enum import Enum
+
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import InventoryManager
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.network.messages.game.dialog.LeaveDialogRequestMessage import LeaveDialogRequestMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeAcceptMessage import (
-    ExchangeAcceptMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeIsReadyMessage import (
-    ExchangeIsReadyMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeLeaveMessage import (
-    ExchangeLeaveMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectAddedMessage import (
-    ExchangeObjectAddedMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectMoveKamaMessage import (
-    ExchangeObjectMoveKamaMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectMoveMessage import (
-    ExchangeObjectMoveMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectsAddedMessage import (
-    ExchangeObjectsAddedMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectTransfertAllFromInvMessage import (
-    ExchangeObjectTransfertAllFromInvMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangePlayerRequestMessage import (
-    ExchangePlayerRequestMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeReadyMessage import (
-    ExchangeReadyMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeRequestedTradeMessage import (
-    ExchangeRequestedTradeMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeStartedWithPodsMessage import (
-    ExchangeStartedWithPodsMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.items.ExchangeKamaModifiedMessage import (
-    ExchangeKamaModifiedMessage,
-)
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import \
+    InventoryManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.network.messages.game.dialog.LeaveDialogRequestMessage import \
+    LeaveDialogRequestMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeAcceptMessage import \
+    ExchangeAcceptMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeIsReadyMessage import \
+    ExchangeIsReadyMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeLeaveMessage import \
+    ExchangeLeaveMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectAddedMessage import \
+    ExchangeObjectAddedMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectMoveKamaMessage import \
+    ExchangeObjectMoveKamaMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectMoveMessage import \
+    ExchangeObjectMoveMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectsAddedMessage import \
+    ExchangeObjectsAddedMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectTransfertAllFromInvMessage import \
+    ExchangeObjectTransfertAllFromInvMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangePlayerRequestMessage import \
+    ExchangePlayerRequestMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeReadyMessage import \
+    ExchangeReadyMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeRequestedTradeMessage import \
+    ExchangeRequestedTradeMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeStartedWithPodsMessage import \
+    ExchangeStartedWithPodsMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.items.ExchangeKamaModifiedMessage import \
+    ExchangeKamaModifiedMessage
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
+    BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
+
 
 class ExchangeDirectionEnum(Enum):
     GIVE = 0
@@ -71,6 +67,7 @@ class BotExchangeFrame(Frame):
     PHENIX_MAPID = None
     EXCHANGE_FAILED = 551
     INVENTORY_STILL_FULL = 551
+    EXCHANGE_READY_TIMEOUT = 557
     EXCHANGE_REQ_TIMEOUT = 3
 
     def __init__(self, direction: str, target: Character, callback, items: list = None):
@@ -86,8 +83,8 @@ class BotExchangeFrame(Frame):
             self.giveAll = False
             self.step = len(items)
         self.wantsToMoveItemToExchange = set()
-        self.acceptExchangeTimer: BenchmarkTimer = None
-        self.openExchangeTimer: BenchmarkTimer = None
+        self.acceptExchangeListener: Listener = None
+        self.openExchangeListener: Listener = None
         self.exchangeLeaveListener = None
         self.nbrFails = 0
         super().__init__()
@@ -99,10 +96,7 @@ class BotExchangeFrame(Frame):
         return True
 
     def pulled(self) -> bool:
-        if self.acceptExchangeTimer is not None:
-            self.acceptExchangeTimer.cancel()
-        if self.openExchangeTimer is not None:
-            self.openExchangeTimer.cancel()
+        KernelEventsManager().clearAllByOrigin(self)
         return True
 
     @property
@@ -131,9 +125,8 @@ class BotExchangeFrame(Frame):
                 self.state = ExchangeStateEnum.EXCHANGE_REQUEST_RECEIVED
                 ConnectionsHandler().send(ExchangeAcceptMessage())
                 self.state = ExchangeStateEnum.EXCHANGE_REQUEST_ACCEPTED
-            elif int(msg.source) == int(PlayedCharacterManager().id):
-                if self.openExchangeTimer:
-                    self.openExchangeTimer.cancel()
+            elif msg.source == PlayedCharacterManager().id:
+                Logger().info("[ExchangeFrame] Exchange request success")
                 self.state = ExchangeStateEnum.EXCHANGE_REQUEST_SENT
             return True
 
@@ -167,8 +160,8 @@ class BotExchangeFrame(Frame):
 
         elif isinstance(msg, ExchangeIsReadyMessage):
             Logger().debug(f"[ExchangeFrame] Exchange is ready received from target {int(msg.id)}.")
-            if self.acceptExchangeTimer is not None:
-                self.acceptExchangeTimer.cancel()
+            if self.acceptExchangeListener is not None:
+                self.acceptExchangeListener.cancel()
             if self.direction == ExchangeDirectionEnum.RECEIVE and int(msg.id) == int(self.target.id) and msg.ready:
                 BenchmarkTimer(3, self.sendExchangeReady).start()
             return True
@@ -179,18 +172,17 @@ class BotExchangeFrame(Frame):
 
     def sendExchangeRequest(self):
         msg = ExchangePlayerRequestMessage()
-        msg.init(exchangeType_=1, target_=self.target.id)
-        def onTimeout():
+        msg.init(self.target.id, 1)
+        def onTimeout(listener: Listener):
+            Logger().warning(f"[ExchangeFrame] send exchange timeout")
             self.nbrFails += 1
-            if self.nbrFails > 3:
+            if self.nbrFails > 20:
+                listener.delete()
                 return self.finish(self.EXCHANGE_REQ_TIMEOUT, "[ExchangeFrame] send exchange timedout")
-            self.openExchangeTimer = BenchmarkTimer(5, onTimeout)
-            self.openExchangeTimer.start()
+            listener.armTimer()
             ConnectionsHandler().send(msg)
-        self.openExchangeTimer = BenchmarkTimer(5, onTimeout)
         self.nbrFails = 0
-        self.openExchangeTimer.start()
-        KernelEventsManager().once(KernelEvent.EXCHANGE_OPEN, self.onExchangeOpen, originator=self)
+        self.openExchangeListener = KernelEventsManager().once(KernelEvent.EXCHANGE_OPEN, self.onExchangeOpen, timeout=1, ontimeout=onTimeout, originator=self)
         ConnectionsHandler().send(msg)
         Logger().debug("[ExchangeFrame] Exchange open request sent")
         
@@ -198,16 +190,16 @@ class BotExchangeFrame(Frame):
     
         self.exchangeLeaveListener.delete()
         if textId == 516493: # inventory full
-            if self.acceptExchangeTimer:
-                self.acceptExchangeTimer.cancel()
+            if self.acceptExchangeListener:
+                self.acceptExchangeListener.cancel()
             def onExchangeClose(event, msg):
                 self.finish(516493, "[ExchangeFrame] Can't take guest items because we don't have enough space in inventory")
             KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, onExchangeClose, originator=self)
             ConnectionsHandler().send(LeaveDialogRequestMessage()) 
         elif textId == 5023: # the second player can't take all the load            
             timer = BenchmarkTimer(6, ConnectionsHandler().send, [LeaveDialogRequestMessage()])
-            if self.acceptExchangeTimer:
-                self.acceptExchangeTimer.cancel()
+            if self.acceptExchangeListener:
+                self.acceptExchangeListener.cancel()
             def onExchangeClose(event, msg):
                 if timer:
                     timer.cancel()
@@ -216,7 +208,7 @@ class BotExchangeFrame(Frame):
             timer.start()
 
     def onExchangeLeave(self, event, msg: ExchangeLeaveMessage):
-        KernelEventsManager().remove_listener(KernelEvent.TEXT_INFO, self.onServerNotif)
+        self.serverNotifListener.delete()
         self.state = ExchangeStateEnum.TERMINATED
         if msg.success == True:
             if self.giveAll:
@@ -229,11 +221,18 @@ class BotExchangeFrame(Frame):
             
     def sendExchangeReady(self):
         readymsg = ExchangeReadyMessage()
-        readymsg.init(ready_=True, step_=self.step)
-        self.acceptExchangeTimer = BenchmarkTimer(5, self.sendExchangeReady)
-        self.acceptExchangeTimer.start()
-        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerNotif, originator=self)
-        self.exchangeLeaveListener = KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, self.onExchangeLeave, originator=self)
+        readymsg.init(True, self.step)
+        self.nbrFails = 0
+        def ontimeout(listener: Listener):
+            self.nbrFails += 1
+            if self.nbrFails > 20:
+                listener.delete()
+                return self.finish(self.EXCHANGE_READY_TIMEOUT, "Exchange ready tiemout")
+            listener.armTimer()
+            ConnectionsHandler().send(readymsg)
+            Logger().debug("[ExchangeFrame] Exchange is ready sent.")
+        self.serverNotifListener = KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerNotif, originator=self)
+        self.exchangeLeaveListener = KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, self.onExchangeLeave, timeout=5, ontimeout=ontimeout, originator=self)
         ConnectionsHandler().send(readymsg)
         Logger().debug("[ExchangeFrame] Exchange is ready sent.")
 

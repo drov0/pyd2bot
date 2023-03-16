@@ -34,7 +34,7 @@ class CollectItems(AbstractBehavior):
 
     def start(self, bankInfos: BankInfos, guest: Character, items: list = None, callback=None) -> bool:
         if self.running.is_set():
-            return self.finish(False, "[CollectFromGuest] Already running")
+            return self.finish(AbstractBehavior.ALREADY_RUNNING, f"Can't start collect with {guest.login} because Already running with guest {self.guest.login}")
         self.running.set()
         Logger().info(f"[CollectFromGuest] collect from {guest.login} started")
         self.guest = guest
@@ -46,13 +46,12 @@ class CollectItems(AbstractBehavior):
         AutoTrip().start(self.bankInfos.npcMapId, 1, self.onTripEnded)
 
     def onGuestDisconnected(self):
-        Logger().error("Guest disconnected!")
+        Logger().error("[CollectFromGuest] Guest disconnected!")
         if self.state == CollecteState.EXCHANGING_WITH_GUEST:
-            BotConfig.SELLER_VACANT.set()
             Kernel().worker.removeFrameByName("BotExchangeFrame")
         self.finish(True, None)
 
-    def onTripEnded(self, status, error):
+    def onTripEnded(self, code, error):
         if not self.isRunning():
             return
         if error is not None:
@@ -60,16 +59,16 @@ class CollectItems(AbstractBehavior):
         self.state = CollecteState.EXCHANGING_WITH_GUEST
         Kernel().worker.addFrame(BotExchangeFrame(ExchangeDirectionEnum.RECEIVE, self.guest, self.onExchangeConcluded, self.items))
     
-    def onExchangeConcluded(self, errorId, error):
+    def onExchangeConcluded(self, code, error):
         self.guestDisconnectedListener.delete()
         if error:
-            if errorId == 516493: # Inventory full
+            if code == 516493: # Inventory full
                 Logger().error(error)
                 UnloadInBank().start(self.finish, True, self.bankInfos)
                 self.state = CollecteState.UNLOADING_IN_BANK
                 return
-            return self.finish(errorId, error)
+            return self.finish(code, error)
         Logger().info("[CollectFromGuest] Exchange with guest ended successfully.")
-        UnloadInBank().start(self.finish, True, self.bankInfos)        
+        UnloadInBank().start(self.finish, True, self.bankInfos)
         self.state = CollecteState.UNLOADING_IN_BANK
 

@@ -96,7 +96,7 @@ class AutoTrip(AbstractBehavior):
         Logger().info(
             f"[WoldPathFinder] Start searching path from {src} to destMapId {dst}"
         )
-        if int(PlayedCharacterManager().currentMap.mapId) == int(dst):
+        if PlayedCharacterManager().currentMap.mapId == dst:
             return callback([], None)
         while True:        
             dstV = WorldGraph().getVertex(dst, linkedZone)            

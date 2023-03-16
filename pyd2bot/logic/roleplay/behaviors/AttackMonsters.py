@@ -8,7 +8,6 @@ from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event, Liste
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import RoleplayEntitiesFrame
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.fight.GameRolePlayAttackMonsterRequestMessage import (
     GameRolePlayAttackMonsterRequestMessage,
 )
@@ -49,12 +48,8 @@ class AttackMonsters(AbstractBehavior):
         self.nbrFails = 0
 
     @property
-    def entitiesFrame(self) -> "RoleplayEntitiesFrame":
-        return Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
-
-    @property
     def entityInfo(self) -> "GameContextActorInformations":
-        return self.entitiesFrame.getEntityInfos(self.entityId)
+        return Kernel().entitiesFrame.getEntityInfos(self.entityId)
     
     def getEntityCellId(self) -> int:
         if not self.entityInfo:
@@ -69,7 +64,7 @@ class AttackMonsters(AbstractBehavior):
         self.callback = callback
         cellId = self.getEntityCellId()
         if not cellId:
-            return self.finish(self.ENTITY_VANISHED, "Entity not more on the map")
+            return self.finish(self.ENTITY_VANISHED, "Entity no more on the map")
         self.entityMovedListener = KernelEventsManager().onEntityMoved(self.entityId, self.onEntityMoved, originator=self)
         self.fightShwordListener = KernelEventsManager().onceFightSword(
             self.entityId, cellId, self.onFightWithEntityTaken, originator=self
@@ -78,7 +73,7 @@ class AttackMonsters(AbstractBehavior):
         self._start()
 
     def _start(self):
-        if not self.entitiesFrame:
+        if not Kernel().entitiesFrame:
             return KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self._start, originator=self)
         cellId = self.getEntityCellId()
         if not cellId:

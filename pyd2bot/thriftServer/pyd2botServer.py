@@ -1,41 +1,33 @@
+import functools
 import json
+import sys
 import threading
+import traceback
 from time import sleep
-from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import BotCharacterUpdatesFrame
+
+from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import \
+    BotCharacterUpdatesFrame
 from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig
-from pyd2bot.logic.roleplay.behaviors.CreateNewCharacter import CreateNewCharacter
+from pyd2bot.logic.roleplay.behaviors.CreateNewCharacter import \
+    CreateNewCharacter
 from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
-from pyd2bot.thriftServer.pyd2botService.ttypes import (
-    Character,
-    Spell,
-    DofusError,
-    Server,
-    Session,
-    SessionType,
-)
+from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, DofusError,
+                                                        Server, Session,
+                                                        SessionType, Spell)
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEventsManager,
-    KernelEvent,
-)
+    KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.logic.common.actions.ChangeServerAction import (
-    ChangeServerAction,
-)
-from pydofus2.com.ankamagames.dofus.logic.connection.actions.ServerSelectionAction import (
-    ServerSelectionAction,
-)
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import (
-    InventoryManager,
-)
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import (
-    PlayedCharacterManager,
-)
+from pydofus2.com.ankamagames.dofus.logic.common.actions.ChangeServerAction import \
+    ChangeServerAction
+from pydofus2.com.ankamagames.dofus.logic.connection.actions.ServerSelectionAction import \
+    ServerSelectionAction
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import \
+    InventoryManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
-import sys
-import traceback
-import functools
 
 
 def getTrace(e):
@@ -65,9 +57,8 @@ class Pyd2botServer:
 
     @sendTrace
     def fetchUsedServers(self, token: str) -> list[Server]:
-        from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import (
-            GameServerInformations,
-        )
+        from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import \
+            GameServerInformations
 
         Logger().debug("fetchUsedServers called with token: " + token)
         client = DofusClient("fetchServersThread")
@@ -98,13 +89,12 @@ class Pyd2botServer:
 
     @sendTrace
     def fetchCharacters(self, token: str) -> list[Character]:
-        from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import (
-            GameServerInformations,
-        )
-        from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
-        from pydofus2.com.ankamagames.dofus.internalDatacenter.connection.BasicCharacterWrapper import (
-            BasicCharacterWrapper,
-        )
+        from pydofus2.com.ankamagames.dofus.internalDatacenter.connection.BasicCharacterWrapper import \
+            BasicCharacterWrapper
+        from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import \
+            PlayerManager
+        from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import \
+            GameServerInformations
 
         instanceName = "fetchCharactersThread"
         result = list()
@@ -156,7 +146,8 @@ class Pyd2botServer:
             raise Exception(f"Unsupported session type: {session.type}")
 
     def fetchBreedSpells(self, breedId: int) -> list["Spell"]:
-        from pydofus2.com.ankamagames.dofus.datacenter.breeds.Breed import Breed
+        from pydofus2.com.ankamagames.dofus.datacenter.breeds.Breed import \
+            Breed
 
         spells = []
         breed = Breed.getBreedById(breedId)
@@ -190,21 +181,23 @@ class Pyd2botServer:
         return json.dumps(res)
 
     def moveToVertex(self, vertex: str):
-        from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import Vertex
-        from pyd2bot.logic.roleplay.messages.LeaderPosMessage import LeaderPosMessage
+        from pyd2bot.logic.roleplay.messages.MoveToVertexMessage import \
+            LeaderPosMessage
+        from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
+            Vertex
 
         v = Vertex(**json.loads(vertex))
         Logger().debug(f"Leader pos given, leader in vertex {v}.")
         Kernel().worker.process(LeaderPosMessage(v))
 
     def followTransition(self, transition: str):
-        from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import (
-            Transition,
-        )
-        from pyd2bot.logic.roleplay.messages.LeaderTransitionMessage import LeaderTransitionMessage
+        from pyd2bot.logic.roleplay.messages.FollowTransitionMessage import \
+            FollowTransitionMessage
+        from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
+            Transition
 
         tr = Transition(**json.loads(transition))
-        Kernel().worker.process(LeaderTransitionMessage(tr))
+        Kernel().worker.process(FollowTransitionMessage(tr))
         print("LeaderTransitionMessage processed")
 
     def getStatus(self) -> str:
@@ -215,8 +208,8 @@ class Pyd2botServer:
         return status
 
     def comeToBankToCollectResources(self, bankInfos: str, guestInfos: str):
-        from pyd2bot.misc.Localizer import BankInfos
         from pyd2bot.logic.roleplay.behaviors.CollectItems import CollectItems
+        from pyd2bot.misc.Localizer import BankInfos
 
         with lock:
             bankInfos = BankInfos(**json.loads(bankInfos))

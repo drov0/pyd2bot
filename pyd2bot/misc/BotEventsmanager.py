@@ -2,19 +2,18 @@ from time import perf_counter
 from typing import TYPE_CHECKING
 
 from pyd2bot.logic.managers.BotConfig import BotConfig
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event, EventsHandler
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (
+    Event, EventsHandler)
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent,
-    KernelEventsManager,
-)
+    KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
-from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import MovementPath
+from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import \
+    MovementPath
 
 if TYPE_CHECKING:
-    from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.GameRolePlayHumanoidInformations import (
-        GameRolePlayHumanoidInformations,
-    )
+    from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.GameRolePlayHumanoidInformations import \
+        GameRolePlayHumanoidInformations
 
 
 class BotEventsManager(EventsHandler, metaclass=Singleton):
@@ -23,7 +22,8 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
     ALL_MEMBERS_JOINED_PARTY = 2
     MULE_FIGHT_CONTEXT = 3
     BOT_CONNECTED = 4
-    BOT_DOSCONNECTED = 5
+    PLAYER_DISCONNECTED = 5
+    SELLER_AVAILABLE = 6
 
     def __init__(self):
         super().__init__()
@@ -31,7 +31,6 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
     def onceAllPartyMembersIdle(self, callback, args=[], originator=None):
         def onEvt(e):
             callback(e, *args)
-
         return self.once(BotEventsManager.ALL_PARTY_MEMBERS_IDLE, onEvt, originator=originator)
 
     def oncePartyMemberShowed(self, callback, args=[], originator=None):
@@ -79,7 +78,7 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
         def onBotConnected(event: Event, conenctedBotInstanceId):
             if conenctedBotInstanceId == instanceId:
                 event.listener.delete()
-                callback()
+                return callback()
             remaining = perf_counter() - started
             if timeout:
                 if remaining > 0:
@@ -101,7 +100,7 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
         def onBotDisconnected(event: Event, disconnectedInstance, connectionType):
             if disconnectedInstance == instanceId:
                 event.listener.delete()
-                callback()
+                return callback()
             if timeout:
                 remaining = perf_counter() - started
                 if remaining > 0:
@@ -110,8 +109,30 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
                     ontimeout()
 
         return self.on(
-            BotEventsManager.BOT_DOSCONNECTED,
+            BotEventsManager.PLAYER_DISCONNECTED,
             onBotDisconnected,
+            timeout=timeout,
+            ontimeout=ontimeout,
+            originator=originator,
+        )
+
+    def onceSellerAvailable(self, instanceId, callback, timeout=None, ontimeout=None, originator=None):
+        started = perf_counter()
+
+        def onSellerAvailable(event: Event, sellerInstance):
+            if sellerInstance == instanceId:
+                event.listener.delete()
+                return callback()
+            if timeout:
+                remaining = perf_counter() - started
+                if remaining > 0:
+                    event.listener.armTimer()
+                else:
+                    ontimeout()
+
+        return self.on(
+            BotEventsManager.PLAYER_DISCONNECTED,
+            onSellerAvailable,
             timeout=timeout,
             ontimeout=ontimeout,
             originator=originator,

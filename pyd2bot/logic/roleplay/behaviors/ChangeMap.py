@@ -1,8 +1,10 @@
 from typing import Iterable, Tuple
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
 from pyd2bot.logic.roleplay.behaviors.RequestMapData import RequestMapData
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event, Listener
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
+                                                                     Listener)
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -11,8 +13,7 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
-    InteractiveElementData, RoleplayInteractivesFrame
-)
+    InteractiveElementData, RoleplayInteractivesFrame)
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayWorldFrame import \
     RoleplayWorldFrame
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
@@ -23,13 +24,15 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition i
     Transition
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import \
     TransitionTypeEnum
-from pydofus2.com.ankamagames.dofus.network.messages.common.basic.BasicPingMessage import BasicPingMessage
+from pydofus2.com.ankamagames.dofus.network.messages.common.basic.BasicPingMessage import \
+    BasicPingMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.ChangeMapMessage import \
     ChangeMapMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
     InteractiveUseRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import DirectionsEnum
+from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import \
+    DirectionsEnum
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pydofus2.mapTools import MapTools
 
@@ -55,7 +58,7 @@ class ChangeMap(AbstractBehavior):
         self.mapChangeRejectListener: 'Listener' = None
         self.mapChangeIE: InteractiveElementData = None
         self.mapChangeCellId: int = None
-        self.scrollCells: Iterable[int] = None
+        self.iterScrollCells: Iterable[int] = None
         self.currentMPChilds: Iterable[Tuple[int, int]] = None
         self.requestRejectedEvent = None
         self.movementError = None
@@ -112,18 +115,6 @@ class ChangeMap(AbstractBehavior):
         self.trType = TransitionTypeEnum(self.transition.type)
         self.askChangeMap()
 
-    def findScrollCells(self):
-        direction = DirectionsEnum(self.transition.direction)
-        if direction == DirectionsEnum.DOWN:
-            self.scrollCells = MapTools.findAccessibleCells(PlayedCharacterManager().currentCellId, MapTools.BOT_ROW_CELLS)
-        elif direction == DirectionsEnum.UP:
-            self.scrollCells = MapTools.findAccessibleCells(PlayedCharacterManager().currentCellId, MapTools.TOP_ROW_CELLS)
-        elif direction == DirectionsEnum.LEFT:
-            self.scrollCells = MapTools.findAccessibleCells(PlayedCharacterManager().currentCellId, MapTools.LEFT_COL_CELLS)
-        elif direction == DirectionsEnum.RIGHT:
-            self.scrollCells = MapTools.findAccessibleCells(PlayedCharacterManager().currentCellId, MapTools.RIGHT_COL_CELLS)
-        self.scrollCells = iter(self.scrollCells)
-
     def onMapRequestFailed(self, reason: MovementFailError):
         Logger().warning(f"[ChangeMap] request failed for reason: {reason.name}")
         self.requestTimeoutCount = 0
@@ -137,7 +128,7 @@ class ChangeMap(AbstractBehavior):
         self.askChangeMap()
     
     def askChangeMap(self):
-        Logger().info(f"{self.trType.name} map change to {self.dstMapId}")
+        Logger().info(f"[ChangeMap] {self.trType.name} map change to {self.dstMapId}")
         if self.isInteractiveTr():
             if not self.mapChangeIE:
                 def onTransitionIE(ie: InteractiveElementData):
@@ -154,8 +145,8 @@ class ChangeMap(AbstractBehavior):
             else:
                 self.interactiveMapChange()
         elif self.isScrollTr():
-            if not self.scrollCells:
-                self.findScrollCells()
+            if not self.iterScrollCells:
+                self.iterScrollCells = MapTools.iterMapChangeCells(self.transition.direction)
             self.scrollMapChange()
         elif self.isMapActionTr():
             self.actionMapChange()
@@ -289,7 +280,7 @@ class ChangeMap(AbstractBehavior):
         self.movementError = MovementFailError.MOVE_REQUEST_REJECTED
         self.exactDestination = True
         try:
-            self.mapChangeCellId = next(self.scrollCells)
+            self.mapChangeCellId = next(self.iterScrollCells)
         except StopIteration:
             self.finish(self.NOMORE_SCROLL_CELL, f"Tryied all scroll map change cells but no one changed map")
         MapMove().start(self.mapChangeCellId, self.onMoveToMapChangeCell, self.exactDestination)        

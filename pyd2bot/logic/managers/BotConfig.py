@@ -1,8 +1,12 @@
-from enum import Enum
 import threading
+from enum import Enum
+
 from pyd2bot.logic.managers.PathFactory import PathFactory
-from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Session, SessionType, UnloadType
+from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Session,
+                                                        SessionType,
+                                                        UnloadType)
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
+
 
 class CharacterRoleEnum(Enum):
     LEADER = 0
@@ -23,6 +27,8 @@ class BotConfig(metaclass=Singleton):
         self.character: Character = None
         self.path = None
         self.isLeader: bool = None
+        self.isSeller = None
+        self.isFollower = None
         self.leader: Character = None
         self.followers: list[Character] = None
         self.jobIds: list[int] = None
@@ -40,8 +46,11 @@ class BotConfig(metaclass=Singleton):
         self.hasSellerLock = False
 
     def releaseSellerLock(self):
-        if self.hasSellerLock and BotConfig.SELLER_LOCK.locked():
-            BotConfig.SELLER_LOCK.release()
+        if self.hasSellerLock:
+            if BotConfig.SELLER_LOCK.locked():
+                BotConfig.SELLER_LOCK.release()
+            BotConfig.SELLER_VACANT.set()
+            
 
     def getPrimarySpellId(self, breedId: int) -> int:
         return self.defaultBreedConfig[breedId]["primarySpellId"]
@@ -61,10 +70,7 @@ class BotConfig(metaclass=Singleton):
     @property
     def unloadInSeller(self) -> bool:
         return not self.isSeller and self.unloadType == UnloadType.SELLER 
-    
-    @property
-    def isSeller(self) -> bool:
-        return self.seller and self.character.id == self.seller.id
+
     @property
     def isFarmSession(self) -> bool:
         return self.sessionType == SessionType.FARM
@@ -76,11 +82,18 @@ class BotConfig(metaclass=Singleton):
     def getPlayerById(self, playerId: int) -> Character:
         if playerId == self.character.id:
             return self.character
+        return self.getFollowerById(playerId)
+    
+    def getFollowerById(self, playerId) -> Character:
         for follower in self.followers:
             if follower.id == playerId:
                 return follower
-        return None
-    
+
+    def getFollowerByName(self, name) -> Character:
+        for follower in self.followers:
+            if follower.name == name:
+                return follower
+
     def initFromSession(self, session: Session, role: CharacterRoleEnum, character: Character):
         self.id = session.id
         self.sessionType = session.type
@@ -90,6 +103,8 @@ class BotConfig(metaclass=Singleton):
         self.party = self.followers is not None and len(self.followers) > 0
         self.character = character
         self.isLeader = (role == CharacterRoleEnum.LEADER)
+        self.isFollower = (role == CharacterRoleEnum.FOLLOWER)
+        self.isSeller = (role == CharacterRoleEnum.SELLER)
         self.seller = session.seller
         if self.isFightSession and self.isLeader:
             self.path = PathFactory.from_thriftObj(session.path)

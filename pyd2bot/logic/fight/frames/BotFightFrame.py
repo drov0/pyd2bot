@@ -3,8 +3,9 @@ from queue import PriorityQueue
 from time import perf_counter
 from types import FunctionType
 from typing import TYPE_CHECKING, Tuple
-from pyd2bot.logic.fight.messages.MuleSwitchedToCombatContext import MuleSwitchedToCombatContext
 
+from pyd2bot.logic.fight.messages.MuleSwitchedToCombatContext import \
+    MuleSwitchedToCombatContext
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
@@ -32,8 +33,6 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.frames.SpellInventoryManag
     SpellInventoryManagementFrame
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.fight.frames.FightEntitiesFrame import \
-    FightEntitiesFrame
 from pydofus2.com.ankamagames.dofus.logic.game.fight.managers.BuffManager import \
     BuffManager
 from pydofus2.com.ankamagames.dofus.logic.game.fight.managers.CurrentPlayedFighterManager import \
@@ -105,14 +104,7 @@ from pydofus2.mapTools import MapTools
 
 lock = threading.Lock()
 if TYPE_CHECKING:
-    from pyd2bot.logic.roleplay.frames.BotPartyFrame import BotPartyFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.fight.frames.FightBattleFrame import \
-        FightBattleFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.fight.frames.FightContextFrame import \
-        FightContextFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.fight.frames.FightTurnFrame import \
-        FightTurnFrame
-
+    pass
 class Target:
     
     def __init__(self, entity: GameFightMonsterInformations, cellId: int) -> None:
@@ -175,10 +167,6 @@ class BotFightFrame(Frame):
         return True
 
     @property
-    def turnsList(self) -> list[float]:
-        return self.battleFrame._turnsList
-
-    @property
     def playerStats(self) -> "EntityStats":
         return StatsManager().getStats(self.currentPlayer.id)
 
@@ -192,26 +180,6 @@ class BotFightFrame(Frame):
             Logger().warning("Asking for player manager for None current player")
             return None
         return PlayedCharacterManager.getInstance(self.currentPlayer.login)
-
-    @property
-    def turnFrame(self) -> "FightTurnFrame":
-        return Kernel().worker.getFrameByName("FightTurnFrame")
-
-    @property
-    def fightContextFrame(self) -> "FightContextFrame":
-        return Kernel().worker.getFrameByName("FightContextFrame")
-
-    @property
-    def entitiesFrame(self) -> "FightEntitiesFrame":
-        return Kernel().worker.getFrameByName("FightEntitiesFrame")
-
-    @property
-    def battleFrame(self) -> "FightBattleFrame":
-        return Kernel().worker.getFrameByName("FightBattleFrame")
-
-    @property
-    def partyFrame(self) -> "BotPartyFrame":
-        return Kernel().worker.getFrameByName("BotPartyFrame")
 
     @property
     def fightCount(self) -> int:
@@ -339,13 +307,13 @@ class BotFightFrame(Frame):
     def getTargetableEntities(self, spellw: SpellWrapper, targetSum=False) -> list[Target]:
         result = list[Target]()
         infosTable = []
-        if not self.entitiesFrame or not self.battleFrame:
+        if not Kernel().fightEntitiesFrame or not Kernel().battleFrame:
             Logger().error("entitiesFrame or battleFrame is not found")
             return []
         if self.fighterInfos is None:
             Logger().warning("Fighter not found")
             return []
-        for entity in self.entitiesFrame.entities.values():
+        for entity in Kernel().fightEntitiesFrame.entities.values():
             if entity.contextualId < 0:
                 monster = entity
                 canCast, reason = self.canCastSpell(entity.contextualId)
@@ -363,8 +331,8 @@ class BotFightFrame(Frame):
                     "name": name,
                     "level": level,
                     "teamId": entity.spawnInfo.teamId, 
-                    "dead": entity.contextualId in self.battleFrame.deadFightersList,
-                    "hidden": entity.contextualId in self.fightContextFrame.hiddenEntites,
+                    "dead": entity.contextualId in Kernel().battleFrame.deadFightersList,
+                    "hidden": entity.contextualId in Kernel().fightContextFrame.hiddenEntites,
                     "summoned": entity.stats.summoned,
                     "canhit": canCast,
                     "cell": entity.disposition.cellId,
@@ -506,15 +474,15 @@ class BotFightFrame(Frame):
     def nextTurnAction(self, event=None) -> None:
         if self._isRequestingMovement or self._requestingCastSpell or not self._myTurn:
             return
-        if not self.battleFrame:
+        if not Kernel().battleFrame:
             Logger().error("[FightAlgo] No battle frame found")
             return
-        if self.battleFrame._sequenceFrames or self.battleFrame._executingSequence:
+        if Kernel().battleFrame._sequenceFrames or Kernel().battleFrame._executingSequence:
             Logger().warning(
-                f"[FightAlgo] Waiting for {len(self.battleFrame._sequenceFrames)} sequences to end, "
-                    f"currently executing {self.battleFrame._executingSequence} ..."
+                f"[FightAlgo] Waiting for {len(Kernel().battleFrame._sequenceFrames)} sequences to end, "
+                    f"currently executing {Kernel().battleFrame._executingSequence} ..."
             )
-            self.battleFrame.logState()
+            Kernel().battleFrame.logState()
             KernelEventsManager().once(KernelEvent.SEQUENCE_EXEC_FINISHED, self.nextTurnAction, originator=self)
             return
         if self.VERBOSE:
@@ -542,7 +510,7 @@ class BotFightFrame(Frame):
             startFightMsg.init(True)
             ConnectionsHandler.getInstance(player.login).send(startFightMsg)
             notjoined = [
-                m.name for m in BotConfig().fightPartyMembers if not self.entitiesFrame.getEntityInfos(m.id)
+                m.name for m in BotConfig().fightPartyMembers if not Kernel().fightEntitiesFrame.getEntityInfos(m.id)
             ]
             if not notjoined:
                 Logger().info(f"[FightBot] All party members joined fight.")
@@ -552,8 +520,6 @@ class BotFightFrame(Frame):
                 self.fightReadySent = True
     
     def process(self, msg: Message) -> bool:
-        
-    
         if isinstance(msg, GameFightOptionStateUpdateMessage):
             if msg.option not in BotConfig().fightOptions:
                 BotConfig().fightOptions.append(msg.option)
@@ -601,7 +567,7 @@ class BotFightFrame(Frame):
             if not self.currentPlayer:
                 return
             Logger().error(f"[FightBot] Failed to move")
-            if self._isRequestingMovement and self.turnFrame and self.turnFrame.myTurn:
+            if self._isRequestingMovement and Kernel().turnFrame and Kernel().turnFrame.myTurn:
                 self._turnAction.clear()
                 self._isRequestingMovement = False
                 if self._moveRequestFails > 2:
@@ -645,7 +611,7 @@ class BotFightFrame(Frame):
             return True
 
         elif isinstance(msg, GameFightTurnStartMessage):
-            if not self.entitiesFrame:
+            if not Kernel().fightEntitiesFrame:
                 return KernelEventsManager().onceFramePushed("FightEntitiesFrame", self.process, [msg], originator=self)
             Logger().separator(f"Player {msg.id} turn to play", "~")
             self._currentPlayerId = msg.id
@@ -654,12 +620,12 @@ class BotFightFrame(Frame):
             if not isinstance(msg, GameFightTurnResumeMessage):
                 BuffManager().decrementDuration(msg.id)
                 BuffManager().resetTriggerCount(msg.id)
-            if self.battleFrame:
-                self.battleFrame.removeSavedPosition(msg.id)
-                if self.entitiesFrame:
-                    for entityId, infos in self.entitiesFrame.entities.items():
+            if Kernel().battleFrame:
+                Kernel().battleFrame.removeSavedPosition(msg.id)
+                if Kernel().fightEntitiesFrame:
+                    for entityId, infos in Kernel().fightEntitiesFrame.entities.items():
                         if infos and infos.stats.summoner == msg.id:
-                            self.battleFrame.removeSavedPosition(entityId)
+                            Kernel().battleFrame.removeSavedPosition(entityId)
             self.currentPlayer = BotConfig().getPlayerById(self._currentPlayerId)
             if self.currentPlayer:
                 self.onPlayer()
@@ -682,7 +648,7 @@ class BotFightFrame(Frame):
                 self._turnStartPlaying = True
 
         elif isinstance(msg, GameFightTurnReadyRequestMessage):
-            if self.battleFrame._executingSequence:
+            if Kernel().battleFrame._executingSequence:
                 Logger().warn("[FightBot] Delaying turn end acknowledgement because we're still in a sequence.")
                 self._confirmTurnEnd = True
             else:
@@ -753,7 +719,7 @@ class BotFightFrame(Frame):
         return stats.getStatTotalValue(StatIds.MOVEMENT_POINTS)
 
     def checkCanPlay(self):
-        if not self.turnFrame or not self.turnFrame.myTurn or not self.currentPlayer or not self.playerManager:
+        if not Kernel().turnFrame or not Kernel().turnFrame.myTurn or not self.currentPlayer or not self.playerManager:
             return
         if self._confirmTurnEnd:
             self.confirmTurnEnd()
@@ -777,7 +743,7 @@ class BotFightFrame(Frame):
 
     @property
     def fighterInfos(self) -> "GameFightFighterInformations":
-        return self.entitiesFrame.getEntityInfos(self.currentPlayer.id)
+        return Kernel().fightEntitiesFrame.getEntityInfos(self.currentPlayer.id)
 
     @property
     def fighterPos(self) -> "MapPoint":
@@ -837,7 +803,7 @@ class BotFightFrame(Frame):
                     else:
                         unreachableCell = cells[stoppedOnCellIdx + 1]
                         Logger().warning(f"[FightBot] Cell {unreachableCell} is maybe unreachable")
-                        entities = self.entitiesFrame.hasEntity(unreachableCell)
+                        entities = Kernel().fightEntitiesFrame.hasEntity(unreachableCell)
                         if entities:
                             Logger().warning(f"[FightBot] Entites {[e.id for e in entities]} are on cell {unreachableCell}")
                             self._forbidenCells.add(unreachableCell)
@@ -853,7 +819,7 @@ class BotFightFrame(Frame):
 
     def confirmTurnEnd(self) -> None:
         if self.currentPlayer:
-            fighterInfos = self.entitiesFrame.getEntityInfos(self.currentPlayer.id)
+            fighterInfos = Kernel().fightEntitiesFrame.getEntityInfos(self.currentPlayer.id)
             if fighterInfos:
                 BuffManager().markFinishingBuffs(self.currentPlayer.id)
                 SpellWrapper.refreshAllPlayerSpellHolder(self.currentPlayer.id)
@@ -882,8 +848,8 @@ class BotFightFrame(Frame):
         self._moveRequestFails = 0
         self._seqQueue.clear()
         self._turnAction.clear()
-        if self.turnFrame:
-            self.turnFrame.myTurn = True
+        if Kernel().turnFrame:
+            Kernel().turnFrame.myTurn = True
             
     def drawPath(self, cell:MapPoint = None) -> None:
         cells = list[int]()

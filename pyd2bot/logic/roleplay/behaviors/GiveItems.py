@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import TYPE_CHECKING
+
 from pyd2bot.logic.common.frames.BotRPCFrame import BotRPCFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
@@ -9,9 +10,15 @@ from pyd2bot.logic.roleplay.frames.BotExchangeFrame import (
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.misc.Localizer import Localizer
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
+from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
+    MapDisplayManager
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionType import \
+    ConnectionType
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -30,13 +37,14 @@ class GiveItelsStates(Enum):
     IN_EXCHANGE_WITH_SELLER = 6
 
 class GiveItems(AbstractBehavior):
-
+    SELLER_BUSY = 8803
+    
     def __init__(self):
         super().__init__()
 
     def start(self, sellerInfos: Character, callback, return_to_start=True) -> bool:
         if self.running.is_set():
-            return self.finish(False, "Already running")
+            return self.finish(False, f"Already running with guest {sellerInfos.login}")
         Logger().info("[GiveItems] started")
         self.running.set()
         self.seller = sellerInfos
@@ -62,28 +70,37 @@ class GiveItems(AbstractBehavior):
             Logger().warning(f"[GiveItems] Player map not processed yet")
             return KernelEventsManager().onceMapProcessed(self._start, originator=self)
         Logger().debug(f"[GiveItems] Asked for seller status ...")
-        self.rpcFrame.askForStatus(self.seller.login, self.onGuestStatus)
+        self.checkGuestStatus()
+        
+    def getGuestStatus(self, instanceId):
+        if not ConnectionsHandler.getInstance(instanceId) or \
+            ConnectionsHandler.getInstance(instanceId).connectionType == ConnectionType.DISCONNECTED:
+            return "disconnected"
+        elif ConnectionsHandler.getInstance(instanceId).connectionType == ConnectionType.TO_LOGIN_SERVER:
+            return "authenticating"
+        elif not PlayedCharacterManager.getInstance(instanceId):
+            return "loadingPlayer"
+        elif PlayedCharacterManager.getInstance(instanceId).isInFight:
+            return "fighting"
+        elif not Kernel.getInstance(instanceId).entitiesFrame:
+            return "outOfRolePlay"
+        elif MapDisplayManager.getInstance(instanceId).currentDataMap is None:
+            return "loadingMap"
+        elif not Kernel.getInstance(instanceId).entitiesFrame.mcidm_processed:
+            return "processingMapData"
+        for behavior in AbstractBehavior.getAllChilds(instanceId):
+            return str(behavior)
+        return "idle"
 
-    def onGuestStatus(self, result: str, error: str, sender: str):
-        if error:
-            if error == self.rpcFrame.DEST_KERNEL_NOT_FOUND:
-                Logger().warning("Seller is disconnected, waiting for him to connect ...")                    
-                return BotEventsManager().onceBotConnected(
-                    self.seller.login, 
-                    lambda:self.rpcFrame.askForStatus(self.seller.login, self.onGuestStatus),
-                    timeout=30,
-                    ontimeout=lambda: self.finish(False, f"Wait for seller {self.seller.login} to connect timedout"), originator=self
-                )
-            return self.finish(False, f"Error while fetching guest {sender} status: {error}")
-        Logger().info(f"[GiveItems] Seller status: {result}.")
-        if result == "idle":
-            self.rpcFrame.askComeToCollect(self.seller.login, self.bankInfos, BotConfig().character)
-            self.state = GiveItelsStates.WALKING_TO_BANK
-            AutoTrip().start(self.bankInfos.npcMapId, 1, self.onTripEnded)
-        else:
+    def checkGuestStatus(self):
+        status = self.getGuestStatus(self.seller.login)
+        while status != "idle":
+            Logger().info(f"[GiveItems] Seller status: {status}.")
             if Kernel().worker.terminated.wait(2):
                 return Logger().warning("Worker finished while fetching player status returning")
-            self.rpcFrame.askForStatus(self.seller.login, self.onGuestStatus)
+            status = self.getGuestStatus(self.seller.login)
+        self.state = GiveItelsStates.WALKING_TO_BANK
+        AutoTrip().start(self.bankInfos.npcMapId, 1, self.onTripEnded)
 
     def onTripEnded(self, errorId, error):
         if error:
@@ -94,7 +111,12 @@ class GiveItems(AbstractBehavior):
         elif self.state == GiveItelsStates.WALKING_TO_BANK:
             Logger().info("[UnloadInSellerFrame] Trip ended, waiting for seller to come")
             self.state = GiveItelsStates.WAITING_FOR_SELLER
-            self.waitForGuestToComme()
+            def onSellerResponse(result, error, sender):
+                if not result:
+                    return self.finish(self.SELLER_BUSY, f"Seller refused come to collect ask")
+                self.waitForGuestToComme()
+            self.rpcFrame.askComeToCollect(self.seller.login, self.bankInfos, BotConfig().character, onSellerResponse)
+            
 
     def waitForGuestToComme(self):
         if self.entitiesFrame:
@@ -112,7 +134,7 @@ class GiveItems(AbstractBehavior):
             if errorId == 5023: # guest doesnt have enough space
                 Logger().error(error)
                 Kernel().worker.terminated.wait(5)
-                return self.rpcFrame.askForStatus(self.seller.login, self.onGuestStatus)
+                return self.checkGuestStatus(self.seller.login)
             return self.finish(errorId, error)
         if not self.return_to_start:
             return self.finish(True, None)

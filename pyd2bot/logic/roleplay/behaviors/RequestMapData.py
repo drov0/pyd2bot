@@ -38,6 +38,7 @@ class RequestMapData(AbstractBehavior):
         self.sendRequest()
 
     def onMapDataRequestTimeout(self, listener: Listener):
+        Logger().warning("Map data request timeout")
         pingMsg = BasicPingMessage()
         pingMsg.init(True)
         ConnectionsHandler().send(pingMsg)

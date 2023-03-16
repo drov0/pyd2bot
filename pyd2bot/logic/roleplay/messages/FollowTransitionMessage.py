@@ -1,8 +1,9 @@
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import Transition
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
+    Transition
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 
 
-class LeaderTransitionMessage(Message):
+class FollowTransitionMessage(Message):
     def __init__(self, transition: Transition, dstMapId: int):
         self.transition = transition
         self.dstMapId = dstMapId

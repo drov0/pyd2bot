@@ -1,5 +1,3 @@
-
-
 from pyd2bot.logic.fight.messages.MuleSwitchedToCombatContext import MuleSwitchedToCombatContext
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel

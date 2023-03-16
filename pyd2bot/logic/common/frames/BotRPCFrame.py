@@ -2,24 +2,29 @@ import threading
 
 from pyd2bot.logic.common.rpcMessages.ComeToCollectMessage import \
     ComeToCollectMessage
-from pyd2bot.logic.common.rpcMessages.FollowTransitionMessage import \
-    FollowTransitionMessage
 from pyd2bot.logic.common.rpcMessages.GetCurrentVertexMessage import \
     GetCurrentVertexMessage
 from pyd2bot.logic.common.rpcMessages.GetStatusMessage import GetStatusMessage
-from pyd2bot.logic.common.rpcMessages.MoveToVertexMessage import \
-    MoveToVertexMessage
 from pyd2bot.logic.common.rpcMessages.RCPResponseMessage import \
     RPCResponseMessage
 from pyd2bot.logic.common.rpcMessages.RPCMessage import RPCMessage
 from pyd2bot.logic.managers.BotConfig import BotConfig
+from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
 from pyd2bot.logic.roleplay.behaviors.CollectItems import CollectItems
-from pyd2bot.logic.roleplay.messages.LeaderPosMessage import LeaderPosMessage
-from pyd2bot.logic.roleplay.messages.LeaderTransitionMessage import \
-    LeaderTransitionMessage
+from pyd2bot.logic.roleplay.messages.FollowTransitionMessage import \
+    FollowTransitionMessage
+from pyd2bot.logic.roleplay.messages.MoveToVertexMessage import \
+    MoveToVertexMessage
+from pyd2bot.logic.roleplay.messages.SellerVacantMessage import \
+    SellerVacantMessage
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
+    MovementFailError
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
     BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -65,7 +70,6 @@ class BotRPCFrame(Frame):
 
             if isinstance(msg, GetStatusMessage):
                 from pyd2bot.apis.PlayerAPI import PlayerAPI
-
                 rsp = RPCResponseMessage(msg, data=PlayerAPI().status)
                 self.send(rsp)
                 return True
@@ -75,24 +79,52 @@ class BotRPCFrame(Frame):
                 self.send(rsp)
                 return True
 
-            elif isinstance(msg, MoveToVertexMessage):
-                Kernel().worker.process(LeaderPosMessage(msg.vertex))
-                return True
-
-            elif isinstance(msg, FollowTransitionMessage):
-                Kernel().worker.process(LeaderTransitionMessage(msg.transition, msg.dstMapId))
-                return True
-
             elif isinstance(msg, ComeToCollectMessage):
                 def onresponse(result, error):
                     if error:
-                        Logger().error("Error while trying to meet guest to collect resources: {}".format(error))
+                        Logger().error(f"[RPCFrame] Error while trying to meet the guest {msg.guestInfos.login} to collect resources: {error}")
+                    for instanceId, instance in Kernel.getInstances():
+                        instance.worker.process(SellerVacantMessage(threading.current_thread().name))
                     BotConfig.SELLER_VACANT.set()
                     if BotConfig.SELLER_LOCK.locked():
                         BotConfig.SELLER_LOCK.release()
+                if CollectItems().isRunning():
+                    Logger().error(f"[RPCFrame] can't start collect with {msg.guestInfos.login} because collect is already running with {CollectItems().guest.login}")
+                    rsp = RPCResponseMessage(msg, data=False)
+                    self.send(rsp)
+                    return True
+                rsp = RPCResponseMessage(msg, data=True)
+                self.send(rsp)
                 CollectItems().start(msg.bankInfos, msg.guestInfos, None, onresponse)
                 return True
-
+        
+        elif isinstance(msg, MoveToVertexMessage):
+            Logger().info(f"Move to vertex {msg.vertex} received")
+            if (
+                PlayedCharacterManager().currVertex is not None
+                and PlayedCharacterManager().currVertex.UID != msg.vertex.UID
+            ):
+                def onPosReached(code, error):
+                    if error:
+                        return KernelEventsManager().send(KernelEvent.RESTART, f"Error while following leader: {error}")
+                AutoTrip().start(msg.vertex.mapId, msg.vertex.zoneId, onPosReached)
+            return True
+        
+        elif isinstance(msg, FollowTransitionMessage):
+            Logger().info(f"Will follow transision {msg.transition}")
+            if msg.transition.transitionMapId == PlayedCharacterManager().currentMap.mapId:
+                Logger().warning(
+                    f"Transition is heading to my current map ({msg.transition.transitionMapId}), nothing to do."
+                )
+            else:
+                def onresp(errType, error):
+                    if error:
+                        if errType == MovementFailError.CANT_REACH_DEST_CELL or errType == MovementFailError.MAPCHANGE_TIMEOUT:
+                            AutoTrip().start(msg.dstMapId, 1, onresp)
+                        else:
+                            KernelEventsManager().send(KernelEvent.RESTART, f"Follow transition failed for reason : {error}")
+                ChangeMap().start(transition=msg.transition, dstMapId=msg.dstMapId, callback=onresp)
+            return True
         return False
 
     def onTimeout(self, msg: RPCMessage, timeout):
@@ -100,7 +132,7 @@ class BotRPCFrame(Frame):
             respw = self._waitingForResp[msg.uid]
             if "callback" in respw:
                 self._waitingForResp.pop(msg.uid)
-                respw["callback"](result=None, error=self.CALL_TIMEOUT, sender=msg.sender)
+                respw["callback"](result=None, error=self.CALL_TIMEOUT, sender=threading.current_thread().name)
             if "event" in respw:
                 respw["event"].set()
                 respw["result"] = None
@@ -130,9 +162,9 @@ class BotRPCFrame(Frame):
         msg = FollowTransitionMessage(dst, transition, dstMapId)
         self.send(msg)
 
-    def askComeToCollect(self, dst, bankInfo, guestInfo):
+    def askComeToCollect(self, dst, bankInfo, guestInfo, callback):
         msg = ComeToCollectMessage(dst, bankInfo, guestInfo)
-        self.send(msg)
+        self.send(msg, callback)
 
     def send(self, msg: RPCMessage, callback=None, timeout=60) -> None:
         inst = Kernel.getInstance(msg.dest)

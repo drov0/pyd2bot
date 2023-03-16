@@ -5,7 +5,8 @@ from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.RequestMapData import RequestMapData
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event, Listener
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
+                                                                     Listener)
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -21,7 +22,8 @@ from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError 
     MovementFailError
 from pydofus2.com.ankamagames.dofus.network.enums.PlayerLifeStatusEnum import \
     PlayerLifeStatusEnum
-from pydofus2.com.ankamagames.dofus.network.messages.common.basic.BasicPingMessage import BasicPingMessage
+from pydofus2.com.ankamagames.dofus.network.messages.common.basic.BasicPingMessage import \
+    BasicPingMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovementCancelMessage import \
     GameMapMovementCancelMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovementConfirmMessage import \
@@ -31,10 +33,12 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovemen
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
     Pathfinding
-from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import DirectionsEnum
+from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import \
+    DirectionsEnum
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import \
     MovementPath
+
 
 class MovementAnimation(threading.Thread):
     
@@ -177,12 +181,14 @@ class MapMove(AbstractBehavior):
         self.moveListener = KernelEventsManager().onceEntityMoved(
             PlayedCharacterManager().id, 
             self.onMoveRequestAccepted,
-            timeout=2,
+            timeout=60,
             ontimeout=lambda listener: self.onMoveRequestReject(MovementFailError.MOVE_REQUEST_TIMEOUT), originator=self
         )
         self.sendMoveRequest()
         
-    def onMoveRequestReject(self, reason: MovementFailError) -> None:
+    def onMoveRequestReject(self, reason: MovementFailError) -> None:        
+        gmmcmsg = GameMapMovementConfirmMessage()
+        ConnectionsHandler().send(gmmcmsg)
         pingMsg = BasicPingMessage()
         pingMsg.init(True)
         ConnectionsHandler().send(pingMsg)

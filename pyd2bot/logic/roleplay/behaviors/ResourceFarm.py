@@ -8,8 +8,10 @@ from pyd2bot.logic.roleplay.behaviors.AutoRevive import AutoRevive
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
 from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
-from pyd2bot.logic.roleplay.behaviors.WaitForPartyMembersToShow import WaitForPartyMembersToShow
-from pyd2bot.logic.roleplay.frames.BotPartyFrame import BotPartyFrame
+from pyd2bot.logic.roleplay.behaviors.WaitForMembersIdle import \
+    WaitForMembersIdle
+from pyd2bot.logic.roleplay.behaviors.WaitForMembersToShow import \
+    WaitForMembersToShow
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
@@ -29,14 +31,7 @@ from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 
 if TYPE_CHECKING:
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import \
-        RoleplayEntitiesFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import \
-        RoleplayInteractivesFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import \
-        RoleplayMovementFrame
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayWorldFrame import \
-        RoleplayWorldFrame
+    pass
 
 from enum import Enum
 
@@ -62,31 +57,11 @@ class FarmPath(AbstractBehavior):
         super().__init__()
         self.state = FarmerStates.IDLE
         self.entityMovedListener = None
-
+        
     @property
     def farmPath(self):
         return BotConfig().path
-
-    @property
-    def entitiesFrame(self) -> "RoleplayEntitiesFrame":
-        return Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
-
-    @property
-    def interactivesFrame(self) -> "RoleplayInteractivesFrame":
-        return Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
-
-    @property
-    def movementFrame(self) -> "RoleplayMovementFrame":
-        return Kernel().worker.getFrameByName("RoleplayMovementFrame")
-
-    @property
-    def partyFrame(self) -> "BotPartyFrame":
-        return Kernel().worker.getFrameByName("BotPartyFrame")
-
-    @property
-    def worldFrame(self) -> "RoleplayWorldFrame":
-        return Kernel().worker.getFrameByName("RoleplayWorldFrame")
-
+    
     def finish(self, status, error) -> bool:
         if BotEventsManager().has_listeners(BotEventsManager.MEMBERS_READY):
             BotEventsManager().remove_listener(BotEventsManager.MEMBERS_READY, self._start)
@@ -100,7 +75,7 @@ class FarmPath(AbstractBehavior):
 
     def moveToNextStep(self, callback):
         if not self.running.is_set():
-            return Logger().warning("[FarmPath] Not running")
+            return
         self._currTransition, edge = next(self.farmPath)
         def onMapChanged(success, error):
             if error:
@@ -108,8 +83,8 @@ class FarmPath(AbstractBehavior):
                 return KernelEventsManager().send(KernelEvent.RESTART, "[FarmPath] Error while moving to next step: %s" % error)
             callback()
         ChangeMap().start(transition=self._currTransition, dstMapId=edge.dst.mapId, callback=onMapChanged)
-        if self.partyFrame:
-            self.partyFrame.askMembersToFollowTransit(self._currTransition, edge.dst.mapId)
+        if Kernel().partyFrame:
+            Kernel().partyFrame.askMembersToFollowTransit(self._currTransition, edge.dst.mapId)
 
     def findMonstersToAttack(self):
         availableMonsterFights = []
@@ -168,44 +143,50 @@ class FarmPath(AbstractBehavior):
         
     def _start(self, event_id=None, error=None):
         if not self.running.is_set():
-            return Logger().warning("[FarmPath] Not running")
+            return
         self.state = FarmerStates.IDLE
         Logger().info("[FarmPath] doFarm called")
         if AutoRevive().isRunning():
-            Logger().warning("Cant farm is player is dead")
+            Logger().warning("Cant farm if player is dead")
             return self.stop()
         if PlayerAPI().isProcessingMapData():
             KernelEventsManager().onceMapProcessed(self._start, originator=self)
             Logger().info("[FarmPath] Waiting for map to be processed...")
             self.state = FarmerStates.WAITING_MAP
             return
-        if self.partyFrame:
-            if not self.partyFrame.allMembersJoinedParty:
-                self.state = FarmerStates.WAITING_PARTY_MEMBERS_JOIN
-                Logger().info("[BotEventsManager] Waiting for party members to join party.")
-                BotEventsManager().onceAllMembersJoinedParty(self._start, originator=self)
-                self.partyFrame.inviteAllFollowers()
+        if Kernel().partyFrame:
+            if not Kernel().partyFrame.allMembersJoinedParty:
+                return self.onPartyNotComplete()
             else:
                 self.state = FarmerStates.WAITING_PARTY_MEMBERS_IDLE
                 Logger().info("[BotEventsManager] Waiting for party members to be idle.")
-                BotEventsManager().onceAllPartyMembersIdle(self.doFarm, originator=self)
-                self.partyFrame.checkAllMembersIdle()
-            return
+                def onMembersIdleResult(code, error):
+                    if code == WaitForMembersIdle.MEMBER_LEFT_PARTY:
+                        return self.onPartyNotComplete()
+                    if error:
+                        return KernelEventsManager().send(KernelEvent.RESTART, f"[FarmPath] Wait members idle failed for reason : {error}")
+                WaitForMembersIdle().start(Kernel().partyFrame.followers, onMembersIdleResult)
         self.doFarm()
 
+    def onPartyNotComplete(self):
+        self.state = FarmerStates.WAITING_PARTY_MEMBERS_JOIN
+        Logger().info("[BotEventsManager] Waiting for party members to join party.")
+        BotEventsManager().onceAllMembersJoinedParty(self._start, originator=self)
+        Kernel().partyFrame.inviteAllFollowers()
+
+    def onFarmPathMapReached(self, status, error):
+        if error:
+            return KernelEventsManager().send(KernelEvent.RESTART, f"[FarmPath] Go to farmPath first map failed for reason : {error}")
+        self._start()
+        
     def onBotOutOfFarmPath(self):
-        def onFarmPathMapReached(status, error):
-            if error:
-                Logger().error(f"[FarmPath] Go to farmPath first map failed for reason : {error}")
-                return KernelEventsManager().send(KernelEvent.RESTART, f"[FarmPath] Go to farmPath first map failed for reason : {error}")
-            self._start()
-        AutoTrip().start(self.farmPath.startVertex.mapId, self.farmPath.startVertex.zoneId, onFarmPathMapReached)
-        if self.partyFrame:
-            self.partyFrame.askMembersToMoveToVertex(self.farmPath.startVertex)
+        AutoTrip().start(self.farmPath.startVertex.mapId, self.farmPath.startVertex.zoneId, self.onFarmPathMapReached)
+        if Kernel().partyFrame:
+            Kernel().partyFrame.askMembersToMoveToVertex(self.farmPath.startVertex)
 
     def onPartyMembersShowed(self, code, errorInfo):
         if errorInfo:
-            if code == WaitForPartyMembersToShow.MEMBER_LEFT_PARTY:
+            if code == WaitForMembersToShow.MEMBER_LEFT_PARTY:
                 Logger().warning(f"[FarmPath] Member {errorInfo} left party while waiting for them to show up!")
             else:
                 return KernelEventsManager().send(KernelEvent.RESTART, f"[FarmPath] Error while waiting for members to show up: {errorInfo}")
@@ -217,11 +198,11 @@ class FarmPath(AbstractBehavior):
             return KernelEventsManager().onceMapProcessed(self._start, originator=self)
         if PlayedCharacterManager().currVertex not in self.farmPath:
             return self.onBotOutOfFarmPath()
-        if self.partyFrame:
-            if not self.partyFrame.allMembersOnSameMap:
+        if Kernel().partyFrame:
+            if not Kernel().partyFrame.allMembersOnSameMap:
                 self.state = FarmerStates.WAITING_PARTY_MEMBERS_SHOW
-                self.partyFrame.askMembersToMoveToVertex(self.farmPath.currentVertex)
-                return WaitForPartyMembersToShow().start(self.onPartyMembersShowed)
+                Kernel().partyFrame.askMembersToMoveToVertex(self.farmPath.currentVertex)
+                return WaitForMembersToShow().start(self.onPartyMembersShowed)
         if BotConfig().isFightSession:
             self.attackMonsterGroup(self.onAttackMonstersResult)
         elif BotConfig().isFarmSession:
