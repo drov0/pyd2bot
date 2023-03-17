@@ -34,6 +34,7 @@ class GiveItelsStates(Enum):
     ISIDE_BANK = 2
     RETURNING_TO_START_POINT = 4
     WAITING_FOR_SELLER = 5
+    WAITING_FOR_SELLER_IDLE = 7
     IN_EXCHANGE_WITH_SELLER = 6
 
 class GiveItems(AbstractBehavior):
@@ -54,6 +55,7 @@ class GiveItems(AbstractBehavior):
         self._startRpZone = PlayedCharacterManager().currentZoneRp
         self.bankInfos = Localizer.getBankInfos()
         self.state = GiveItelsStates.IDLE
+        self.lastSellerState = "unknown"
         self._start()
         return True
 
@@ -93,12 +95,13 @@ class GiveItems(AbstractBehavior):
         return "idle"
 
     def checkGuestStatus(self):
-        status = self.getGuestStatus(self.seller.login)
-        while status != "idle":
-            Logger().info(f"[GiveItems] Seller status: {status}.")
+        self.state = GiveItelsStates.WAITING_FOR_SELLER_IDLE
+        self.lastSellerState = self.getGuestStatus(self.seller.login)
+        while self.lastSellerState != "idle":
+            Logger().info(f"[GiveItems] Seller status: {self.lastSellerState}.")
             if Kernel().worker.terminated.wait(2):
                 return Logger().warning("Worker finished while fetching player status returning")
-            status = self.getGuestStatus(self.seller.login)
+            self.lastSellerState = self.getGuestStatus(self.seller.login)
         self.state = GiveItelsStates.WALKING_TO_BANK
         AutoTrip().start(self.bankInfos.npcMapId, 1, self.onTripEnded)
 
@@ -116,7 +119,6 @@ class GiveItems(AbstractBehavior):
                     return self.finish(self.SELLER_BUSY, f"Seller refused come to collect ask")
                 self.waitForGuestToComme()
             self.rpcFrame.askComeToCollect(self.seller.login, self.bankInfos, BotConfig().character, onSellerResponse)
-            
 
     def waitForGuestToComme(self):
         if self.entitiesFrame:
@@ -141,3 +143,13 @@ class GiveItems(AbstractBehavior):
         else:
             self.state = GiveItelsStates.RETURNING_TO_START_POINT
             AutoTrip().start(self._startMapId, self._startRpZone, self.onTripEnded)
+    
+    def getState(self):
+        state = self.state.name 
+        if self.state == GiveItelsStates.WAITING_FOR_SELLER_IDLE:
+            state += f":{self.lastSellerState}"
+        elif AutoTrip().isRunning():
+            state += f":{AutoTrip().getState()}"
+        elif Kernel().worker.getFrameByName("BotExchangeFrame"):
+            state += f":{Kernel().worker.getFrameByName('BotExchangeFrame').getState()}"
+        return state

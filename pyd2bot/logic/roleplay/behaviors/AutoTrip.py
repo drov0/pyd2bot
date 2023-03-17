@@ -1,3 +1,4 @@
+from enum import Enum
 from time import perf_counter
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
@@ -15,12 +16,17 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph i
     WorldGraph
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
+class AutoTripState(Enum):
+    IDLE = 0
+    CALCULATING_PATH = 1
+    FOLLOWING_EDGE = 2
 
 class AutoTrip(AbstractBehavior):
     
     def __init__(self):
         super().__init__()
         self.path = None
+        self.state = AutoTripState.IDLE
         
     def start(self, dstMapId, dstZoneId, callback):
         if self.running.is_set():
@@ -30,8 +36,8 @@ class AutoTrip(AbstractBehavior):
         self.callback = callback
         self.path: list[Edge] = None
         self.running.set()
-        self.walkToNextStep()
         AStar().resetForbinedEdges()
+        self.walkToNextStep()
 
     def finish(self, success: bool, error: str):
         AStar().resetForbinedEdges()
@@ -48,6 +54,7 @@ class AutoTrip(AbstractBehavior):
             Logger().warning("[AutoTrip] Waiting for Map to be processed...")
             return KernelEventsManager().onceMapProcessed(self.walkToNextStep, originator=self)
         if self.path:
+            self.state = AutoTripState.FOLLOWING_EDGE
             currMapId = PlayedCharacterManager().currVertex.mapId
             dstMapId = self.path[-1].dst.mapId
             if currMapId == dstMapId:
@@ -73,6 +80,7 @@ class AutoTrip(AbstractBehavior):
                 self.walkToNextStep()
             ChangeMap().start(edge=nextEdge, callback=onProcessed)
         else:
+            self.state = AutoTripState.CALCULATING_PATH
             self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)
     
     def onPathFindResul(self, path, error):
@@ -109,3 +117,6 @@ class AutoTrip(AbstractBehavior):
                 Logger().info(f"[WoldPathFinder] Path to map {str(dst)} found in {perf_counter() - start}s")
                 return callback(path, None)
             linkedZone += 1
+
+    def getState(self):
+        return self.state.name

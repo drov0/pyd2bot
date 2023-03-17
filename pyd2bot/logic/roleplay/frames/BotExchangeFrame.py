@@ -186,7 +186,7 @@ class BotExchangeFrame(Frame):
         ConnectionsHandler().send(msg)
         Logger().debug("[ExchangeFrame] Exchange open request sent")
         
-    def onServerNotif(self, event, msgId, msgType, textId, text):
+    def onServerNotif(self, event, msgId, msgType, textId, text, params):
     
         self.exchangeLeaveListener.delete()
         if textId == 516493: # inventory full
@@ -242,3 +242,6 @@ class BotExchangeFrame(Frame):
         Logger().debug(f"[ExchangeFrame] There is {kamas_quantity} in bots inventory.")
         eomkm.init(kamas_quantity)
         ConnectionsHandler().send(eomkm)
+
+    def getState(self):
+        return self.state.name

@@ -181,7 +181,7 @@ class MapMove(AbstractBehavior):
         self.moveListener = KernelEventsManager().onceEntityMoved(
             PlayedCharacterManager().id, 
             self.onMoveRequestAccepted,
-            timeout=60,
+            timeout=2,
             ontimeout=lambda listener: self.onMoveRequestReject(MovementFailError.MOVE_REQUEST_TIMEOUT), originator=self
         )
         self.sendMoveRequest()
@@ -193,7 +193,7 @@ class MapMove(AbstractBehavior):
         pingMsg.init(True)
         ConnectionsHandler().send(pingMsg)
         self.countMoveFail += 1
-        if self.countMoveFail > 20:
+        if self.countMoveFail > 10:
             return self.fail(reason)
         Logger().warning(f"[MapMove] server reject for reason {reason.name}")
         self.moveListener.delete()

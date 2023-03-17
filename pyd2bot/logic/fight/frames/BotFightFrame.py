@@ -501,23 +501,24 @@ class BotFightFrame(Frame):
         return CurrentPlayedFighterManager().canCastThisSpell(self.spellId, self.spellw.spellLevel, targetId)
             
     def onMemberJoinedFight(self, player: Character):
+        if self.fightResumed or self.fightReadySent:
+            return
         if not ConnectionsHandler.getInstance(player.login) or not ConnectionsHandler.getInstance(player.login).inGameServer():
-            Logger().warning(f"Member {player.name} is still disconnected waiting for him to conect ...")
-            return BotEventsManager().onceMuleJoinedFightContext(player.id, lambda: self.onMemberJoinedFight(player), originator=self)
+            Logger().warning(f"Member {player.name} is still disconnected")
+            return
         PlayedCharacterManager.getInstance(player.login).isFighting = True
-        if not self.fightResumed:
+        startFightMsg = GameFightReadyMessage()
+        startFightMsg.init(True)
+        ConnectionsHandler.getInstance(player.login).send(startFightMsg)
+        notjoined = [
+            m.name for m in BotConfig().fightPartyMembers if not Kernel().fightEntitiesFrame.getEntityInfos(m.id)
+        ]
+        if not notjoined:
+            Logger().info(f"[FightBot] All party members joined fight.")
             startFightMsg = GameFightReadyMessage()
             startFightMsg.init(True)
-            ConnectionsHandler.getInstance(player.login).send(startFightMsg)
-            notjoined = [
-                m.name for m in BotConfig().fightPartyMembers if not Kernel().fightEntitiesFrame.getEntityInfos(m.id)
-            ]
-            if not notjoined:
-                Logger().info(f"[FightBot] All party members joined fight.")
-                startFightMsg = GameFightReadyMessage()
-                startFightMsg.init(True)
-                ConnectionsHandler().send(startFightMsg)
-                self.fightReadySent = True
+            ConnectionsHandler().send(startFightMsg)
+            self.fightReadySent = True
     
     def process(self, msg: Message) -> bool:
         if isinstance(msg, GameFightOptionStateUpdateMessage):
@@ -662,7 +663,7 @@ class BotFightFrame(Frame):
             return True
         return False
 
-    def onServerTextInfo(self, event, msgId, msgType, textId, text):
+    def onServerTextInfo(self, event, msgId, msgType, textId, text, params):
         if textId == 4993: # Wants to use more than the pms available
             self.turnEnd()
         if textId == 4897: # Something is blocking the way

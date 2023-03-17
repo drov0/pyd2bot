@@ -1,10 +1,14 @@
+from enum import Enum
 import threading
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 
-
+class AbstractBehaviorState(Enum):
+    UNKNOWN = 0
+    RUNNING = 1
+    IDLE = 2
 class AbstractBehavior(metaclass=Singleton):
     ALREADY_RUNNING = 666
     
@@ -12,6 +16,7 @@ class AbstractBehavior(metaclass=Singleton):
         self.running = threading.Event()
         self.callback = None
         self.endListeners = []
+        self.state = AbstractBehaviorState.UNKNOWN
         super().__init__()
 
     def start(self, *args, **kwargs) -> None:
@@ -48,6 +53,9 @@ class AbstractBehavior(metaclass=Singleton):
     def isRunning(self):
         return self.running.is_set()
     
+    def getState(self):
+        return AbstractBehaviorState.RUNNING.name if self.isRunning() else AbstractBehaviorState.IDLE.name
+
     def __str__(self) -> str:
         listeners = [str(listener) for listener in self.listeners]
-        return f"{type(self).__name__} ({'Running' if self.isRunning() else 'Stopped'}), Listeners: {listeners}"
+        return f"{type(self).__name__} ({self.getState()}), Listeners: {listeners}"

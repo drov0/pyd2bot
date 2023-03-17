@@ -157,7 +157,7 @@ class BotWorkflowFrame(Frame):
             FarmFights().start()
         return True
 
-    def onServerNotif(self, event, msgId, msgType, textId, text):
+    def onServerNotif(self, event, msgId, msgType, textId, text, params):
         if textId == 5123:
             if not BotConfig().isSeller:
                 KernelEventsManager().send(KernelEvent.RESTART, "Bot stayed inactive for too long, must have a bug")

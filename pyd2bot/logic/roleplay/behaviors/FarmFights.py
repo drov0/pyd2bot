@@ -133,8 +133,11 @@ class FarmFights(AbstractBehavior):
                     if code == AttackMonsters.MAP_CHANGED:
                         return self.attackMonsterGroup()
                     elif code == AttackMonsters.ENTITY_VANISHED:
-                        monster = next(availableMonsterFights)
-                        return AttackMonsters().start(monster, onResp)
+                        try:
+                            monster = next(availableMonsterFights)
+                        except StopIteration:
+                            return self.moveToNextStep()
+                        AttackMonsters().start(monster["id"], onResp)
                     else:
                         return KernelEventsManager().send(KernelEvent.RESTART, f"Error while attacking monsters: {error}")
             monster = next(availableMonsterFights)

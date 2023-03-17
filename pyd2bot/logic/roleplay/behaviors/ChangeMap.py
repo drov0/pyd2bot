@@ -230,7 +230,7 @@ class ChangeMap(AbstractBehavior):
     def handleOnsameCellForMapActionCell(self):
         if self.mapChangeListener:
             self.mapChangeListener.delete()
-        self.currentMPChilds = MapPoint.fromCellId(self.mapChangeCellId).iterChilds()
+        self.currentMPChilds = MapPoint.fromCellId(self.mapChangeCellId).iterChilds(False)
         try:
             x, y = next(self.currentMPChilds)
         except StopIteration:

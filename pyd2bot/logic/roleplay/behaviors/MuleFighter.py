@@ -1,4 +1,6 @@
 
+import re
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
@@ -22,6 +24,7 @@ class MuleFighter(AbstractBehavior):
 
     def __init__(self):
         super().__init__()
+        self.joinFightListener = None
     
     def start(self, leader: Character, callback=None):
         if self.running.is_set():
@@ -32,7 +35,16 @@ class MuleFighter(AbstractBehavior):
         self.running.set()
         self.checkIfLeaderInFight()
         KernelEventsManager().on(KernelEvent.FIGHT_SWORD_SHOWED, self.onFightSword, originator=self)
-
+        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerNotif, originator=self)
+        
+    def onServerNotif(self, event, msgId, msgType, textId, text, params):
+        if textId == 773221:
+            self.joinFightListener.delete()
+            secondsToWait = int(params[0])
+            Logger().info(f"Need to wail {secondsToWait}s before i can join leader fight")
+            Kernel().worker.terminated.wait(secondsToWait)
+            self.joinFight()
+                
     def onFightSword(self, event: Event, infos: FightCommonInformations):
         for team in infos.fightTeams:
             if team.leaderId == self.leader.id:
@@ -48,7 +60,7 @@ class MuleFighter(AbstractBehavior):
         self.sendJoinFightRequest()
     
     def joinFight(self):
-        KernelEventsManager().once(
+        self.joinFightListener = KernelEventsManager().once(
             KernelEvent.FIGHT_STARTED, 
             self.onfight, 
             timeout=self.FIGHT_JOIN_TIMEOUT, 
