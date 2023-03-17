@@ -62,13 +62,13 @@ class WaitForMembersIdle(AbstractBehavior):
             nonIdleMemberNames = [f"- {name} : {status}" for name, status in self.memberStatus.items() if status != "idle"]
             if nonIdleMemberNames:
                 strlist = "\n".join(nonIdleMemberNames)
-                Logger().info(f"[BotPartyFrame] Waiting for members :\n{strlist}.")
+                Logger().info(f"Waiting for members :\n{strlist}.")
                 if Kernel().worker.terminated.wait(2):
                     return
                 self.fetchStatuses()
             else:
                 Logger().debug(f"members status : {self.memberStatus}")
-                Logger().info(f"[BotPartyFrame] All members are idle.")
+                Logger().info(f"All members are idle.")
                 return self.finish(True, None)
     
     def getMuleStatus(self, instanceId):
