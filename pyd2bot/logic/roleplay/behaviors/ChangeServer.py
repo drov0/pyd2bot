@@ -1,11 +1,18 @@
 from typing import TYPE_CHECKING
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import DisconnectionReasonEnum
-from pydofus2.com.ankamagames.dofus.logic.connection.managers.AuthentificationManager import AuthentificationManager
-from pydofus2.com.ankamagames.dofus.network.messages.game.approach.ReloginTokenRequestMessage import ReloginTokenRequestMessage
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import \
+    DisconnectionReasonEnum
+from pydofus2.com.ankamagames.dofus.logic.connection.managers.AuthentificationManager import \
+    AuthentificationManager
+from pydofus2.com.ankamagames.dofus.network.messages.game.approach.ReloginTokenRequestMessage import \
+    ReloginTokenRequestMessage
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
+    BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 if TYPE_CHECKING:
@@ -17,11 +24,7 @@ class ChangeServer(AbstractBehavior):
         super().__init__()
         self.requestTimer = None
 
-    def start(self, newServerId, callback=None) -> bool:
-        if self.running.is_set():
-            return self.finish(False, "[ChangeServer] Already running.")
-        self.running.set()
-        self.callback = callback
+    def run(self, newServerId) -> bool:
         self.newServerId = newServerId
         Logger().info("[ChangeServer] Started.")
         self.reloginTokenListener = KernelEventsManager().once(KernelEvent.RELOGIN_TOKEN, self.onReloginToken, originator=self)

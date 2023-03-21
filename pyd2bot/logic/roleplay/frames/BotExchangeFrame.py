@@ -237,9 +237,11 @@ class BotExchangeFrame(Frame):
         Logger().debug("[ExchangeFrame] Exchange is ready sent.")
 
     def sendAllKamas(self):
-        eomkm = ExchangeObjectMoveKamaMessage()
         kamas_quantity = InventoryManager().inventory.kamas
         Logger().debug(f"[ExchangeFrame] There is {kamas_quantity} in bots inventory.")
+        if kamas_quantity == 0:
+            return BenchmarkTimer(3, self.sendExchangeReady).start()
+        eomkm = ExchangeObjectMoveKamaMessage()
         eomkm.init(kamas_quantity)
         ConnectionsHandler().send(eomkm)
 

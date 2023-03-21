@@ -45,13 +45,6 @@ class FarmFights(AbstractBehavior):
         super().__init__()
         self.state = FarmerStates.IDLE
     
-    def start(self, callback=None):
-        if self.running.is_set():
-            return Logger().error("Already running")
-        self.callback = callback
-        self.running.set()
-        self.run()
-
     def stop(self):
         self.finish(True, None)
 
@@ -137,12 +130,12 @@ class FarmFights(AbstractBehavior):
                             monster = next(availableMonsterFights)
                         except StopIteration:
                             return self.moveToNextStep()
-                        AttackMonsters().start(monster["id"], onResp)
+                        AttackMonsters().start(monster["id"], callback=onResp, parent=self)
                     else:
                         return KernelEventsManager().send(KernelEvent.RESTART, f"Error while attacking monsters: {error}")
             monster = next(availableMonsterFights)
             Logger().info(monster)
-            AttackMonsters().start(monster["id"], onResp)
+            AttackMonsters().start(monster["id"], callback=onResp, parent=self)
         except StopIteration:
             Logger().warning("No monster to farm")
             self.moveToNextStep()
@@ -154,7 +147,7 @@ class FarmFights(AbstractBehavior):
         if BotConfig().followers:
             self.state = FarmerStates.WAITING_FOLLWERS_IDLE
             Logger().info("Waiting for party members to be idle.")
-            return WaitForMembersIdle().start(BotConfig().followers, self.onMembersIdle)
+            return WaitForMembersIdle().start(BotConfig().followers, callback=self.onMembersIdle, parent=self)
         self.doFarm()
 
     def onMembersIdle(self, code, error):
@@ -168,13 +161,13 @@ class FarmFights(AbstractBehavior):
         self.run()
         
     def onBotOutOfFarmPath(self):
-        AutoTrip().start(BotConfig().path.startVertex.mapId, BotConfig().path.startVertex.zoneId, self.onFarmPathMapReached)
+        AutoTrip().start(BotConfig().path.startVertex.mapId, BotConfig().path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self)
         self.askFollowersMoveToVertex(BotConfig().path.startVertex)
 
     def onMembersShowed(self, code, errorInfo):
         if errorInfo:
-            if code == WaitForMembersToShow.MEMBER_LEFT_PARTY:
-                Logger().warning(f"Member {errorInfo} left party while waiting for them to show up")
+            if code == WaitForMembersToShow.MEMBER_DISCONNECTED:
+                Logger().warning(f"Member {errorInfo} disconnected while waiting for them to show up")
             else:
                 return KernelEventsManager().send(KernelEvent.RESTART, f"Error while waiting for members to show up: {errorInfo}")
         self.run()
@@ -191,7 +184,7 @@ class FarmFights(AbstractBehavior):
             Logger().warning("Followers are not all on same map")
             self.state = FarmerStates.WAITING_PARTY_MEMBERS_SHOW
             self.askFollowersMoveToVertex(BotConfig().path.currentVertex)
-            return WaitForMembersToShow().start(BotConfig().followers, self.onMembersShowed)
+            return WaitForMembersToShow().start(BotConfig().followers, callback=self.onMembersShowed, parent=self)
         self.attackMonsterGroup()
  
     def askMembersFollow(self, transition: TransitionTypeEnum, dstMapId):

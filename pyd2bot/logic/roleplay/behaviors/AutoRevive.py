@@ -29,17 +29,13 @@ class AutoRevive(AbstractBehavior):
         super().__init__()
         self.requestTimer = None
 
-    def start(self, callback) -> bool:
-        if self.running.is_set():
-            Logger().error("[PhenixAutorevive] Already running.")
-        self.running.set()
-        self.callback = callback
+    def run(self) -> bool:
         Logger().info("[PhenixAutorevive] Started.")
         if not PlayedCharacterManager().currentMap:
-            return KernelEventsManager().onceMapProcessed(self.start, [callback], originator=self)
+            return KernelEventsManager().onceMapProcessed(self.start, [self.callback], originator=self)
         KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_PHANTOM:
-            AutoTrip().start(Localizer.phenixMapId(), 1, self.onPhenixMapReached)
+            AutoTrip().start(Localizer.phenixMapId(), 1, callback=self.onPhenixMapReached, parent=self)
         elif PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
             KernelEventsManager().onceMapProcessed(self.onCimetaryMapLoaded, originator=self)
             self.releaseSoulRequest()
@@ -57,7 +53,7 @@ class AutoRevive(AbstractBehavior):
         if self.requestTimer:
             self.requestTimer.cancel()
         KernelEventsManager().remove_listener(KernelEvent.MAPPROCESSED, self.onCimetaryMapLoaded)
-        AutoTrip().start(Localizer.phenixMapId(), 1, self.onPhenixMapReached)
+        AutoTrip().start(Localizer.phenixMapId(), 1, callback=self.onPhenixMapReached, parent=self)
 
     def onPhenixMapReached(self, status, error):
         if error:
@@ -67,7 +63,7 @@ class AutoRevive(AbstractBehavior):
             reviveSkill = interactives.getReviveIe()
             def onPhenixSkillUsed(status, error):
                 Logger().info("Phenix revive skill used")
-            UseSkill().start(reviveSkill, onPhenixSkillUsed, waitForSkillUsed=False)
+            UseSkill().start(reviveSkill, waitForSkillUsed=False, callback=onPhenixSkillUsed, parent=self)
         else:
             KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", self.onPhenixMapReached, originator=self)
 

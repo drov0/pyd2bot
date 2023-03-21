@@ -2,11 +2,16 @@
  
  
 from hashlib import md5
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.network.messages.game.character.deletion.CharacterDeletionPrepareRequestMessage import CharacterDeletionPrepareRequestMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.character.deletion.CharacterDeletionRequestMessage import CharacterDeletionRequestMessage
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.network.messages.game.character.deletion.CharacterDeletionPrepareRequestMessage import \
+    CharacterDeletionPrepareRequestMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.character.deletion.CharacterDeletionRequestMessage import \
+    CharacterDeletionRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
@@ -15,11 +20,7 @@ class DeleteCharacter(AbstractBehavior):
     def __init__(self) -> None:
         super().__init__()
 
-    def start(self, characterId, callback) -> bool:
-        if self.running.is_set():
-            return self.finish(False, "[DeleteCharacter] Already running.")
-        self.running.set()
-        self.callback = callback
+    def run(self, characterId) -> bool:
         self.characterId = characterId
         Logger().info("[CreateNewCharacter] Started.")
         self.sendPrepareDeletionRequest(characterId)

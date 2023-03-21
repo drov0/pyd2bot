@@ -1,18 +1,15 @@
 import json
 import os
 from time import sleep
-from pyd2bot.Pyd2Bot import Pyd2Bot
-from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+
 from pyd2bot.logic.managers.BotConfig import CharacterRoleEnum
-from pyd2bot.thriftServer.pyd2botService.ttypes import (
-    Character,
-    Path,
-    PathType,
-    Session,
-    SessionType,
-    UnloadType,
-    Vertex,
-)
+from pyd2bot.Pyd2Bot import Pyd2Bot
+from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Path,
+                                                        PathType, Session,
+                                                        SessionType,
+                                                        UnloadType, Vertex)
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+
 
 class SessionManager:
     
@@ -103,6 +100,5 @@ class SessionManager:
             Logger().info(f"Running session {name} ..")
             self.startSession(session)
             Logger().info(f"Session {name} started")
-            sleep(10)
         for login, bot in self._running.items():
             bot.join()

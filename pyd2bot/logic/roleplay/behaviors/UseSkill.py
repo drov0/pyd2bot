@@ -1,21 +1,21 @@
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
-    InteractiveElementData,
-    RoleplayInteractivesFrame,
-)
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayWorldFrame import RoleplayWorldFrame
-from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import (
-    InteractiveUseRequestMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.skill.InteractiveUseWithParamRequestMessage import (
-    InteractiveUseWithParamRequestMessage,
-)
+    InteractiveElementData, RoleplayInteractivesFrame)
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayWorldFrame import \
+    RoleplayWorldFrame
+from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
+    InteractiveUseRequestMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.skill.InteractiveUseWithParamRequestMessage import \
+    InteractiveUseWithParamRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
@@ -37,7 +37,7 @@ class UseSkill(AbstractBehavior):
     def worldFrame(self) -> "RoleplayWorldFrame":
         return Kernel().worker.getFrameByName("RoleplayWorldFrame")
 
-    def start(
+    def run(
         self,
         ie: InteractiveElementData,
         callback,
@@ -47,13 +47,9 @@ class UseSkill(AbstractBehavior):
         elementId=None,
         skilluid=None,
     ):
-        if self.running.is_set():
-            return callback(False, f"Already using skill {self.elementId} at {self.elementPosition.cellId}")
         Logger().info(f"Using skill ")
-        self.running.set()
         if ie is None:
             if elementId:
-
                 def onIeFound(ie: InteractiveElementData):
                     self.targetIe = ie
                     self.skillUID = ie.skillUID
@@ -65,7 +61,6 @@ class UseSkill(AbstractBehavior):
                     self.exactDistination = exactDistination
                     self.waitForSkillUsed = waitForSkillUsed
                     self.useSkill()
-
                 return UseSkill.getInteractiveElement(elementId, skilluid, onIeFound)
             else:
                 return self.finish(False, "No interactive element provided")
@@ -98,7 +93,7 @@ class UseSkill(AbstractBehavior):
                 KernelEvent.INTERACTIVE_ELEMENT_BEING_USED, self.onUsingInteractive, originator=self
             )
             KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_USED, self.onUsedInteractive, originator=self)
-        MapMove().start(cell, onmoved, self.exactDistination)
+        MapMove().start(cell, self.exactDistination, callback=onmoved, parent=self)
 
     def ontimeout(self, listener: Listener):
         self.timoutsCount += 1

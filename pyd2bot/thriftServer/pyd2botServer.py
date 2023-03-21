@@ -249,12 +249,12 @@ class Pyd2botServer:
                 return client.shutdown()
             else:
                 Logger().info("character created successfully")
-            GetOutOfAnkarnam().start(onGetOutOfIncarnamEnded)
+            GetOutOfAnkarnam().start(callback=onGetOutOfIncarnamEnded)
 
         def onCharactersList(event, return_value):
             Logger().info("characters list received")
             sleep(3)
-            CreateNewCharacter().start(10, onNewCharacterEnded)
+            CreateNewCharacter().start(10, callback=onNewCharacterEnded)
 
         KernelEventsManager.getInstance("startup").once(KernelEvent.CHARACTERS_LIST, onCharactersList)
         Logger().info("ended in peace")

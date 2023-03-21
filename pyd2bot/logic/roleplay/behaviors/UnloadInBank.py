@@ -1,19 +1,26 @@
 from enum import Enum
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.NpcDialog import NpcDialog
 from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager, KernelEvent
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.network.messages.game.dialog.LeaveDialogRequestMessage import LeaveDialogRequestMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeLeaveMessage import ExchangeLeaveMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectTransfertAllFromInvMessage import ExchangeObjectTransfertAllFromInvMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeStartedWithPodsMessage import ExchangeStartedWithPodsMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.dialog.LeaveDialogRequestMessage import \
+    LeaveDialogRequestMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeLeaveMessage import \
+    ExchangeLeaveMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeObjectTransfertAllFromInvMessage import \
+    ExchangeObjectTransfertAllFromInvMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.inventory.exchanges.ExchangeStartedWithPodsMessage import \
+    ExchangeStartedWithPodsMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+
 
 class BankUnloadStates(Enum):
     WAITING_FOR_MAP = -1
@@ -34,12 +41,8 @@ class UnloadInBank(AbstractBehavior):
         self.return_to_start = None
         self.callback = None
 
-    def start(self, callback=None, return_to_start=True, bankInfos=None) -> bool:
-        if self.running.is_set():
-            return self.callback(False, "UnloadInBank already running")
-        self.running.set()
+    def run(self, return_to_start=True, bankInfos=None) -> bool:
         self.return_to_start = return_to_start
-        self.callback = callback
         if bankInfos is None:
             self.infos = Localizer.getBankInfos()
         else:
@@ -55,7 +58,6 @@ class UnloadInBank(AbstractBehavior):
             [self.infos.openBankReplyId], 
             self.onBankManDialogEnded
         )
-        return True
     
     def onBankManDialogEnded(self, status, error):
         if error:
@@ -87,7 +89,7 @@ class UnloadInBank(AbstractBehavior):
         self.state = BankUnloadStates.IDLE
         if self.return_to_start:
             Logger().info(f"[UnloadInBank] Returning to start point")
-            AutoTrip().start(self._startMapId, self._startRpZone, self.finish)
+            AutoTrip().start(self._startMapId, self._startRpZone, callback=self.finish, parent=self)
         else:
             self.finish(True, None)
 

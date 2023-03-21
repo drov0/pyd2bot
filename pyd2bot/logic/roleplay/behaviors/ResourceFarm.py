@@ -61,14 +61,6 @@ class FarmPath(AbstractBehavior):
     @property
     def farmPath(self):
         return BotConfig().path
-    
-    def finish(self, status, error) -> bool:
-        if BotEventsManager().has_listeners(BotEventsManager.MEMBERS_READY):
-            BotEventsManager().remove_listener(BotEventsManager.MEMBERS_READY, self._start)
-        if KernelEventsManager().has_listeners(KernelEvent.MAPPROCESSED):
-            KernelEventsManager().remove_listener(KernelEvent.MAPPROCESSED, self._start)
-        super().finish(status, error)
-        return True
 
     def stop(self):
         self.finish(True, None)
@@ -165,7 +157,7 @@ class FarmPath(AbstractBehavior):
                         return self.onPartyNotComplete()
                     if error:
                         return KernelEventsManager().send(KernelEvent.RESTART, f"[FarmPath] Wait members idle failed for reason : {error}")
-                WaitForMembersIdle().start(Kernel().partyFrame.followers, onMembersIdleResult)
+                WaitForMembersIdle().start(Kernel().partyFrame.followers, callback=onMembersIdleResult, parent=self)
         self.doFarm()
 
     def onPartyNotComplete(self):

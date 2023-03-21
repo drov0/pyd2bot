@@ -43,21 +43,16 @@ class GiveItems(AbstractBehavior):
     def __init__(self):
         super().__init__()
 
-    def start(self, sellerInfos: Character, callback, return_to_start=True) -> bool:
-        if self.running.is_set():
-            return self.finish(False, f"Already running with guest {sellerInfos.login}")
+    def run(self, sellerInfos: Character, return_to_start=True) -> bool:
         Logger().info("[GiveItems] started")
-        self.running.set()
         self.seller = sellerInfos
         self.return_to_start = return_to_start
-        self.callback = callback        
         self._startMapId = PlayedCharacterManager().currentMap.mapId
         self._startRpZone = PlayedCharacterManager().currentZoneRp
         self.bankInfos = Localizer.getBankInfos()
         self.state = GiveItelsStates.IDLE
         self.lastSellerState = "unknown"
-        self._start()
-        return True
+        self._run()
 
     @property
     def entitiesFrame(self) -> "RoleplayEntitiesFrame":
@@ -67,10 +62,10 @@ class GiveItems(AbstractBehavior):
     def rpcFrame(self) -> "BotRPCFrame":
         return Kernel().worker.getFrameByName("BotRPCFrame")
 
-    def _start(self):
+    def _run(self):
         if PlayedCharacterManager().currentMap is None:
             Logger().warning(f"[GiveItems] Player map not processed yet")
-            return KernelEventsManager().onceMapProcessed(self._start, originator=self)
+            return KernelEventsManager().onceMapProcessed(self._run, originator=self)
         Logger().debug(f"[GiveItems] Asked for seller status ...")
         self.checkGuestStatus()
         
@@ -90,7 +85,7 @@ class GiveItems(AbstractBehavior):
             return "loadingMap"
         elif not Kernel.getInstance(instanceId).entitiesFrame.mcidm_processed:
             return "processingMapData"
-        for behavior in AbstractBehavior.getAllChilds(instanceId):
+        for behavior in AbstractBehavior.getSubs(instanceId):
             return str(behavior)
         return "idle"
 
@@ -103,7 +98,7 @@ class GiveItems(AbstractBehavior):
                 return Logger().warning("Worker finished while fetching player status returning")
             self.lastSellerState = self.getGuestStatus(self.seller.login)
         self.state = GiveItelsStates.WALKING_TO_BANK
-        AutoTrip().start(self.bankInfos.npcMapId, 1, self.onTripEnded)
+        AutoTrip().start(self.bankInfos.npcMapId, 1, callback=self.onTripEnded, parent=self)
 
     def onTripEnded(self, errorId, error):
         if error:
@@ -142,7 +137,7 @@ class GiveItems(AbstractBehavior):
             return self.finish(True, None)
         else:
             self.state = GiveItelsStates.RETURNING_TO_START_POINT
-            AutoTrip().start(self._startMapId, self._startRpZone, self.onTripEnded)
+            AutoTrip().start(self._startMapId, self._startRpZone, callback=self.onTripEnded, parent=self)
     
     def getState(self):
         state = self.state.name 

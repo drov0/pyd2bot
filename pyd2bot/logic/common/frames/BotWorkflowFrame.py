@@ -148,7 +148,7 @@ class BotWorkflowFrame(Frame):
             rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
             if not rpeframe or not rpeframe.mcidm_processed:
                 return KernelEventsManager().onceMapProcessed(AutoRevive().start, [self.onPhenixAutoReviveEnded], originator=self)
-            AutoRevive().start(self.onPhenixAutoReviveEnded)
+            AutoRevive().start(callback=self.onPhenixAutoReviveEnded, parent=self)
         
     def onPhenixAutoReviveEnded(self, status, error):
         if error:
@@ -186,7 +186,7 @@ class BotWorkflowFrame(Frame):
             if callback:
                 callback()
         if BotConfig().unloadInBank:
-            UnloadInBank().start(onInventoryUnloaded)
+            UnloadInBank().start(callback=onInventoryUnloaded)
         elif BotConfig().unloadInSeller:
             Logger().info("Aquiring seller lock")
             if not BotConfig.SELLER_VACANT.is_set():                
@@ -204,4 +204,4 @@ class BotWorkflowFrame(Frame):
                 FarmFights().stop()
             if MuleFighter().isRunning():
                 MuleFighter().stop()
-            GiveItems().start(BotConfig().seller, onInventoryUnloaded)
+            GiveItems().start(BotConfig().seller, callback=onInventoryUnloaded)

@@ -115,14 +115,8 @@ class MapMove(AbstractBehavior):
         self.countMoveFail = 0
         super().__init__()
     
-    def start(self, destCell, callback=None, exactDistination=True) -> None:
-        if self.running.is_set():
-            if callback:
-                callback(False, "[MapMove] Already running")
-            return
+    def run(self, destCell, exactDistination=True) -> None:
         Logger().info(f"[MapMove] from {PlayedCharacterManager().currentCellId} to cell {destCell} started")
-        self.running.set()
-        self.callback = callback
         self.exactDestination = exactDistination
         if isinstance(destCell, int):
             self.dstCell = MapPoint.fromCellId(destCell)
@@ -159,6 +153,10 @@ class MapMove(AbstractBehavior):
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
             return self.fail(MovementFailError.PLAYER_IS_DEAD)
         self.movePath = Pathfinding().findPath(playerEntity.position, self.dstCell)
+        if self.movePath is None:
+            return self.fail(MovementFailError.NO_PATH_FOUND)
+        if len(self.movePath) == 0:
+            return self.finish(True, None)
         if self.exactDestination and self.movePath.end.cellId != self.dstCell.cellId:
             return self.fail(MovementFailError.CANT_REACH_DEST_CELL)
         self.requestMovement()

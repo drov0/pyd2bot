@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
@@ -10,6 +11,7 @@ from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.GameRole
     GameRolePlayHumanoidInformations
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
+
 class WaitForMembersToShow(AbstractBehavior):
     MEMBER_LEFT_PARTY = 991
     MEMBER_DISCONNECTED = 997
@@ -17,11 +19,7 @@ class WaitForMembersToShow(AbstractBehavior):
     def __init__(self) -> None:
         super().__init__()
 
-    def start(self, members: list[Character], callback) -> bool:
-        if self.running.is_set():
-            return self.finish(self.ALREADY_RUNNING, "Already running.")
-        self.running.set()
-        self.callback = callback
+    def run(self, members: list[Character]) -> bool:
         self.members = members
         Logger().debug("Waiting for members to show up.")
         BotEventsManager().on(BotEventsManager.PLAYER_DISCONNECTED, self.onMemberDisconnected, originator=self)
@@ -46,4 +44,4 @@ class WaitForMembersToShow(AbstractBehavior):
         for member in self.members:
             if member.login == login:
                 Logger().warning(f"Member {login} disconnected while waiting for it to show up")
-                self.finish(self.MEMBER_DISCONNECTED, login)
+                return self.finish(self.MEMBER_DISCONNECTED, login)

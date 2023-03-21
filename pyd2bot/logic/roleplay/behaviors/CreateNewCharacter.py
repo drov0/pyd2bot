@@ -1,21 +1,32 @@
 
 
+from enum import Enum
 from time import sleep
 from typing import TYPE_CHECKING
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
-from pydofus2.com.ankamagames.dofus.network.enums.CharacterCreationResultEnum import CharacterCreationResultEnum
-from pydofus2.com.ankamagames.dofus.network.messages.game.character.choice.CharacterFirstSelectionMessage import CharacterFirstSelectionMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.character.creation.CharacterCreationRequestMessage import CharacterCreationRequestMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.character.creation.CharacterNameSuggestionRequestMessage import CharacterNameSuggestionRequestMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.quest.GuidedModeQuitRequestMessage import GuidedModeQuitRequestMessage
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import \
+    PlayerManager
+from pydofus2.com.ankamagames.dofus.network.enums.CharacterCreationResultEnum import \
+    CharacterCreationResultEnum
+from pydofus2.com.ankamagames.dofus.network.messages.game.character.choice.CharacterFirstSelectionMessage import \
+    CharacterFirstSelectionMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.character.creation.CharacterCreationRequestMessage import \
+    CharacterCreationRequestMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.character.creation.CharacterNameSuggestionRequestMessage import \
+    CharacterNameSuggestionRequestMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.quest.GuidedModeQuitRequestMessage import \
+    GuidedModeQuitRequestMessage
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
+    BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.data.I18n import I18n
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from enum import Enum
+
 if TYPE_CHECKING:
     pass
 
@@ -33,13 +44,10 @@ class CreateNewCharacter(AbstractBehavior):
         super().__init__()
         self.requestTimer = None
 
-    def start(self, breedId, callback) -> bool:
-        if self.running.is_set():
-            return self.finish(False, "[CreateNewCharacter] Already running.")
-        self.running.set()
-        self.callback = callback
+    def run(self, breedId) -> bool:
         self.name = None
         self.breedId = breedId
+        self.id = None
         self.sate = None
         self.nbrFails = 0
         self.charNameSuggListener = None
@@ -104,13 +112,14 @@ class CreateNewCharacter(AbstractBehavior):
             def onSkillUsed(status, error):
                 if error:
                    return self.finish(status, error)
-                KernelEventsManager().onceMapProcessed(lambda:self.finish(True, None), mapId=152046597, originator=self)
-            UseSkill().start(None, onSkillUsed, elementId=489318, skilluid=148931090, waitForSkillUsed=True)
+                KernelEventsManager().onceMapProcessed(lambda:self.finish(True, None, result={"name": self.name, "id": self.id}), mapId=152046597, originator=self)
+            UseSkill().start(None, elementId=489318, skilluid=148931090, waitForSkillUsed=True, callback=onSkillUsed, parent=self)
         
     def onCharacterList(self, event, return_value):
         for ch in PlayerManager().charactersList:
             if ch.name == self.name: 
                 KernelEventsManager().onceMapProcessed(self.onMapProcessed, originator=self)
+                self.id = ch.id
                 msg = CharacterFirstSelectionMessage()
                 msg.init(True, ch.id)
                 ConnectionsHandler().send(msg)

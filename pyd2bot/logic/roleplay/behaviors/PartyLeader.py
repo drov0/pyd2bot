@@ -9,6 +9,7 @@ from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.party.Pa
     PartyMemberInformations
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
+
 class PartyLeader(AbstractBehavior):
     ASK_INVITE_TIMOUT = 20
     CONFIRME_JOIN_TIMEOUT = 20
@@ -31,11 +32,7 @@ class PartyLeader(AbstractBehavior):
                 return False
         return True
     
-    def start(self, callback=None):
-        if self.isRunning():
-          return callback(self.ALREADY_RUNNING, "Already running")
-        self.running.set()
-        self.callback = callback
+    def run(self):
         self.wantedDeleteParty = False
         self.expectingMemberLeave = set()
         self.partyJoinListeners = dict[str, Listener]()

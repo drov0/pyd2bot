@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
@@ -31,11 +32,7 @@ class WaitForMembersIdle(AbstractBehavior):
         self.memberStatus = dict[str, str]()
         self.members = list[Character]()
 
-    def start(self, members: list[Character], callback) -> bool:
-        if self.running.is_set():
-            return self.finish(self.ALREADY_RUNNING, "Already running")
-        self.running.set()
-        self.callback = callback
+    def run(self, members: list[Character]) -> bool:
         self.members = members
         Logger().debug("Waiting for party members Idle.")
         self.fetchStatuses()
@@ -43,31 +40,15 @@ class WaitForMembersIdle(AbstractBehavior):
     def fetchStatuses(self):
         if not self.isRunning():
             return
-        self.memberStatus = {follower.login: None for follower in self.members}
-        for member in self.members:
-            if not self.isRunning():
-                return
-            if not Kernel().rpcFrame:
-                if Kernel().worker.terminated.is_set():
-                    return Logger().warning("Worker terminated while fetching player status")
-                return KernelEventsManager().onceFramePushed("BotRPCFrame", self.fetchStatuses, originator=self)
-            status = self.getMuleStatus(member.login)
-            self.memberStatus[member.login] = status
-        self.checkMembersIdle()
-
-    def checkMembersIdle(self):
-        if not self.isRunning():
-            return
-        if all(status is not None for status in self.memberStatus.values()):
-            nonIdleMemberNames = [f"- {name} : {status}" for name, status in self.memberStatus.items() if status != "idle"]
-            if nonIdleMemberNames:
-                strlist = "\n".join(nonIdleMemberNames)
-                Logger().info(f"Waiting for members :\n{strlist}.")
-                if Kernel().worker.terminated.wait(2):
-                    return
-                self.fetchStatuses()
+        while not Kernel().worker.terminated.is_set():
+            self.memberStatus = {member.login: self.getMuleStatus(member.login) for member in self.members}
+            Logger().info(json.dumps(self.memberStatus, indent=2))
+            if any(status != "idle" for status in self.memberStatus.values()):
+                if any(status == "disconnected" for status in self.memberStatus.values()):
+                    if Kernel().worker.terminated.wait(20): return
+                else:
+                    if Kernel().worker.terminated.wait(2): return
             else:
-                Logger().debug(f"members status : {self.memberStatus}")
                 Logger().info(f"All members are idle.")
                 return self.finish(True, None)
     
@@ -85,7 +66,7 @@ class WaitForMembersIdle(AbstractBehavior):
             return "loadingMap"
         elif not Kernel.getInstance(instanceId).entitiesFrame.mcidm_processed:
             return "processingMapData"
-        for behavior in AbstractBehavior.getAllChilds(instanceId):
+        for behavior in AbstractBehavior.getSubs(instanceId):
             if type(behavior).__name__ != "MuleFighter" and behavior.isRunning():
-                return behavior.__str__()
+                return str(behavior)
         return "idle"

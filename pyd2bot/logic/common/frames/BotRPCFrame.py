@@ -9,6 +9,7 @@ from pyd2bot.logic.common.rpcMessages.RCPResponseMessage import \
     RPCResponseMessage
 from pyd2bot.logic.common.rpcMessages.RPCMessage import RPCMessage
 from pyd2bot.logic.managers.BotConfig import BotConfig
+from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
 from pyd2bot.logic.roleplay.behaviors.CollectItems import CollectItems
@@ -18,6 +19,7 @@ from pyd2bot.logic.roleplay.messages.MoveToVertexMessage import \
     MoveToVertexMessage
 from pyd2bot.logic.roleplay.messages.SellerVacantMessage import \
     SellerVacantMessage
+from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -95,19 +97,11 @@ class BotRPCFrame(Frame):
                     return True
                 rsp = RPCResponseMessage(msg, data=True)
                 self.send(rsp)
-                CollectItems().start(msg.bankInfos, msg.guestInfos, None, onresponse)
+                CollectItems().start(msg.bankInfos, msg.guestInfos, None, callback=onresponse)
                 return True
         
         elif isinstance(msg, MoveToVertexMessage):
-            Logger().info(f"Move to vertex {msg.vertex} received")
-            if (
-                PlayedCharacterManager().currVertex is not None
-                and PlayedCharacterManager().currVertex.UID != msg.vertex.UID
-            ):
-                def onPosReached(code, error):
-                    if error:
-                        return KernelEventsManager().send(KernelEvent.RESTART, f"Error while following leader: {error}")
-                AutoTrip().start(msg.vertex.mapId, msg.vertex.zoneId, onPosReached)
+            BotEventsManager().send(BotEventsManager.MOVE_TO_VERTEX, msg.vertex)
             return True
         
         elif isinstance(msg, FollowTransitionMessage):
@@ -120,11 +114,12 @@ class BotRPCFrame(Frame):
                 def onresp(errType, error):
                     if error:
                         if errType == MovementFailError.CANT_REACH_DEST_CELL or errType == MovementFailError.MAPCHANGE_TIMEOUT:
-                            AutoTrip().start(msg.dstMapId, 1, onresp)
+                            AutoTrip().start(msg.dstMapId, 1, callback=onresp)
                         else:
                             KernelEventsManager().send(KernelEvent.RESTART, f"Follow transition failed for reason : {error}")
                 ChangeMap().start(transition=msg.transition, dstMapId=msg.dstMapId, callback=onresp)
             return True
+        
         return False
 
     def onTimeout(self, msg: RPCMessage, timeout):

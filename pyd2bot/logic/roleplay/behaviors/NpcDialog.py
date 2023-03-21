@@ -1,11 +1,17 @@
 from typing import TYPE_CHECKING
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcDialogReplyMessage import NpcDialogReplyMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcGenericActionRequestMessage import NpcGenericActionRequestMessage
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcDialogReplyMessage import \
+    NpcDialogReplyMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcGenericActionRequestMessage import \
+    NpcGenericActionRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+
 if TYPE_CHECKING:
     pass
 
@@ -14,11 +20,7 @@ class NpcDialog(AbstractBehavior):
     def __init__(self) -> None:
         super().__init__()
 
-    def start(self, npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies, callback) -> bool:
-        if self.running.is_set():
-            return self.finish(False, "[NpcDialog] Already running.")
-        self.running.set()
-        self.callback = callback
+    def run(self, npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies, callback) -> bool:
         self.npcMapId = npcMapId
         self.npcId = npcId
         self.npcOpenDialogId = npcOpenDialogId
@@ -26,7 +28,7 @@ class NpcDialog(AbstractBehavior):
         self.currentNpcQuestionReplyIdx = 0
         self.dialogLeftListener = None
         Logger().info("[NpcDialog] Started.")
-        AutoTrip().start(self.npcMapId, 1, self.onNPCMapReached)
+        AutoTrip().start(self.npcMapId, 1, callback=self.onNPCMapReached, parent=self)
 
     def onNpcQuestion(self, event, messageId, dialogParams, visibleReplies):
         if self.currentNpcQuestionReplyIdx == len(self.npcQuestionsReplies):

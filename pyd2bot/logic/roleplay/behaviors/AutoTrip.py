@@ -1,5 +1,6 @@
 from enum import Enum
 from time import perf_counter
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
@@ -16,6 +17,7 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph i
     WorldGraph
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
+
 class AutoTripState(Enum):
     IDLE = 0
     CALCULATING_PATH = 1
@@ -26,16 +28,14 @@ class AutoTrip(AbstractBehavior):
     def __init__(self):
         super().__init__()
         self.path = None
-        self.state = AutoTripState.IDLE
+        self.state = AutoTripState.IDLE        
+        self.dstMapId = None
+        self.dstRpZone = None
         
-    def start(self, dstMapId, dstZoneId, callback):
-        if self.running.is_set():
-            return callback(False, "Autotrip already running")
+    def run(self, dstMapId, dstZoneId):
         self.dstMapId = dstMapId
         self.dstRpZone = dstZoneId
-        self.callback = callback
         self.path: list[Edge] = None
-        self.running.set()
         AStar().resetForbinedEdges()
         self.walkToNextStep()
 

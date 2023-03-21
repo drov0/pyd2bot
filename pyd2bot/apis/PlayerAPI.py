@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.MuleFighter import MuleFighter
-
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -10,13 +9,14 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterMa
     PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 
+
 class PlayerAPI(metaclass=Singleton):
     def __init__(self):
         pass
 
 
     def status(self, instanceId) -> str:
-        for behavior in AbstractBehavior.getAllChilds(instanceId):
+        for behavior in AbstractBehavior.getSubs(instanceId):
             if type(behavior) != MuleFighter and behavior.isRunning():
                 return f"Running:{type(behavior).__name__}"
         if PlayedCharacterManager.getInstance(instanceId).isInFight:

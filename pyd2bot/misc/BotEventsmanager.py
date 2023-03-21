@@ -24,6 +24,7 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
     BOT_CONNECTED = 4
     PLAYER_DISCONNECTED = 5
     SELLER_AVAILABLE = 6
+    MOVE_TO_VERTEX = 7
 
     def __init__(self):
         super().__init__()

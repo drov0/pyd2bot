@@ -1,19 +1,21 @@
-from pyd2bot.logic.roleplay.behaviors.RequestMapData import RequestMapData
-from pydofus2.com.ankamagames.dofus.network.types.game.context.GameContextActorInformations import (
-    GameContextActorInformations,
-)
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event, Listener
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
+from pyd2bot.logic.roleplay.behaviors.RequestMapData import RequestMapData
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
+                                                                     Listener)
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.fight.GameRolePlayAttackMonsterRequestMessage import (
-    GameRolePlayAttackMonsterRequestMessage,
-)
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.fight.GameRolePlayAttackMonsterRequestMessage import \
+    GameRolePlayAttackMonsterRequestMessage
+from pydofus2.com.ankamagames.dofus.network.types.game.context.GameContextActorInformations import \
+    GameContextActorInformations
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
-from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import MovementPath
+from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import \
+    MovementPath
 
 """ 
 A map is a grid, it contains special cells (MAP_ACTION cells), that allows to go to adjacent maps.
@@ -56,12 +58,8 @@ class AttackMonsters(AbstractBehavior):
             return None
         return self.entityInfo.disposition.cellId
 
-    def start(self, entityId, callback):
-        if self.running.is_set():
-            return callback(False, f"Already attacking monsters {entityId}!")
-        self.running.set()
+    def run(self, entityId):
         self.entityId = entityId
-        self.callback = callback
         cellId = self.getEntityCellId()
         if not cellId:
             return self.finish(self.ENTITY_VANISHED, "Entity no more on the map")
@@ -79,7 +77,7 @@ class AttackMonsters(AbstractBehavior):
         if not cellId:
             return self.finish(self.ENTITY_VANISHED, "Entity not more on the map")
         Logger().info(f"[AttackMonsters] Moving to monster {self.entityId} cell {cellId}")
-        MapMove().start(MapPoint.fromCellId(cellId), self.onEntityReached)
+        MapMove().start(MapPoint.fromCellId(cellId), callback=self.onEntityReached, parent=self)
 
     def onFightWithEntityTaken(self):
         if MapMove().isRunning():
@@ -120,7 +118,7 @@ class AttackMonsters(AbstractBehavior):
         
     def restart(self):
         KernelEventsManager().clearAllByOrigin(self)
-        RequestMapData().start(lambda code, err: self._start())
+        RequestMapData().start(callback=lambda code, err: self._start(), parent=self)
 
     def requestAttackMonsters(self) -> None:
         grpamrmsg = GameRolePlayAttackMonsterRequestMessage()

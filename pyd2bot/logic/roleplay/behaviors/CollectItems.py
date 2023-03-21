@@ -1,8 +1,9 @@
 from enum import Enum
+
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank    
+from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank
 from pyd2bot.logic.roleplay.frames.BotExchangeFrame import (
     BotExchangeFrame, ExchangeDirectionEnum)
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
@@ -11,6 +12,7 @@ from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+
 
 class CollecteState(Enum):
     WATING_MAP = 0
@@ -32,18 +34,14 @@ class CollectItems(AbstractBehavior):
         self.guestDisconnectedListener: Listener = None
         super().__init__()
 
-    def start(self, bankInfos: BankInfos, guest: Character, items: list = None, callback=None) -> bool:
-        if self.running.is_set():
-            return self.finish(AbstractBehavior.ALREADY_RUNNING, f"Can't start collect with {guest.login} because Already running with guest {self.guest.login}")
-        self.running.set()
+    def run(self, bankInfos: BankInfos, guest: Character, items: list = None) -> bool:
         Logger().info(f"[CollectFromGuest] collect from {guest.login} started")
         self.guest = guest
         self.bankInfos = bankInfos
         self.items = items
-        self.callback = callback
         self.state = CollecteState.GOING_TO_BANK
         self.guestDisconnectedListener = BotEventsManager().onceBotDisconnected(self.guest.login, self.onGuestDisconnected, originator=self)
-        AutoTrip().start(self.bankInfos.npcMapId, 1, self.onTripEnded)
+        AutoTrip().start(self.bankInfos.npcMapId, 1, callback=self.onTripEnded, parent=self)
 
     def onGuestDisconnected(self):
         Logger().error("[CollectFromGuest] Guest disconnected!")
@@ -64,11 +62,11 @@ class CollectItems(AbstractBehavior):
         if error:
             if code == 516493: # Inventory full
                 Logger().error(error)
-                UnloadInBank().start(self.finish, True, self.bankInfos)
+                UnloadInBank().start(True, self.bankInfos, callback=self.finish, parent=self)
                 self.state = CollecteState.UNLOADING_IN_BANK
                 return
             return self.finish(code, error)
         Logger().info("[CollectFromGuest] Exchange with guest ended successfully.")
-        UnloadInBank().start(self.finish, True, self.bankInfos)
+        UnloadInBank().start(True, self.bankInfos, callback=self.finish, parent=self)
         self.state = CollecteState.UNLOADING_IN_BANK
 
