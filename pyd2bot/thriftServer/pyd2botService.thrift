@@ -1,19 +1,52 @@
-
 typedef i32 int
 struct Vertex {
     1: double mapId,
     2: int zoneId,
     3: optional bool onlyDirections
 }
+enum SessionStatus {
+    CRASHED = 0
+}
+struct RunSummary {
+    1: string login,
+    2: i64 startTime,
+    3: i64 totalRunTime,
+    4: string sessionId,
+    5: optional string leaderLogin,
+    6: i32 numberOfRestarts,
+    7: string status,
+    8: optional string statusReason,
+    9: required int earnedKamas,
+    10: required int nbrFightsDone
+}
+struct CharacterDetails {
+    1: required int level,
+    2: required int hp,
+    3: required Vertex vertex,
+    4: required i64 kamas,
+    5: required string areaName,
+    6: required string subAreaName,
+    7: required int cellId,
+    8: required int mapX,
+    9: required int mapY,
+    10: required int inventoryWeight,
+    11: required int shopWeight,
+    12: required int inventoryWeightMax,
+}
 struct Server {
     1: int id,
-    2: int status,
-    3: int completion,
-    4: int charactersCount,
-    5: int charactersSlots,
-    6: double date,
-    7: bool isMonoAccount,
-    8: bool isSelectable,
+    2: string name,
+    3: int status,
+    4: int completion,
+    5: int charactersCount,
+    6: int charactersSlots,
+    7: double date,
+    8: bool isMonoAccount,
+    9: bool isSelectable,
+}
+struct Breed {
+    1: int id,
+    2: string name
 }
 enum SessionType {
     FIGHT = 0,
@@ -50,25 +83,36 @@ struct Character {
     9: optional int accountId,
 }
 struct Session {
-    1: double id,
-    3: Character leader,
-    4: optional list<Character> followers,
-    5: optional Character seller,
-    6: SessionType type,
-    7: UnloadType unloadType,
-    8: optional Path path,
-    9: optional double monsterLvlCoefDiff
+    1: string id,
+    2: Character leader,
+    3: optional list<Character> followers,
+    4: SessionType type,
+    5: UnloadType unloadType,
+    6: optional Character seller,
+    7: optional Path path
 }
 exception DofusError {
     1: int code,
     2: string message
 }
 service Pyd2botService {
+    string ping() throws (1: DofusError error),
     list<Character> fetchCharacters(1: string token) throws (1: DofusError error),
     list<Server> fetchUsedServers(1: string token) throws (1: DofusError error),
     void runSession(1: string token, 6:Session session) throws (1: DofusError error),
     list<Spell> fetchBreedSpells(1: int breedId) throws (1: DofusError error),
     string fetchJobsInfosJson() throws (1: DofusError error),
+    bool deleteCharacter(1: string token, 2: int serverId, 3: int characterId) throws (1: DofusError error),
+    Character createCharacter(1: string token, 2: int serverId, 3: string name, 4: int breedId, 5: bool sex, 6: bool moveOutOfIncarnam) throws (1: DofusError error)
+    list<Breed> getBreeds() throws (1: DofusError error),
+    list<Server> getServers(1: string token) throws (1: DofusError error),
+    CharacterDetails fetchCharacterDetails(1: string token, 2: i32 serverId, 3: i32 characterId) throws (1: DofusError error)
+    bool addSession(1: Session session) throws (1: DofusError error),
+    bool startSession(1: Session session) throws (1: DofusError error),
+    bool stopSession(1: int sessionId) throws (1: DofusError error),
+    list<RunSummary> getRunSummary() throws (1: DofusError error),
+    RunSummary getCharacterRunSummary(1: string login) throws (1: DofusError error),
+    RunSummary getSessionRunSummary(1: string sessionId) throws (1: DofusError error)
 }
        
     

@@ -6,13 +6,26 @@
 #  options string: py
 #
 
-from thrift.Thrift import TType, TException
+from thrift.Thrift import TType, TMessageType, TFrozenDict, TException, TApplicationException
+from thrift.protocol.TProtocol import TProtocolException
 from thrift.TRecursive import fix_spec
 
 import sys
 
 from thrift.transport import TTransport
 all_structs = []
+
+
+class SessionStatus(object):
+    CRASHED = 0
+
+    _VALUES_TO_NAMES = {
+        0: "CRASHED",
+    }
+
+    _NAMES_TO_VALUES = {
+        "CRASHED": 0,
+    }
 
 
 class SessionType(object):
@@ -145,10 +158,374 @@ class Vertex(object):
         return not (self == other)
 
 
+class RunSummary(object):
+    """
+    Attributes:
+     - login
+     - startTime
+     - totalRunTime
+     - sessionId
+     - leaderLogin
+     - numberOfRestarts
+     - status
+     - statusReason
+     - earnedKamas
+     - nbrFightsDone
+
+    """
+
+
+    def __init__(self, login=None, startTime=None, totalRunTime=None, sessionId=None, leaderLogin=None, numberOfRestarts=None, status=None, statusReason=None, earnedKamas=None, nbrFightsDone=None,):
+        self.login = login
+        self.startTime = startTime
+        self.totalRunTime = totalRunTime
+        self.sessionId = sessionId
+        self.leaderLogin = leaderLogin
+        self.numberOfRestarts = numberOfRestarts
+        self.status = status
+        self.statusReason = statusReason
+        self.earnedKamas = earnedKamas
+        self.nbrFightsDone = nbrFightsDone
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.login = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.I64:
+                    self.startTime = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.I64:
+                    self.totalRunTime = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.STRING:
+                    self.sessionId = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 5:
+                if ftype == TType.STRING:
+                    self.leaderLogin = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 6:
+                if ftype == TType.I32:
+                    self.numberOfRestarts = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 7:
+                if ftype == TType.STRING:
+                    self.status = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 8:
+                if ftype == TType.STRING:
+                    self.statusReason = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 9:
+                if ftype == TType.I32:
+                    self.earnedKamas = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 10:
+                if ftype == TType.I32:
+                    self.nbrFightsDone = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('RunSummary')
+        if self.login is not None:
+            oprot.writeFieldBegin('login', TType.STRING, 1)
+            oprot.writeString(self.login.encode('utf-8') if sys.version_info[0] == 2 else self.login)
+            oprot.writeFieldEnd()
+        if self.startTime is not None:
+            oprot.writeFieldBegin('startTime', TType.I64, 2)
+            oprot.writeI64(self.startTime)
+            oprot.writeFieldEnd()
+        if self.totalRunTime is not None:
+            oprot.writeFieldBegin('totalRunTime', TType.I64, 3)
+            oprot.writeI64(self.totalRunTime)
+            oprot.writeFieldEnd()
+        if self.sessionId is not None:
+            oprot.writeFieldBegin('sessionId', TType.STRING, 4)
+            oprot.writeString(self.sessionId.encode('utf-8') if sys.version_info[0] == 2 else self.sessionId)
+            oprot.writeFieldEnd()
+        if self.leaderLogin is not None:
+            oprot.writeFieldBegin('leaderLogin', TType.STRING, 5)
+            oprot.writeString(self.leaderLogin.encode('utf-8') if sys.version_info[0] == 2 else self.leaderLogin)
+            oprot.writeFieldEnd()
+        if self.numberOfRestarts is not None:
+            oprot.writeFieldBegin('numberOfRestarts', TType.I32, 6)
+            oprot.writeI32(self.numberOfRestarts)
+            oprot.writeFieldEnd()
+        if self.status is not None:
+            oprot.writeFieldBegin('status', TType.STRING, 7)
+            oprot.writeString(self.status.encode('utf-8') if sys.version_info[0] == 2 else self.status)
+            oprot.writeFieldEnd()
+        if self.statusReason is not None:
+            oprot.writeFieldBegin('statusReason', TType.STRING, 8)
+            oprot.writeString(self.statusReason.encode('utf-8') if sys.version_info[0] == 2 else self.statusReason)
+            oprot.writeFieldEnd()
+        if self.earnedKamas is not None:
+            oprot.writeFieldBegin('earnedKamas', TType.I32, 9)
+            oprot.writeI32(self.earnedKamas)
+            oprot.writeFieldEnd()
+        if self.nbrFightsDone is not None:
+            oprot.writeFieldBegin('nbrFightsDone', TType.I32, 10)
+            oprot.writeI32(self.nbrFightsDone)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.earnedKamas is None:
+            raise TProtocolException(message='Required field earnedKamas is unset!')
+        if self.nbrFightsDone is None:
+            raise TProtocolException(message='Required field nbrFightsDone is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class CharacterDetails(object):
+    """
+    Attributes:
+     - level
+     - hp
+     - vertex
+     - kamas
+     - areaName
+     - subAreaName
+     - cellId
+     - mapX
+     - mapY
+     - inventoryWeight
+     - shopWeight
+     - inventoryWeightMax
+
+    """
+
+
+    def __init__(self, level=None, hp=None, vertex=None, kamas=None, areaName=None, subAreaName=None, cellId=None, mapX=None, mapY=None, inventoryWeight=None, shopWeight=None, inventoryWeightMax=None,):
+        self.level = level
+        self.hp = hp
+        self.vertex = vertex
+        self.kamas = kamas
+        self.areaName = areaName
+        self.subAreaName = subAreaName
+        self.cellId = cellId
+        self.mapX = mapX
+        self.mapY = mapY
+        self.inventoryWeight = inventoryWeight
+        self.shopWeight = shopWeight
+        self.inventoryWeightMax = inventoryWeightMax
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.level = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.I32:
+                    self.hp = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.STRUCT:
+                    self.vertex = Vertex()
+                    self.vertex.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.I64:
+                    self.kamas = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 5:
+                if ftype == TType.STRING:
+                    self.areaName = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 6:
+                if ftype == TType.STRING:
+                    self.subAreaName = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 7:
+                if ftype == TType.I32:
+                    self.cellId = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 8:
+                if ftype == TType.I32:
+                    self.mapX = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 9:
+                if ftype == TType.I32:
+                    self.mapY = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 10:
+                if ftype == TType.I32:
+                    self.inventoryWeight = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 11:
+                if ftype == TType.I32:
+                    self.shopWeight = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 12:
+                if ftype == TType.I32:
+                    self.inventoryWeightMax = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('CharacterDetails')
+        if self.level is not None:
+            oprot.writeFieldBegin('level', TType.I32, 1)
+            oprot.writeI32(self.level)
+            oprot.writeFieldEnd()
+        if self.hp is not None:
+            oprot.writeFieldBegin('hp', TType.I32, 2)
+            oprot.writeI32(self.hp)
+            oprot.writeFieldEnd()
+        if self.vertex is not None:
+            oprot.writeFieldBegin('vertex', TType.STRUCT, 3)
+            self.vertex.write(oprot)
+            oprot.writeFieldEnd()
+        if self.kamas is not None:
+            oprot.writeFieldBegin('kamas', TType.I64, 4)
+            oprot.writeI64(self.kamas)
+            oprot.writeFieldEnd()
+        if self.areaName is not None:
+            oprot.writeFieldBegin('areaName', TType.STRING, 5)
+            oprot.writeString(self.areaName.encode('utf-8') if sys.version_info[0] == 2 else self.areaName)
+            oprot.writeFieldEnd()
+        if self.subAreaName is not None:
+            oprot.writeFieldBegin('subAreaName', TType.STRING, 6)
+            oprot.writeString(self.subAreaName.encode('utf-8') if sys.version_info[0] == 2 else self.subAreaName)
+            oprot.writeFieldEnd()
+        if self.cellId is not None:
+            oprot.writeFieldBegin('cellId', TType.I32, 7)
+            oprot.writeI32(self.cellId)
+            oprot.writeFieldEnd()
+        if self.mapX is not None:
+            oprot.writeFieldBegin('mapX', TType.I32, 8)
+            oprot.writeI32(self.mapX)
+            oprot.writeFieldEnd()
+        if self.mapY is not None:
+            oprot.writeFieldBegin('mapY', TType.I32, 9)
+            oprot.writeI32(self.mapY)
+            oprot.writeFieldEnd()
+        if self.inventoryWeight is not None:
+            oprot.writeFieldBegin('inventoryWeight', TType.I32, 10)
+            oprot.writeI32(self.inventoryWeight)
+            oprot.writeFieldEnd()
+        if self.shopWeight is not None:
+            oprot.writeFieldBegin('shopWeight', TType.I32, 11)
+            oprot.writeI32(self.shopWeight)
+            oprot.writeFieldEnd()
+        if self.inventoryWeightMax is not None:
+            oprot.writeFieldBegin('inventoryWeightMax', TType.I32, 12)
+            oprot.writeI32(self.inventoryWeightMax)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.level is None:
+            raise TProtocolException(message='Required field level is unset!')
+        if self.hp is None:
+            raise TProtocolException(message='Required field hp is unset!')
+        if self.vertex is None:
+            raise TProtocolException(message='Required field vertex is unset!')
+        if self.kamas is None:
+            raise TProtocolException(message='Required field kamas is unset!')
+        if self.areaName is None:
+            raise TProtocolException(message='Required field areaName is unset!')
+        if self.subAreaName is None:
+            raise TProtocolException(message='Required field subAreaName is unset!')
+        if self.cellId is None:
+            raise TProtocolException(message='Required field cellId is unset!')
+        if self.mapX is None:
+            raise TProtocolException(message='Required field mapX is unset!')
+        if self.mapY is None:
+            raise TProtocolException(message='Required field mapY is unset!')
+        if self.inventoryWeight is None:
+            raise TProtocolException(message='Required field inventoryWeight is unset!')
+        if self.shopWeight is None:
+            raise TProtocolException(message='Required field shopWeight is unset!')
+        if self.inventoryWeightMax is None:
+            raise TProtocolException(message='Required field inventoryWeightMax is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
 class Server(object):
     """
     Attributes:
      - id
+     - name
      - status
      - completion
      - charactersCount
@@ -160,8 +537,9 @@ class Server(object):
     """
 
 
-    def __init__(self, id=None, status=None, completion=None, charactersCount=None, charactersSlots=None, date=None, isMonoAccount=None, isSelectable=None,):
+    def __init__(self, id=None, name=None, status=None, completion=None, charactersCount=None, charactersSlots=None, date=None, isMonoAccount=None, isSelectable=None,):
         self.id = id
+        self.name = name
         self.status = status
         self.completion = completion
         self.charactersCount = charactersCount
@@ -185,36 +563,41 @@ class Server(object):
                 else:
                     iprot.skip(ftype)
             elif fid == 2:
-                if ftype == TType.I32:
-                    self.status = iprot.readI32()
+                if ftype == TType.STRING:
+                    self.name = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             elif fid == 3:
                 if ftype == TType.I32:
-                    self.completion = iprot.readI32()
+                    self.status = iprot.readI32()
                 else:
                     iprot.skip(ftype)
             elif fid == 4:
                 if ftype == TType.I32:
-                    self.charactersCount = iprot.readI32()
+                    self.completion = iprot.readI32()
                 else:
                     iprot.skip(ftype)
             elif fid == 5:
                 if ftype == TType.I32:
-                    self.charactersSlots = iprot.readI32()
+                    self.charactersCount = iprot.readI32()
                 else:
                     iprot.skip(ftype)
             elif fid == 6:
+                if ftype == TType.I32:
+                    self.charactersSlots = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 7:
                 if ftype == TType.DOUBLE:
                     self.date = iprot.readDouble()
                 else:
                     iprot.skip(ftype)
-            elif fid == 7:
+            elif fid == 8:
                 if ftype == TType.BOOL:
                     self.isMonoAccount = iprot.readBool()
                 else:
                     iprot.skip(ftype)
-            elif fid == 8:
+            elif fid == 9:
                 if ftype == TType.BOOL:
                     self.isSelectable = iprot.readBool()
                 else:
@@ -233,33 +616,105 @@ class Server(object):
             oprot.writeFieldBegin('id', TType.I32, 1)
             oprot.writeI32(self.id)
             oprot.writeFieldEnd()
+        if self.name is not None:
+            oprot.writeFieldBegin('name', TType.STRING, 2)
+            oprot.writeString(self.name.encode('utf-8') if sys.version_info[0] == 2 else self.name)
+            oprot.writeFieldEnd()
         if self.status is not None:
-            oprot.writeFieldBegin('status', TType.I32, 2)
+            oprot.writeFieldBegin('status', TType.I32, 3)
             oprot.writeI32(self.status)
             oprot.writeFieldEnd()
         if self.completion is not None:
-            oprot.writeFieldBegin('completion', TType.I32, 3)
+            oprot.writeFieldBegin('completion', TType.I32, 4)
             oprot.writeI32(self.completion)
             oprot.writeFieldEnd()
         if self.charactersCount is not None:
-            oprot.writeFieldBegin('charactersCount', TType.I32, 4)
+            oprot.writeFieldBegin('charactersCount', TType.I32, 5)
             oprot.writeI32(self.charactersCount)
             oprot.writeFieldEnd()
         if self.charactersSlots is not None:
-            oprot.writeFieldBegin('charactersSlots', TType.I32, 5)
+            oprot.writeFieldBegin('charactersSlots', TType.I32, 6)
             oprot.writeI32(self.charactersSlots)
             oprot.writeFieldEnd()
         if self.date is not None:
-            oprot.writeFieldBegin('date', TType.DOUBLE, 6)
+            oprot.writeFieldBegin('date', TType.DOUBLE, 7)
             oprot.writeDouble(self.date)
             oprot.writeFieldEnd()
         if self.isMonoAccount is not None:
-            oprot.writeFieldBegin('isMonoAccount', TType.BOOL, 7)
+            oprot.writeFieldBegin('isMonoAccount', TType.BOOL, 8)
             oprot.writeBool(self.isMonoAccount)
             oprot.writeFieldEnd()
         if self.isSelectable is not None:
-            oprot.writeFieldBegin('isSelectable', TType.BOOL, 8)
+            oprot.writeFieldBegin('isSelectable', TType.BOOL, 9)
             oprot.writeBool(self.isSelectable)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class Breed(object):
+    """
+    Attributes:
+     - id
+     - name
+
+    """
+
+
+    def __init__(self, id=None, name=None,):
+        self.id = id
+        self.name = name
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.id = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.STRING:
+                    self.name = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('Breed')
+        if self.id is not None:
+            oprot.writeFieldBegin('id', TType.I32, 1)
+            oprot.writeI32(self.id)
+            oprot.writeFieldEnd()
+        if self.name is not None:
+            oprot.writeFieldBegin('name', TType.STRING, 2)
+            oprot.writeString(self.name.encode('utf-8') if sys.version_info[0] == 2 else self.name)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -578,24 +1033,22 @@ class Session(object):
      - id
      - leader
      - followers
-     - seller
      - type
      - unloadType
+     - seller
      - path
-     - monsterLvlCoefDiff
 
     """
 
 
-    def __init__(self, id=None, leader=None, followers=None, seller=None, type=None, unloadType=None, path=None, monsterLvlCoefDiff=None,):
+    def __init__(self, id=None, leader=None, followers=None, type=None, unloadType=None, seller=None, path=None,):
         self.id = id
         self.leader = leader
         self.followers = followers
-        self.seller = seller
         self.type = type
         self.unloadType = unloadType
+        self.seller = seller
         self.path = path
-        self.monsterLvlCoefDiff = monsterLvlCoefDiff
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -607,17 +1060,17 @@ class Session(object):
             if ftype == TType.STOP:
                 break
             if fid == 1:
-                if ftype == TType.DOUBLE:
-                    self.id = iprot.readDouble()
+                if ftype == TType.STRING:
+                    self.id = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 3:
+            elif fid == 2:
                 if ftype == TType.STRUCT:
                     self.leader = Character()
                     self.leader.read(iprot)
                 else:
                     iprot.skip(ftype)
-            elif fid == 4:
+            elif fid == 3:
                 if ftype == TType.LIST:
                     self.followers = []
                     (_etype3, _size0) = iprot.readListBegin()
@@ -628,31 +1081,26 @@ class Session(object):
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.I32:
+                    self.type = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
             elif fid == 5:
+                if ftype == TType.I32:
+                    self.unloadType = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 6:
                 if ftype == TType.STRUCT:
                     self.seller = Character()
                     self.seller.read(iprot)
                 else:
                     iprot.skip(ftype)
-            elif fid == 6:
-                if ftype == TType.I32:
-                    self.type = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
             elif fid == 7:
-                if ftype == TType.I32:
-                    self.unloadType = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 8:
                 if ftype == TType.STRUCT:
                     self.path = Path()
                     self.path.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            elif fid == 9:
-                if ftype == TType.DOUBLE:
-                    self.monsterLvlCoefDiff = iprot.readDouble()
                 else:
                     iprot.skip(ftype)
             else:
@@ -666,39 +1114,35 @@ class Session(object):
             return
         oprot.writeStructBegin('Session')
         if self.id is not None:
-            oprot.writeFieldBegin('id', TType.DOUBLE, 1)
-            oprot.writeDouble(self.id)
+            oprot.writeFieldBegin('id', TType.STRING, 1)
+            oprot.writeString(self.id.encode('utf-8') if sys.version_info[0] == 2 else self.id)
             oprot.writeFieldEnd()
         if self.leader is not None:
-            oprot.writeFieldBegin('leader', TType.STRUCT, 3)
+            oprot.writeFieldBegin('leader', TType.STRUCT, 2)
             self.leader.write(oprot)
             oprot.writeFieldEnd()
         if self.followers is not None:
-            oprot.writeFieldBegin('followers', TType.LIST, 4)
+            oprot.writeFieldBegin('followers', TType.LIST, 3)
             oprot.writeListBegin(TType.STRUCT, len(self.followers))
             for iter6 in self.followers:
                 iter6.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
-        if self.seller is not None:
-            oprot.writeFieldBegin('seller', TType.STRUCT, 5)
-            self.seller.write(oprot)
-            oprot.writeFieldEnd()
         if self.type is not None:
-            oprot.writeFieldBegin('type', TType.I32, 6)
+            oprot.writeFieldBegin('type', TType.I32, 4)
             oprot.writeI32(self.type)
             oprot.writeFieldEnd()
         if self.unloadType is not None:
-            oprot.writeFieldBegin('unloadType', TType.I32, 7)
+            oprot.writeFieldBegin('unloadType', TType.I32, 5)
             oprot.writeI32(self.unloadType)
             oprot.writeFieldEnd()
-        if self.path is not None:
-            oprot.writeFieldBegin('path', TType.STRUCT, 8)
-            self.path.write(oprot)
+        if self.seller is not None:
+            oprot.writeFieldBegin('seller', TType.STRUCT, 6)
+            self.seller.write(oprot)
             oprot.writeFieldEnd()
-        if self.monsterLvlCoefDiff is not None:
-            oprot.writeFieldBegin('monsterLvlCoefDiff', TType.DOUBLE, 9)
-            oprot.writeDouble(self.monsterLvlCoefDiff)
+        if self.path is not None:
+            oprot.writeFieldBegin('path', TType.STRUCT, 7)
+            self.path.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -809,17 +1253,54 @@ Vertex.thrift_spec = (
     (2, TType.I32, 'zoneId', None, None, ),  # 2
     (3, TType.BOOL, 'onlyDirections', None, None, ),  # 3
 )
+all_structs.append(RunSummary)
+RunSummary.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'login', 'UTF8', None, ),  # 1
+    (2, TType.I64, 'startTime', None, None, ),  # 2
+    (3, TType.I64, 'totalRunTime', None, None, ),  # 3
+    (4, TType.STRING, 'sessionId', 'UTF8', None, ),  # 4
+    (5, TType.STRING, 'leaderLogin', 'UTF8', None, ),  # 5
+    (6, TType.I32, 'numberOfRestarts', None, None, ),  # 6
+    (7, TType.STRING, 'status', 'UTF8', None, ),  # 7
+    (8, TType.STRING, 'statusReason', 'UTF8', None, ),  # 8
+    (9, TType.I32, 'earnedKamas', None, None, ),  # 9
+    (10, TType.I32, 'nbrFightsDone', None, None, ),  # 10
+)
+all_structs.append(CharacterDetails)
+CharacterDetails.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'level', None, None, ),  # 1
+    (2, TType.I32, 'hp', None, None, ),  # 2
+    (3, TType.STRUCT, 'vertex', [Vertex, None], None, ),  # 3
+    (4, TType.I64, 'kamas', None, None, ),  # 4
+    (5, TType.STRING, 'areaName', 'UTF8', None, ),  # 5
+    (6, TType.STRING, 'subAreaName', 'UTF8', None, ),  # 6
+    (7, TType.I32, 'cellId', None, None, ),  # 7
+    (8, TType.I32, 'mapX', None, None, ),  # 8
+    (9, TType.I32, 'mapY', None, None, ),  # 9
+    (10, TType.I32, 'inventoryWeight', None, None, ),  # 10
+    (11, TType.I32, 'shopWeight', None, None, ),  # 11
+    (12, TType.I32, 'inventoryWeightMax', None, None, ),  # 12
+)
 all_structs.append(Server)
 Server.thrift_spec = (
     None,  # 0
     (1, TType.I32, 'id', None, None, ),  # 1
-    (2, TType.I32, 'status', None, None, ),  # 2
-    (3, TType.I32, 'completion', None, None, ),  # 3
-    (4, TType.I32, 'charactersCount', None, None, ),  # 4
-    (5, TType.I32, 'charactersSlots', None, None, ),  # 5
-    (6, TType.DOUBLE, 'date', None, None, ),  # 6
-    (7, TType.BOOL, 'isMonoAccount', None, None, ),  # 7
-    (8, TType.BOOL, 'isSelectable', None, None, ),  # 8
+    (2, TType.STRING, 'name', 'UTF8', None, ),  # 2
+    (3, TType.I32, 'status', None, None, ),  # 3
+    (4, TType.I32, 'completion', None, None, ),  # 4
+    (5, TType.I32, 'charactersCount', None, None, ),  # 5
+    (6, TType.I32, 'charactersSlots', None, None, ),  # 6
+    (7, TType.DOUBLE, 'date', None, None, ),  # 7
+    (8, TType.BOOL, 'isMonoAccount', None, None, ),  # 8
+    (9, TType.BOOL, 'isSelectable', None, None, ),  # 9
+)
+all_structs.append(Breed)
+Breed.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'id', None, None, ),  # 1
+    (2, TType.STRING, 'name', 'UTF8', None, ),  # 2
 )
 all_structs.append(Path)
 Path.thrift_spec = (
@@ -850,15 +1331,13 @@ Character.thrift_spec = (
 all_structs.append(Session)
 Session.thrift_spec = (
     None,  # 0
-    (1, TType.DOUBLE, 'id', None, None, ),  # 1
-    None,  # 2
-    (3, TType.STRUCT, 'leader', [Character, None], None, ),  # 3
-    (4, TType.LIST, 'followers', (TType.STRUCT, [Character, None], False), None, ),  # 4
-    (5, TType.STRUCT, 'seller', [Character, None], None, ),  # 5
-    (6, TType.I32, 'type', None, None, ),  # 6
-    (7, TType.I32, 'unloadType', None, None, ),  # 7
-    (8, TType.STRUCT, 'path', [Path, None], None, ),  # 8
-    (9, TType.DOUBLE, 'monsterLvlCoefDiff', None, None, ),  # 9
+    (1, TType.STRING, 'id', 'UTF8', None, ),  # 1
+    (2, TType.STRUCT, 'leader', [Character, None], None, ),  # 2
+    (3, TType.LIST, 'followers', (TType.STRUCT, [Character, None], False), None, ),  # 3
+    (4, TType.I32, 'type', None, None, ),  # 4
+    (5, TType.I32, 'unloadType', None, None, ),  # 5
+    (6, TType.STRUCT, 'seller', [Character, None], None, ),  # 6
+    (7, TType.STRUCT, 'path', [Path, None], None, ),  # 7
 )
 all_structs.append(DofusError)
 DofusError.thrift_spec = (

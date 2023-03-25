@@ -58,7 +58,7 @@ class AbstractBehavior(metaclass=Singleton):
         self.callback = None
         self.running.clear()
         type(self).clear()
-        if self.parent:
+        if self.parent and self in self.parent.children:
             self.parent.children.remove(self)
         error = f"[{type(self).__name__}] failed for reason : {error}" if error else None
         if callback:

@@ -26,21 +26,20 @@ class UseSkill(AbstractBehavior):
     CANT_USE = 9804
     USE_ERROR = 9805
     MAX_TIMEOUTS = 5
-    REQ_TIMEOUT = 1
+    REQ_TIMEOUT = 3
 
     def __init__(self) -> None:
         super().__init__()
-        self.timoutsCount = None
+        self.timeoutsCount = 0
         self.ie = None
+        self.useErrorListener = None
 
     @property
     def worldFrame(self) -> "RoleplayWorldFrame":
         return Kernel().worker.getFrameByName("RoleplayWorldFrame")
 
-    def run(
-        self,
+    def run(self,
         ie: InteractiveElementData,
-        callback,
         cell=None,
         exactDistination=False,
         waitForSkillUsed=True,
@@ -57,11 +56,10 @@ class UseSkill(AbstractBehavior):
                     self.elementPosition = ie.position
                     self.element = ie.element
                     self.cell = cell
-                    self.callback = callback
                     self.exactDistination = exactDistination
                     self.waitForSkillUsed = waitForSkillUsed
                     self.useSkill()
-                return UseSkill.getInteractiveElement(elementId, skilluid, onIeFound)
+                return self.getInteractiveElement(elementId, skilluid, onIeFound)
             else:
                 return self.finish(False, "No interactive element provided")
         self.targetIe = ie
@@ -70,7 +68,6 @@ class UseSkill(AbstractBehavior):
         self.elementPosition = ie.position
         self.element = ie.element
         self.cell = cell
-        self.callback = callback
         self.exactDistination = exactDistination
         self.waitForSkillUsed = waitForSkillUsed
         self.useSkill()
@@ -96,8 +93,8 @@ class UseSkill(AbstractBehavior):
         MapMove().start(cell, self.exactDistination, callback=onmoved, parent=self)
 
     def ontimeout(self, listener: Listener):
-        self.timoutsCount += 1
-        if self.timoutsCount > self.MAX_TIMEOUTS:
+        self.timeoutsCount += 1
+        if self.timeoutsCount > self.MAX_TIMEOUTS:
             return self.finish(self.TIMEOUT, "Request timed out")
         listener.armTimer()
         self.sendRequestSkill()
@@ -111,6 +108,7 @@ class UseSkill(AbstractBehavior):
 
     def onUsedInteractive(self, event, entityId, usedElementId):
         if self.elementId == usedElementId:
+            self.useErrorListener.delete()
             if MapMove().isRunning():
                 MapMove().stop()
             if entityId != PlayedCharacterManager().id:
@@ -125,15 +123,16 @@ class UseSkill(AbstractBehavior):
 
     def requestActivateSkill(self) -> None:
         if self.waitForSkillUsed:
-            KernelEventsManager().once(
+            self.timeoutsCount = 0
+            self.useErrorListener = KernelEventsManager().once(
                 KernelEvent.INTERACTIVE_USE_ERROR,
                 self.onUseError,
-                timeout=7,
+                timeout=self.REQ_TIMEOUT,
                 ontimeout=self.ontimeout,
                 originator=self,
             )
             self.currentRequestedElementId = self.elementId
-        self.requestActivateSkill()
+        self.sendRequestSkill()
         if not self.waitForSkillUsed:
             super().finish(True, None)
 

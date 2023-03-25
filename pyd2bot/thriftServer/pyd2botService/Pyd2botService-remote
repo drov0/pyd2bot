@@ -17,17 +17,30 @@ from thrift.transport import TTransport, TSocket, TSSLSocket, THttpClient
 from thrift.protocol.TBinaryProtocol import TBinaryProtocol
 
 from pyd2botService import Pyd2botService
+from pyd2botService.ttypes import *
 
 if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('')
     print('Usage: ' + sys.argv[0] + ' [-h host[:port]] [-u url] [-f[ramed]] [-s[sl]] [-novalidate] [-ca_certs certs] [-keyfile keyfile] [-certfile certfile] function [arg1 [arg2...]]')
     print('')
     print('Functions:')
+    print('  string ping()')
     print('   fetchCharacters(string token)')
     print('   fetchUsedServers(string token)')
     print('  void runSession(string token, Session session)')
     print('   fetchBreedSpells(int breedId)')
     print('  string fetchJobsInfosJson()')
+    print('  bool deleteCharacter(string token, int serverId, int characterId)')
+    print('  Character createCharacter(string token, int serverId, string name, int breedId, bool sex, bool moveOutOfIncarnam)')
+    print('   getBreeds()')
+    print('   getServers(string token)')
+    print('  CharacterDetails fetchCharacterDetails(string token, i32 serverId, i32 characterId)')
+    print('  bool addSession(Session session)')
+    print('  bool startSession(Session session)')
+    print('  bool stopSession(int sessionId)')
+    print('   getRunSummary()')
+    print('  RunSummary getCharacterRunSummary(string login)')
+    print('  RunSummary getSessionRunSummary(string sessionId)')
     print('')
     sys.exit(0)
 
@@ -107,7 +120,13 @@ protocol = TBinaryProtocol(transport)
 client = Pyd2botService.Client(protocol)
 transport.open()
 
-if cmd == 'fetchCharacters':
+if cmd == 'ping':
+    if len(args) != 0:
+        print('ping requires 0 args')
+        sys.exit(1)
+    pp.pprint(client.ping())
+
+elif cmd == 'fetchCharacters':
     if len(args) != 1:
         print('fetchCharacters requires 1 args')
         sys.exit(1)
@@ -136,6 +155,72 @@ elif cmd == 'fetchJobsInfosJson':
         print('fetchJobsInfosJson requires 0 args')
         sys.exit(1)
     pp.pprint(client.fetchJobsInfosJson())
+
+elif cmd == 'deleteCharacter':
+    if len(args) != 3:
+        print('deleteCharacter requires 3 args')
+        sys.exit(1)
+    pp.pprint(client.deleteCharacter(args[0], eval(args[1]), eval(args[2]),))
+
+elif cmd == 'createCharacter':
+    if len(args) != 6:
+        print('createCharacter requires 6 args')
+        sys.exit(1)
+    pp.pprint(client.createCharacter(args[0], eval(args[1]), args[2], eval(args[3]), eval(args[4]), eval(args[5]),))
+
+elif cmd == 'getBreeds':
+    if len(args) != 0:
+        print('getBreeds requires 0 args')
+        sys.exit(1)
+    pp.pprint(client.getBreeds())
+
+elif cmd == 'getServers':
+    if len(args) != 1:
+        print('getServers requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.getServers(args[0],))
+
+elif cmd == 'fetchCharacterDetails':
+    if len(args) != 3:
+        print('fetchCharacterDetails requires 3 args')
+        sys.exit(1)
+    pp.pprint(client.fetchCharacterDetails(args[0], eval(args[1]), eval(args[2]),))
+
+elif cmd == 'addSession':
+    if len(args) != 1:
+        print('addSession requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.addSession(eval(args[0]),))
+
+elif cmd == 'startSession':
+    if len(args) != 1:
+        print('startSession requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.startSession(eval(args[0]),))
+
+elif cmd == 'stopSession':
+    if len(args) != 1:
+        print('stopSession requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.stopSession(eval(args[0]),))
+
+elif cmd == 'getRunSummary':
+    if len(args) != 0:
+        print('getRunSummary requires 0 args')
+        sys.exit(1)
+    pp.pprint(client.getRunSummary())
+
+elif cmd == 'getCharacterRunSummary':
+    if len(args) != 1:
+        print('getCharacterRunSummary requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.getCharacterRunSummary(args[0],))
+
+elif cmd == 'getSessionRunSummary':
+    if len(args) != 1:
+        print('getSessionRunSummary requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.getSessionRunSummary(args[0],))
 
 else:
     print('Unrecognized method %s' % cmd)

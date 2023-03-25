@@ -20,7 +20,7 @@ class NpcDialog(AbstractBehavior):
     def __init__(self) -> None:
         super().__init__()
 
-    def run(self, npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies, callback) -> bool:
+    def run(self, npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies) -> bool:
         self.npcMapId = npcMapId
         self.npcId = npcId
         self.npcOpenDialogId = npcOpenDialogId

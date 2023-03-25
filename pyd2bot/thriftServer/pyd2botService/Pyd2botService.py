@@ -6,7 +6,8 @@
 #  options string: py
 #
 
-from thrift.Thrift import TType, TMessageType, TApplicationException
+from thrift.Thrift import TType, TMessageType, TFrozenDict, TException, TApplicationException
+from thrift.protocol.TProtocol import TProtocolException
 from thrift.TRecursive import fix_spec
 
 import sys
@@ -18,12 +19,16 @@ all_structs = []
 
 
 class Iface(object):
+    def ping(self):
+        pass
+
     def fetchCharacters(self, token):
         """
         Parameters:
          - token
 
         """
+        pass
 
     def fetchUsedServers(self, token):
         """
@@ -31,6 +36,7 @@ class Iface(object):
          - token
 
         """
+        pass
 
     def runSession(self, token, session):
         """
@@ -39,6 +45,7 @@ class Iface(object):
          - session
 
         """
+        pass
 
     def fetchBreedSpells(self, breedId):
         """
@@ -46,8 +53,96 @@ class Iface(object):
          - breedId
 
         """
+        pass
 
     def fetchJobsInfosJson(self):
+        pass
+
+    def deleteCharacter(self, token, serverId, characterId):
+        """
+        Parameters:
+         - token
+         - serverId
+         - characterId
+
+        """
+        pass
+
+    def createCharacter(self, token, serverId, name, breedId, sex, moveOutOfIncarnam):
+        """
+        Parameters:
+         - token
+         - serverId
+         - name
+         - breedId
+         - sex
+         - moveOutOfIncarnam
+
+        """
+        pass
+
+    def getBreeds(self):
+        pass
+
+    def getServers(self, token):
+        """
+        Parameters:
+         - token
+
+        """
+        pass
+
+    def fetchCharacterDetails(self, token, serverId, characterId):
+        """
+        Parameters:
+         - token
+         - serverId
+         - characterId
+
+        """
+        pass
+
+    def addSession(self, session):
+        """
+        Parameters:
+         - session
+
+        """
+        pass
+
+    def startSession(self, session):
+        """
+        Parameters:
+         - session
+
+        """
+        pass
+
+    def stopSession(self, sessionId):
+        """
+        Parameters:
+         - sessionId
+
+        """
+        pass
+
+    def getRunSummary(self):
+        pass
+
+    def getCharacterRunSummary(self, login):
+        """
+        Parameters:
+         - login
+
+        """
+        pass
+
+    def getSessionRunSummary(self, sessionId):
+        """
+        Parameters:
+         - sessionId
+
+        """
         pass
 
 
@@ -57,6 +152,34 @@ class Client(Iface):
         if oprot is not None:
             self._oprot = oprot
         self._seqid = 0
+
+    def ping(self):
+        self.send_ping()
+        return self.recv_ping()
+
+    def send_ping(self):
+        self._oprot.writeMessageBegin('ping', TMessageType.CALL, self._seqid)
+        args = ping_args()
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_ping(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = ping_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "ping failed: unknown result")
 
     def fetchCharacters(self, token):
         """
@@ -222,16 +345,408 @@ class Client(Iface):
             raise result.error
         raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchJobsInfosJson failed: unknown result")
 
+    def deleteCharacter(self, token, serverId, characterId):
+        """
+        Parameters:
+         - token
+         - serverId
+         - characterId
+
+        """
+        self.send_deleteCharacter(token, serverId, characterId)
+        return self.recv_deleteCharacter()
+
+    def send_deleteCharacter(self, token, serverId, characterId):
+        self._oprot.writeMessageBegin('deleteCharacter', TMessageType.CALL, self._seqid)
+        args = deleteCharacter_args()
+        args.token = token
+        args.serverId = serverId
+        args.characterId = characterId
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_deleteCharacter(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = deleteCharacter_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "deleteCharacter failed: unknown result")
+
+    def createCharacter(self, token, serverId, name, breedId, sex, moveOutOfIncarnam):
+        """
+        Parameters:
+         - token
+         - serverId
+         - name
+         - breedId
+         - sex
+         - moveOutOfIncarnam
+
+        """
+        self.send_createCharacter(token, serverId, name, breedId, sex, moveOutOfIncarnam)
+        return self.recv_createCharacter()
+
+    def send_createCharacter(self, token, serverId, name, breedId, sex, moveOutOfIncarnam):
+        self._oprot.writeMessageBegin('createCharacter', TMessageType.CALL, self._seqid)
+        args = createCharacter_args()
+        args.token = token
+        args.serverId = serverId
+        args.name = name
+        args.breedId = breedId
+        args.sex = sex
+        args.moveOutOfIncarnam = moveOutOfIncarnam
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_createCharacter(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = createCharacter_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "createCharacter failed: unknown result")
+
+    def getBreeds(self):
+        self.send_getBreeds()
+        return self.recv_getBreeds()
+
+    def send_getBreeds(self):
+        self._oprot.writeMessageBegin('getBreeds', TMessageType.CALL, self._seqid)
+        args = getBreeds_args()
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_getBreeds(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = getBreeds_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "getBreeds failed: unknown result")
+
+    def getServers(self, token):
+        """
+        Parameters:
+         - token
+
+        """
+        self.send_getServers(token)
+        return self.recv_getServers()
+
+    def send_getServers(self, token):
+        self._oprot.writeMessageBegin('getServers', TMessageType.CALL, self._seqid)
+        args = getServers_args()
+        args.token = token
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_getServers(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = getServers_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "getServers failed: unknown result")
+
+    def fetchCharacterDetails(self, token, serverId, characterId):
+        """
+        Parameters:
+         - token
+         - serverId
+         - characterId
+
+        """
+        self.send_fetchCharacterDetails(token, serverId, characterId)
+        return self.recv_fetchCharacterDetails()
+
+    def send_fetchCharacterDetails(self, token, serverId, characterId):
+        self._oprot.writeMessageBegin('fetchCharacterDetails', TMessageType.CALL, self._seqid)
+        args = fetchCharacterDetails_args()
+        args.token = token
+        args.serverId = serverId
+        args.characterId = characterId
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_fetchCharacterDetails(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = fetchCharacterDetails_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchCharacterDetails failed: unknown result")
+
+    def addSession(self, session):
+        """
+        Parameters:
+         - session
+
+        """
+        self.send_addSession(session)
+        return self.recv_addSession()
+
+    def send_addSession(self, session):
+        self._oprot.writeMessageBegin('addSession', TMessageType.CALL, self._seqid)
+        args = addSession_args()
+        args.session = session
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_addSession(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = addSession_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "addSession failed: unknown result")
+
+    def startSession(self, session):
+        """
+        Parameters:
+         - session
+
+        """
+        self.send_startSession(session)
+        return self.recv_startSession()
+
+    def send_startSession(self, session):
+        self._oprot.writeMessageBegin('startSession', TMessageType.CALL, self._seqid)
+        args = startSession_args()
+        args.session = session
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_startSession(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = startSession_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "startSession failed: unknown result")
+
+    def stopSession(self, sessionId):
+        """
+        Parameters:
+         - sessionId
+
+        """
+        self.send_stopSession(sessionId)
+        return self.recv_stopSession()
+
+    def send_stopSession(self, sessionId):
+        self._oprot.writeMessageBegin('stopSession', TMessageType.CALL, self._seqid)
+        args = stopSession_args()
+        args.sessionId = sessionId
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_stopSession(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = stopSession_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "stopSession failed: unknown result")
+
+    def getRunSummary(self):
+        self.send_getRunSummary()
+        return self.recv_getRunSummary()
+
+    def send_getRunSummary(self):
+        self._oprot.writeMessageBegin('getRunSummary', TMessageType.CALL, self._seqid)
+        args = getRunSummary_args()
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_getRunSummary(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = getRunSummary_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "getRunSummary failed: unknown result")
+
+    def getCharacterRunSummary(self, login):
+        """
+        Parameters:
+         - login
+
+        """
+        self.send_getCharacterRunSummary(login)
+        return self.recv_getCharacterRunSummary()
+
+    def send_getCharacterRunSummary(self, login):
+        self._oprot.writeMessageBegin('getCharacterRunSummary', TMessageType.CALL, self._seqid)
+        args = getCharacterRunSummary_args()
+        args.login = login
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_getCharacterRunSummary(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = getCharacterRunSummary_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "getCharacterRunSummary failed: unknown result")
+
+    def getSessionRunSummary(self, sessionId):
+        """
+        Parameters:
+         - sessionId
+
+        """
+        self.send_getSessionRunSummary(sessionId)
+        return self.recv_getSessionRunSummary()
+
+    def send_getSessionRunSummary(self, sessionId):
+        self._oprot.writeMessageBegin('getSessionRunSummary', TMessageType.CALL, self._seqid)
+        args = getSessionRunSummary_args()
+        args.sessionId = sessionId
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_getSessionRunSummary(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = getSessionRunSummary_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        if result.error is not None:
+            raise result.error
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "getSessionRunSummary failed: unknown result")
+
 
 class Processor(Iface, TProcessor):
     def __init__(self, handler):
         self._handler = handler
         self._processMap = {}
+        self._processMap["ping"] = Processor.process_ping
         self._processMap["fetchCharacters"] = Processor.process_fetchCharacters
         self._processMap["fetchUsedServers"] = Processor.process_fetchUsedServers
         self._processMap["runSession"] = Processor.process_runSession
         self._processMap["fetchBreedSpells"] = Processor.process_fetchBreedSpells
         self._processMap["fetchJobsInfosJson"] = Processor.process_fetchJobsInfosJson
+        self._processMap["deleteCharacter"] = Processor.process_deleteCharacter
+        self._processMap["createCharacter"] = Processor.process_createCharacter
+        self._processMap["getBreeds"] = Processor.process_getBreeds
+        self._processMap["getServers"] = Processor.process_getServers
+        self._processMap["fetchCharacterDetails"] = Processor.process_fetchCharacterDetails
+        self._processMap["addSession"] = Processor.process_addSession
+        self._processMap["startSession"] = Processor.process_startSession
+        self._processMap["stopSession"] = Processor.process_stopSession
+        self._processMap["getRunSummary"] = Processor.process_getRunSummary
+        self._processMap["getCharacterRunSummary"] = Processor.process_getCharacterRunSummary
+        self._processMap["getSessionRunSummary"] = Processor.process_getSessionRunSummary
         self._on_message_begin = None
 
     def on_message_begin(self, func):
@@ -253,6 +768,32 @@ class Processor(Iface, TProcessor):
         else:
             self._processMap[name](self, seqid, iprot, oprot)
         return True
+
+    def process_ping(self, seqid, iprot, oprot):
+        args = ping_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = ping_result()
+        try:
+            result.success = self._handler.ping()
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("ping", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
 
     def process_fetchCharacters(self, seqid, iprot, oprot):
         args = fetchCharacters_args()
@@ -384,7 +925,409 @@ class Processor(Iface, TProcessor):
         oprot.writeMessageEnd()
         oprot.trans.flush()
 
+    def process_deleteCharacter(self, seqid, iprot, oprot):
+        args = deleteCharacter_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = deleteCharacter_result()
+        try:
+            result.success = self._handler.deleteCharacter(args.token, args.serverId, args.characterId)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("deleteCharacter", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_createCharacter(self, seqid, iprot, oprot):
+        args = createCharacter_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = createCharacter_result()
+        try:
+            result.success = self._handler.createCharacter(args.token, args.serverId, args.name, args.breedId, args.sex, args.moveOutOfIncarnam)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("createCharacter", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_getBreeds(self, seqid, iprot, oprot):
+        args = getBreeds_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = getBreeds_result()
+        try:
+            result.success = self._handler.getBreeds()
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("getBreeds", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_getServers(self, seqid, iprot, oprot):
+        args = getServers_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = getServers_result()
+        try:
+            result.success = self._handler.getServers(args.token)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("getServers", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_fetchCharacterDetails(self, seqid, iprot, oprot):
+        args = fetchCharacterDetails_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = fetchCharacterDetails_result()
+        try:
+            result.success = self._handler.fetchCharacterDetails(args.token, args.serverId, args.characterId)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("fetchCharacterDetails", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_addSession(self, seqid, iprot, oprot):
+        args = addSession_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = addSession_result()
+        try:
+            result.success = self._handler.addSession(args.session)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("addSession", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_startSession(self, seqid, iprot, oprot):
+        args = startSession_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = startSession_result()
+        try:
+            result.success = self._handler.startSession(args.session)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("startSession", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_stopSession(self, seqid, iprot, oprot):
+        args = stopSession_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = stopSession_result()
+        try:
+            result.success = self._handler.stopSession(args.sessionId)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("stopSession", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_getRunSummary(self, seqid, iprot, oprot):
+        args = getRunSummary_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = getRunSummary_result()
+        try:
+            result.success = self._handler.getRunSummary()
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("getRunSummary", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_getCharacterRunSummary(self, seqid, iprot, oprot):
+        args = getCharacterRunSummary_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = getCharacterRunSummary_result()
+        try:
+            result.success = self._handler.getCharacterRunSummary(args.login)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("getCharacterRunSummary", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_getSessionRunSummary(self, seqid, iprot, oprot):
+        args = getSessionRunSummary_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = getSessionRunSummary_result()
+        try:
+            result.success = self._handler.getSessionRunSummary(args.sessionId)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except DofusError as error:
+            msg_type = TMessageType.REPLY
+            result.error = error
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("getSessionRunSummary", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
 # HELPER FUNCTIONS AND STRUCTURES
+
+
+class ping_args(object):
+
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('ping_args')
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(ping_args)
+ping_args.thrift_spec = (
+)
+
+
+class ping_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRING:
+                    self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('ping_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRING, 0)
+            oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(ping_result)
+ping_result.thrift_spec = (
+    (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
 
 
 class fetchCharacters_args(object):
@@ -1072,6 +2015,1594 @@ class fetchJobsInfosJson_result(object):
 all_structs.append(fetchJobsInfosJson_result)
 fetchJobsInfosJson_result.thrift_spec = (
     (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class deleteCharacter_args(object):
+    """
+    Attributes:
+     - token
+     - serverId
+     - characterId
+
+    """
+
+
+    def __init__(self, token=None, serverId=None, characterId=None,):
+        self.token = token
+        self.serverId = serverId
+        self.characterId = characterId
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.token = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.I32:
+                    self.serverId = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.I32:
+                    self.characterId = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('deleteCharacter_args')
+        if self.token is not None:
+            oprot.writeFieldBegin('token', TType.STRING, 1)
+            oprot.writeString(self.token.encode('utf-8') if sys.version_info[0] == 2 else self.token)
+            oprot.writeFieldEnd()
+        if self.serverId is not None:
+            oprot.writeFieldBegin('serverId', TType.I32, 2)
+            oprot.writeI32(self.serverId)
+            oprot.writeFieldEnd()
+        if self.characterId is not None:
+            oprot.writeFieldBegin('characterId', TType.I32, 3)
+            oprot.writeI32(self.characterId)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(deleteCharacter_args)
+deleteCharacter_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'token', 'UTF8', None, ),  # 1
+    (2, TType.I32, 'serverId', None, None, ),  # 2
+    (3, TType.I32, 'characterId', None, None, ),  # 3
+)
+
+
+class deleteCharacter_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.BOOL:
+                    self.success = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('deleteCharacter_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.BOOL, 0)
+            oprot.writeBool(self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(deleteCharacter_result)
+deleteCharacter_result.thrift_spec = (
+    (0, TType.BOOL, 'success', None, None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class createCharacter_args(object):
+    """
+    Attributes:
+     - token
+     - serverId
+     - name
+     - breedId
+     - sex
+     - moveOutOfIncarnam
+
+    """
+
+
+    def __init__(self, token=None, serverId=None, name=None, breedId=None, sex=None, moveOutOfIncarnam=None,):
+        self.token = token
+        self.serverId = serverId
+        self.name = name
+        self.breedId = breedId
+        self.sex = sex
+        self.moveOutOfIncarnam = moveOutOfIncarnam
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.token = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.I32:
+                    self.serverId = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.STRING:
+                    self.name = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.I32:
+                    self.breedId = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 5:
+                if ftype == TType.BOOL:
+                    self.sex = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 6:
+                if ftype == TType.BOOL:
+                    self.moveOutOfIncarnam = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('createCharacter_args')
+        if self.token is not None:
+            oprot.writeFieldBegin('token', TType.STRING, 1)
+            oprot.writeString(self.token.encode('utf-8') if sys.version_info[0] == 2 else self.token)
+            oprot.writeFieldEnd()
+        if self.serverId is not None:
+            oprot.writeFieldBegin('serverId', TType.I32, 2)
+            oprot.writeI32(self.serverId)
+            oprot.writeFieldEnd()
+        if self.name is not None:
+            oprot.writeFieldBegin('name', TType.STRING, 3)
+            oprot.writeString(self.name.encode('utf-8') if sys.version_info[0] == 2 else self.name)
+            oprot.writeFieldEnd()
+        if self.breedId is not None:
+            oprot.writeFieldBegin('breedId', TType.I32, 4)
+            oprot.writeI32(self.breedId)
+            oprot.writeFieldEnd()
+        if self.sex is not None:
+            oprot.writeFieldBegin('sex', TType.BOOL, 5)
+            oprot.writeBool(self.sex)
+            oprot.writeFieldEnd()
+        if self.moveOutOfIncarnam is not None:
+            oprot.writeFieldBegin('moveOutOfIncarnam', TType.BOOL, 6)
+            oprot.writeBool(self.moveOutOfIncarnam)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(createCharacter_args)
+createCharacter_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'token', 'UTF8', None, ),  # 1
+    (2, TType.I32, 'serverId', None, None, ),  # 2
+    (3, TType.STRING, 'name', 'UTF8', None, ),  # 3
+    (4, TType.I32, 'breedId', None, None, ),  # 4
+    (5, TType.BOOL, 'sex', None, None, ),  # 5
+    (6, TType.BOOL, 'moveOutOfIncarnam', None, None, ),  # 6
+)
+
+
+class createCharacter_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRUCT:
+                    self.success = Character()
+                    self.success.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('createCharacter_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            self.success.write(oprot)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(createCharacter_result)
+createCharacter_result.thrift_spec = (
+    (0, TType.STRUCT, 'success', [Character, None], None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class getBreeds_args(object):
+
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getBreeds_args')
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getBreeds_args)
+getBreeds_args.thrift_spec = (
+)
+
+
+class getBreeds_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.LIST:
+                    self.success = []
+                    (_etype31, _size28) = iprot.readListBegin()
+                    for _i32 in range(_size28):
+                        _elem33 = Breed()
+                        _elem33.read(iprot)
+                        self.success.append(_elem33)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getBreeds_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.LIST, 0)
+            oprot.writeListBegin(TType.STRUCT, len(self.success))
+            for iter34 in self.success:
+                iter34.write(oprot)
+            oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getBreeds_result)
+getBreeds_result.thrift_spec = (
+    (0, TType.LIST, 'success', (TType.STRUCT, [Breed, None], False), None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class getServers_args(object):
+    """
+    Attributes:
+     - token
+
+    """
+
+
+    def __init__(self, token=None,):
+        self.token = token
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.token = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getServers_args')
+        if self.token is not None:
+            oprot.writeFieldBegin('token', TType.STRING, 1)
+            oprot.writeString(self.token.encode('utf-8') if sys.version_info[0] == 2 else self.token)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getServers_args)
+getServers_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'token', 'UTF8', None, ),  # 1
+)
+
+
+class getServers_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.LIST:
+                    self.success = []
+                    (_etype38, _size35) = iprot.readListBegin()
+                    for _i39 in range(_size35):
+                        _elem40 = Server()
+                        _elem40.read(iprot)
+                        self.success.append(_elem40)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getServers_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.LIST, 0)
+            oprot.writeListBegin(TType.STRUCT, len(self.success))
+            for iter41 in self.success:
+                iter41.write(oprot)
+            oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getServers_result)
+getServers_result.thrift_spec = (
+    (0, TType.LIST, 'success', (TType.STRUCT, [Server, None], False), None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class fetchCharacterDetails_args(object):
+    """
+    Attributes:
+     - token
+     - serverId
+     - characterId
+
+    """
+
+
+    def __init__(self, token=None, serverId=None, characterId=None,):
+        self.token = token
+        self.serverId = serverId
+        self.characterId = characterId
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.token = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.I32:
+                    self.serverId = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.I32:
+                    self.characterId = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('fetchCharacterDetails_args')
+        if self.token is not None:
+            oprot.writeFieldBegin('token', TType.STRING, 1)
+            oprot.writeString(self.token.encode('utf-8') if sys.version_info[0] == 2 else self.token)
+            oprot.writeFieldEnd()
+        if self.serverId is not None:
+            oprot.writeFieldBegin('serverId', TType.I32, 2)
+            oprot.writeI32(self.serverId)
+            oprot.writeFieldEnd()
+        if self.characterId is not None:
+            oprot.writeFieldBegin('characterId', TType.I32, 3)
+            oprot.writeI32(self.characterId)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(fetchCharacterDetails_args)
+fetchCharacterDetails_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'token', 'UTF8', None, ),  # 1
+    (2, TType.I32, 'serverId', None, None, ),  # 2
+    (3, TType.I32, 'characterId', None, None, ),  # 3
+)
+
+
+class fetchCharacterDetails_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRUCT:
+                    self.success = CharacterDetails()
+                    self.success.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('fetchCharacterDetails_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            self.success.write(oprot)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(fetchCharacterDetails_result)
+fetchCharacterDetails_result.thrift_spec = (
+    (0, TType.STRUCT, 'success', [CharacterDetails, None], None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class addSession_args(object):
+    """
+    Attributes:
+     - session
+
+    """
+
+
+    def __init__(self, session=None,):
+        self.session = session
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.session = Session()
+                    self.session.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('addSession_args')
+        if self.session is not None:
+            oprot.writeFieldBegin('session', TType.STRUCT, 1)
+            self.session.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(addSession_args)
+addSession_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'session', [Session, None], None, ),  # 1
+)
+
+
+class addSession_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.BOOL:
+                    self.success = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('addSession_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.BOOL, 0)
+            oprot.writeBool(self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(addSession_result)
+addSession_result.thrift_spec = (
+    (0, TType.BOOL, 'success', None, None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class startSession_args(object):
+    """
+    Attributes:
+     - session
+
+    """
+
+
+    def __init__(self, session=None,):
+        self.session = session
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.session = Session()
+                    self.session.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('startSession_args')
+        if self.session is not None:
+            oprot.writeFieldBegin('session', TType.STRUCT, 1)
+            self.session.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(startSession_args)
+startSession_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'session', [Session, None], None, ),  # 1
+)
+
+
+class startSession_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.BOOL:
+                    self.success = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('startSession_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.BOOL, 0)
+            oprot.writeBool(self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(startSession_result)
+startSession_result.thrift_spec = (
+    (0, TType.BOOL, 'success', None, None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class stopSession_args(object):
+    """
+    Attributes:
+     - sessionId
+
+    """
+
+
+    def __init__(self, sessionId=None,):
+        self.sessionId = sessionId
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.sessionId = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('stopSession_args')
+        if self.sessionId is not None:
+            oprot.writeFieldBegin('sessionId', TType.I32, 1)
+            oprot.writeI32(self.sessionId)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(stopSession_args)
+stopSession_args.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'sessionId', None, None, ),  # 1
+)
+
+
+class stopSession_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.BOOL:
+                    self.success = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('stopSession_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.BOOL, 0)
+            oprot.writeBool(self.success)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(stopSession_result)
+stopSession_result.thrift_spec = (
+    (0, TType.BOOL, 'success', None, None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class getRunSummary_args(object):
+
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getRunSummary_args')
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getRunSummary_args)
+getRunSummary_args.thrift_spec = (
+)
+
+
+class getRunSummary_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.LIST:
+                    self.success = []
+                    (_etype45, _size42) = iprot.readListBegin()
+                    for _i46 in range(_size42):
+                        _elem47 = RunSummary()
+                        _elem47.read(iprot)
+                        self.success.append(_elem47)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getRunSummary_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.LIST, 0)
+            oprot.writeListBegin(TType.STRUCT, len(self.success))
+            for iter48 in self.success:
+                iter48.write(oprot)
+            oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getRunSummary_result)
+getRunSummary_result.thrift_spec = (
+    (0, TType.LIST, 'success', (TType.STRUCT, [RunSummary, None], False), None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class getCharacterRunSummary_args(object):
+    """
+    Attributes:
+     - login
+
+    """
+
+
+    def __init__(self, login=None,):
+        self.login = login
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.login = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getCharacterRunSummary_args')
+        if self.login is not None:
+            oprot.writeFieldBegin('login', TType.STRING, 1)
+            oprot.writeString(self.login.encode('utf-8') if sys.version_info[0] == 2 else self.login)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getCharacterRunSummary_args)
+getCharacterRunSummary_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'login', 'UTF8', None, ),  # 1
+)
+
+
+class getCharacterRunSummary_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRUCT:
+                    self.success = RunSummary()
+                    self.success.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getCharacterRunSummary_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            self.success.write(oprot)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getCharacterRunSummary_result)
+getCharacterRunSummary_result.thrift_spec = (
+    (0, TType.STRUCT, 'success', [RunSummary, None], None, ),  # 0
+    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+)
+
+
+class getSessionRunSummary_args(object):
+    """
+    Attributes:
+     - sessionId
+
+    """
+
+
+    def __init__(self, sessionId=None,):
+        self.sessionId = sessionId
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.sessionId = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getSessionRunSummary_args')
+        if self.sessionId is not None:
+            oprot.writeFieldBegin('sessionId', TType.STRING, 1)
+            oprot.writeString(self.sessionId.encode('utf-8') if sys.version_info[0] == 2 else self.sessionId)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getSessionRunSummary_args)
+getSessionRunSummary_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'sessionId', 'UTF8', None, ),  # 1
+)
+
+
+class getSessionRunSummary_result(object):
+    """
+    Attributes:
+     - success
+     - error
+
+    """
+
+
+    def __init__(self, success=None, error=None,):
+        self.success = success
+        self.error = error
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRUCT:
+                    self.success = RunSummary()
+                    self.success.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            elif fid == 1:
+                if ftype == TType.STRUCT:
+                    self.error = DofusError.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('getSessionRunSummary_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            self.success.write(oprot)
+            oprot.writeFieldEnd()
+        if self.error is not None:
+            oprot.writeFieldBegin('error', TType.STRUCT, 1)
+            self.error.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(getSessionRunSummary_result)
+getSessionRunSummary_result.thrift_spec = (
+    (0, TType.STRUCT, 'success', [RunSummary, None], None, ),  # 0
     (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 fix_spec(all_structs)

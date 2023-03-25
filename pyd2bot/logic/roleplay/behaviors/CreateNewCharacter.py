@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
+from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
@@ -39,21 +40,28 @@ class NewCharacterStates(Enum):
     OUT_OF_TUTORIAL = 4
 
 class CreateNewCharacter(AbstractBehavior):
-
+    NAME_SUGGESTION_FAILED = 6991
+    CHARACTER_CREATION_FAILED = 6992
+    CREATED_CHARACTER_NOTFOUND = 6993
+    CRATE_CHARACTER_TIMEOUT = 6994
+    
     def __init__(self) -> None:
         super().__init__()
         self.requestTimer = None
 
-    def run(self, breedId) -> bool:
-        self.name = None
+    def run(self, breedId, name=None, sex=False) -> bool:
+        self.name = name
         self.breedId = breedId
-        self.id = None
-        self.sate = None
+        self.sex = sex
+        self.character: Character = None
         self.nbrFails = 0
         self.charNameSuggListener = None
         self.charNameSuggFailListener = None
-        Logger().info("[CreateNewCharacter] Started.")
-        self.askNameSuggestion()
+        Logger().info(f"New character breedId {breedId}, name {name}, sex {sex}.")
+        if self.name is None:
+            self.askNameSuggestion()
+        else:
+            self.requestNewCharacter()
 
     def onCharacterNameSuggestion(self, event, suggestion):
         self.name = suggestion
@@ -64,7 +72,7 @@ class CreateNewCharacter(AbstractBehavior):
         self.nbrFails += 1
         if self.nbrFails > 3:
             KernelEventsManager().remove_listener(KernelEvent.CHARACTER_NAME_SUGGESTION, self.charNameSuggListener)
-            return self.finish(False, "failed to get character name suggestion")
+            return self.finish(self.NAME_SUGGESTION_FAILED, "failed to get character name suggestion")
         sleep(3)
         KernelEventsManager().once(KernelEvent.CHARACTER_NAME_SUGGESTION_FAILED, self.onCharacterNameSuggestionFail, originator=self)
         msg = CharacterNameSuggestionRequestMessage()
@@ -80,8 +88,6 @@ class CreateNewCharacter(AbstractBehavior):
         self.state = NewCharacterStates.GET_NAME_SUGGESTION
 
     def onNewCharacterResult(self, event, result, reason):
-        if self.requestTimer:
-            self.requestTimer.cancel()
         if result > 0:
             if result == CharacterCreationResultEnum.ERR_INVALID_NAME:
                 errorMsg = I18n.getUiText("ui.charcrea.invalidNameReason" + str(reason))
@@ -93,7 +99,7 @@ class CreateNewCharacter(AbstractBehavior):
                 errorMsg = I18n.getUiText("ui.popup.charcrea.noReason")
             elif result == CharacterCreationResultEnum.ERR_RESTRICTED_ZONE:
                 errorMsg = I18n.getUiText("ui.charSel.deletionErrorUnsecureMode")
-            self.finish(False, f"create character error : {errorMsg}")
+            self.finish(self.CHARACTER_CREATION_FAILED, f"Create character error : {errorMsg}")
         else:
             KernelEventsManager().once(KernelEvent.CHARACTERS_LIST, self.onCharacterList, originator=self)
 
@@ -112,28 +118,26 @@ class CreateNewCharacter(AbstractBehavior):
             def onSkillUsed(status, error):
                 if error:
                    return self.finish(status, error)
-                KernelEventsManager().onceMapProcessed(lambda:self.finish(True, None, result={"name": self.name, "id": self.id}), mapId=152046597, originator=self)
+                KernelEventsManager().onceMapProcessed(lambda:self.finish(True, None, character=self.character), mapId=152046597, originator=self)
             UseSkill().start(None, elementId=489318, skilluid=148931090, waitForSkillUsed=True, callback=onSkillUsed, parent=self)
         
     def onCharacterList(self, event, return_value):
         for ch in PlayerManager().charactersList:
             if ch.name == self.name: 
                 KernelEventsManager().onceMapProcessed(self.onMapProcessed, originator=self)
-                self.id = ch.id
+                self.character = ch
                 msg = CharacterFirstSelectionMessage()
                 msg.init(True, ch.id)
                 ConnectionsHandler().send(msg)
                 self.state = NewCharacterStates.CHARACTER_SELECTION
                 return
-        self.finish(False, "The created character is not found in characters list")                
+        self.finish(self.CREATED_CHARACTER_NOTFOUND, "The created character is not found in characters list")                
 
     def requestNewCharacter(self):
         def onTimeout():
-            self.finish(False, "Request character create timedout")
-        KernelEventsManager().once(KernelEvent.CHARACTER_CRATION_RESULT, self.onNewCharacterResult, originator=self)
-        self.requestTimer = BenchmarkTimer(10, onTimeout)
+            self.finish(self.CREATE_CHARACTER_TIMEOUT, "Request character create timedout")
+        KernelEventsManager().once(KernelEvent.CHARACTER_CREATION_RESULT, self.onNewCharacterResult, timeout=10, ontimeout=onTimeout, originator=self)
         msg = CharacterCreationRequestMessage()
-        msg.init(self.name, self.breedId, True, [12215600, 12111183, 4803893, 9083451, 13358995], 153)
-        self.requestTimer.start()
+        msg.init(str(self.name), int(self.breedId), bool(self.sex), [12215600, 12111183, 4803893, 9083451, 13358995], 153)
         ConnectionsHandler().send(msg)
         self.state = NewCharacterStates.CHARACTER_CREATION

@@ -32,6 +32,6 @@ class GetOutOfAnkarnam(AbstractBehavior):
             self.npcId, 
             self.openGoToAstrubActionId, 
             [self.iAmSureReplyId, self.goToAstrubReplyId],
-            self.finish,
+            callback=self.finish,
             parent=self
         )

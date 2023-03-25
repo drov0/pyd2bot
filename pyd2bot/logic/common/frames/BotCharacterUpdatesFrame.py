@@ -57,7 +57,7 @@ class BotCharacterUpdatesFrame(Frame):
                 self.boostCharacs(usedCapital, BotConfig().primaryStatId)
 
     def getStatFloor(self, statId: int):
-        breed = Breed.getBreedById(statId)
+        breed = Breed.getBreedById(PlayedCharacterManager().infos.breed)
         statFloors = {
             StatIds.STRENGTH: breed.statsPointsForStrength,
             StatIds.VITALITY: breed.statsPointsForVitality,
