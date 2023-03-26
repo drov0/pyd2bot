@@ -51,7 +51,10 @@ def sendTrace(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            raise DofusError(0, getTrace(e))
+            if not isinstance(e, DofusError):
+                raise DofusError(401, getTrace(e))
+            else:
+                raise e
     return wrapped
 
 class Pyd2botServer:
@@ -350,8 +353,6 @@ class Pyd2botServer:
     
     @sendTrace    
     def startSession(self, session: Session) -> bool:
-        Logger().debug(f"Received start : {session}")
-        return True
         return self.sessionsCtrl.startSession(session)
     
     def stopSession(self, sessionId) -> bool:

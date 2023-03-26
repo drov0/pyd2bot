@@ -8,7 +8,7 @@ from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, DofusError,
                                                         Path, PathType,
                                                         RunSummary, Session,
                                                         SessionType,
-                                                        UnloadType, Vertex)
+                                                        UnloadType, Vertex, SessionStatus)
 from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import \
     DisconnectionReasonEnum
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -26,62 +26,32 @@ class SessionCtrl:
         with open(accounts_jsonfile, "r") as fp:
             self.accounts: dict = json.load(fp)
         with open(creds_jsonfile, "r") as fp:
-            self.creds: dict = json.load(fp)
+            creds: dict = json.load(fp)
+            self.certificates: dict = creds["certificates"]
+            self.apikeys: dict = creds["apikeys"]
         self._running = dict[str, Pyd2Bot]()
         self._sessions = dict[str, Session]()
-
-    def getCharacterById(self, id) -> Character:
-        for accId in self.accounts:
-            if "characters" in self.accounts[accId]:
-                for character in self.accounts[accId]["characters"]:
-                    if character["id"] == id:
-                        return Character(
-                            name=character["name"],
-                            id=character["id"],
-                            level=character["level"],
-                            breedId=character["breedId"],
-                            breedName=character["breedName"],
-                            serverId=character["serverId"],
-                            serverName=character["serverName"],
-                            login=self.accounts[accId]["login"],
-                            accountId=accId,
-                        )
-        raise Exception(f"character id {id} not found")
-
-    def createFightSession(self, leaderId, followersIds, sellerId, path, monsterLvlCoefDiff) -> Session:
-        return Session(
-            id="test",
-            leader=self.getCharacterById(leaderId),
-            unloadType=UnloadType.SELLER,
-            followers=[self.getCharacterById(id) for id in followersIds],
-            type=SessionType.FIGHT,
-            path=path,
-            seller=self.getCharacterById(sellerId),
-            monsterLvlCoefDiff=monsterLvlCoefDiff,
-        )
-
-    def getPath(self, mapId) -> Path:
-        return Path(
-            id="test_path",
-            type=PathType.RandomSubAreaFarmPath,
-            startVertex=Vertex(mapId=mapId, zoneId=1),
-        )
 
     def stopCharacter(self, login, reason="N/A", crash=False):
         bot = self._running.get(login)
         if not bot:
             return Logger().error(f"Character {login} is not running")
         bot.shutdown(DisconnectionReasonEnum.WANTED_SHUTDOWN, reason)
+        if not crash:
+            del self._running[login]
 
     def startCharacter(self, character: Character, role: CharacterRoleEnum, session: Session):
         if character.login in self._running:
             Logger().warning(f"Character {character.login} is already running")
             return
         login = character.login
-        cert = self.creds["certificates"][login]
-        key = self.creds["apikeys"][login]["key"]
+        if login not in self.certificates:
+            raise DofusError(403, f"No certificate found for login {login}!")
+        if login not in self.apikeys:
+            raise DofusError(403, f"No apikey found for login {login}!")
+        cert = self.certificates[login]
+        key = self.apikeys[login]["key"]
         bot = Pyd2Bot(login)
-
         def onShutDown():
             Logger().warning(f"Character {login} shutdowned")
             if bot._crashed and session.type == SessionType.FIGHT:
@@ -89,16 +59,10 @@ class SessionCtrl:
                     session, f"Character {login} crached for reason : {bot._crashMessage}", True
                 )
             self.stopCharacter(login, bot._shutDownReason)
-
         bot.addShutDownListener(onShutDown)
         bot.setConfig(key, cert["id"], cert["hash"], session, role, character)
         bot.start()
         self._running[login] = bot
-
-    def addTeam(self, name, leaderId, followersIds, sellerId, mapId, monsterLvlCoefDiff=None):
-        path = self.getPath(mapId)
-        session = self.createFightSession(leaderId, followersIds, sellerId, path, monsterLvlCoefDiff)
-        self._sessions[name] = session
 
     def addSession(self, session: Session):
         self._sessions[session.id] = session
@@ -125,14 +89,6 @@ class SessionCtrl:
                 self.startCharacter(character, CharacterRoleEnum.FOLLOWER, session)
         if session.unloadType == UnloadType.SELLER:
             self.startCharacter(session.seller, CharacterRoleEnum.SELLER, session)
-
-    def startJoinAll(self):
-        for name, session in self._sessions.items():
-            Logger().info(f"Running session {name} ..")
-            self.startSession(session)
-            Logger().info(f"Session {name} started")
-        for login, bot in self._running.items():
-            bot.join()
 
     def getSession(self, sessionId) -> Session:
         return self._sessions.get(sessionId)
@@ -184,7 +140,7 @@ class SessionCtrl:
         number_of_restarts = len(bot._reconnectRecord)
         status = bot.getState()
         status_reason = "N/A"
-        if status == "crashed":
+        if status == SessionStatus.CRASHED:
             status_reason = bot._crashMessage
         run_summary = RunSummary(
             login=login,
@@ -202,15 +158,22 @@ class SessionCtrl:
 
     def getRunSummary(self) -> list[RunSummary]:
         run_summaries = []
+        crashed_characters = []
         for login, bot in self._running.items():
             run_summary = self.getCharacterRunSummary(login)
             run_summaries.append(run_summary)
+            if run_summary.status == SessionStatus.CRASHED:
+                crashed_characters.append(login)
+        for login in crashed_characters:
+            del self._running[login]
         return run_summaries
-
+    
     def getSessionRunSummary(self, sessionId) -> list[RunSummary]:
-        session = self.getSession(sessionId)
+        session = self.getSession(sessionId)        
         if not session:
             raise DofusError(404, "Session not found")
+        if session.type == SessionType.FARM:
+            raise DofusError(403, "Get farm session run summary not implemented yet")
         run_summaries = list[RunSummary]()
         if session.type == SessionType.FIGHT:
             run_summary = self.getCharacterRunSummary(session.leader.login)
@@ -222,9 +185,8 @@ class SessionCtrl:
             if session.unloadType == UnloadType.SELLER and session.seller:
                 run_summary = self.getCharacterRunSummary(session.seller.login)
                 run_summaries.append(run_summary)
-        else:
-            raise DofusError(404, "Get farm session run summary not implemented yet")
         for summary in run_summaries:
-            if summary.status == "crashed":
+            if summary.status == SessionStatus.CRASHED:
                 self.removeSession(sessionId)
+                break
         return run_summaries

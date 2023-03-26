@@ -89,7 +89,8 @@ struct Session {
     4: SessionType type,
     5: UnloadType unloadType,
     6: optional Character seller,
-    7: optional Path path
+    7: optional Path path,
+    8: optional double monsterLvlCoefDiff
 }
 exception DofusError {
     1: int code,

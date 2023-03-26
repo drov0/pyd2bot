@@ -1037,11 +1037,12 @@ class Session(object):
      - unloadType
      - seller
      - path
+     - monsterLvlCoefDiff
 
     """
 
 
-    def __init__(self, id=None, leader=None, followers=None, type=None, unloadType=None, seller=None, path=None,):
+    def __init__(self, id=None, leader=None, followers=None, type=None, unloadType=None, seller=None, path=None, monsterLvlCoefDiff=None,):
         self.id = id
         self.leader = leader
         self.followers = followers
@@ -1049,6 +1050,7 @@ class Session(object):
         self.unloadType = unloadType
         self.seller = seller
         self.path = path
+        self.monsterLvlCoefDiff = monsterLvlCoefDiff
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1103,6 +1105,11 @@ class Session(object):
                     self.path.read(iprot)
                 else:
                     iprot.skip(ftype)
+            elif fid == 8:
+                if ftype == TType.DOUBLE:
+                    self.monsterLvlCoefDiff = iprot.readDouble()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1143,6 +1150,10 @@ class Session(object):
         if self.path is not None:
             oprot.writeFieldBegin('path', TType.STRUCT, 7)
             self.path.write(oprot)
+            oprot.writeFieldEnd()
+        if self.monsterLvlCoefDiff is not None:
+            oprot.writeFieldBegin('monsterLvlCoefDiff', TType.DOUBLE, 8)
+            oprot.writeDouble(self.monsterLvlCoefDiff)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1338,6 +1349,7 @@ Session.thrift_spec = (
     (5, TType.I32, 'unloadType', None, None, ),  # 5
     (6, TType.STRUCT, 'seller', [Character, None], None, ),  # 6
     (7, TType.STRUCT, 'path', [Path, None], None, ),  # 7
+    (8, TType.DOUBLE, 'monsterLvlCoefDiff', None, None, ),  # 8
 )
 all_structs.append(DofusError)
 DofusError.thrift_spec = (

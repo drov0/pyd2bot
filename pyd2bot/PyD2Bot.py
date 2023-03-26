@@ -47,7 +47,6 @@ class Pyd2Bot(DofusClient):
         self.earnedKamas = 0
         self._totalKamas = None
         self.nbrFightsDone = 0
-        self._shutDownListeners = []
         self.startTime = None
         self.mule = role != CharacterRoleEnum.LEADER
 
