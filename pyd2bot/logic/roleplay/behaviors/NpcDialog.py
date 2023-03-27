@@ -32,6 +32,7 @@ class NpcDialog(AbstractBehavior):
     def onNpcQuestion(self, event, messageId, dialogParams, visibleReplies):
         if self.currentNpcQuestionReplyIdx == len(self.npcQuestionsReplies):
             return self.finish(self.NO_MORE_REPLIES, "Received an NPC question but have no more replies programmed")
+        Logger().info(f"Received NPC question : {messageId}")
         msg = NpcDialogReplyMessage()
         msg.init(self.npcQuestionsReplies[self.currentNpcQuestionReplyIdx])
         self.currentNpcQuestionReplyIdx += 1

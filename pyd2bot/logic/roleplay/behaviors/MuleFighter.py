@@ -58,7 +58,7 @@ class MuleFighter(AbstractBehavior):
                 dstSubArea = SubArea.getSubAreaByMapId(vertex.mapId)
                 dstAreaId = dstSubArea._area.id
                 if dstAreaId != GetOutOfAnkarnam.ankarnamAreaId and srcAreaId == GetOutOfAnkarnam.ankarnamAreaId:
-                    Logger().info(f"Auto trip to an Area {dstSubArea._area.name} out of ankarnam while character is in Ankarnam {srcSubArea._area.name}.")
+                    Logger().info(f"Auto trip to an Area ({dstSubArea._area.name}) out of {srcSubArea._area.name}.")
                     def onGotOutOfAnkarnam(code, error):
                         if error:
                             return self.finish(code, error)
