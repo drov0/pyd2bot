@@ -11,22 +11,21 @@ if TYPE_CHECKING:
     pass
 
 class GetOutOfAnkarnam(AbstractBehavior):
-
+    npcId = -20001
+    npcMapId = 153880835
+    openGoToAstrubActionId = 3
+    iAmSureReplyId = 36979
+    goToAstrubReplyId = 36977
+    ankarnamAreaId = 45
+    
     def __init__(self) -> None:
         super().__init__()
-        self.npcId = -20001
-        self.npcMapId = 153880835
-        self.openGoToAstrubActionId = 3
-        self.iAmSureReplyId = 36979
-        self.goToAstrubReplyId = 36977
-        self.ankarnamAreaId = 45
 
     def run(self) -> bool:
-        Logger().info("[GetOutOfAnkarnam] Started.")
         sa = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
         areaId = sa._area.id
         if areaId != self.ankarnamAreaId:
-            return self.finish(True, "[GetOutOfAnkarnam] Already out of ankarnam area")
+            return self.finish(True, "Already out of ankarnam area")
         NpcDialog().start(
             self.npcMapId, 
             self.npcId, 

@@ -5,6 +5,7 @@ from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
+from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
@@ -37,6 +38,21 @@ class AutoTrip(AbstractBehavior):
         self.dstRpZone = dstZoneId
         self.path: list[Edge] = None
         AStar().resetForbinedEdges()
+        srcSubAreaId = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
+        srcAreaId = srcSubAreaId._area.id
+        dstSubAreaId = SubArea.getSubAreaByMapId(dstMapId)
+        dstAreaId = dstSubAreaId._area.id
+        from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import \
+            GetOutOfAnkarnam
+        if dstAreaId != GetOutOfAnkarnam.ankarnamAreaId and srcAreaId == GetOutOfAnkarnam.ankarnamAreaId:
+            Logger().info("Auto trip to an Area out of ankarnam while character is in ankarnam. Need to get it out of there first.")
+            def onGotOutOfAnkarnam(code, error):
+                self.running.set()
+                if error:
+                    return self.finish(code, error)
+                self.walkToNextStep()
+            self.running.clear()
+            return GetOutOfAnkarnam().start(callback=onGotOutOfAnkarnam, parent=self)
         self.walkToNextStep()
 
     def finish(self, success: bool, error: str):

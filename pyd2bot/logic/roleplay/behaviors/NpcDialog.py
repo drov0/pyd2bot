@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING
-
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
@@ -16,7 +15,8 @@ if TYPE_CHECKING:
     pass
 
 class NpcDialog(AbstractBehavior):
-
+    NO_MORE_REPLIES = 10235
+    
     def __init__(self) -> None:
         super().__init__()
 
@@ -27,13 +27,11 @@ class NpcDialog(AbstractBehavior):
         self.npcQuestionsReplies = npcQuestionsReplies
         self.currentNpcQuestionReplyIdx = 0
         self.dialogLeftListener = None
-        Logger().info("[NpcDialog] Started.")
         AutoTrip().start(self.npcMapId, 1, callback=self.onNPCMapReached, parent=self)
 
     def onNpcQuestion(self, event, messageId, dialogParams, visibleReplies):
         if self.currentNpcQuestionReplyIdx == len(self.npcQuestionsReplies):
-            KernelEventsManager().remove_listener(KernelEvent.NPC_DIALOG_LEFT, self.dialogLeftListener)
-            return self.finish(False, "[NpcDialog] Received an npc question but have no more replies programmed")
+            return self.finish(self.NO_MORE_REPLIES, "Received an NPC question but have no more replies programmed")
         msg = NpcDialogReplyMessage()
         msg.init(self.npcQuestionsReplies[self.currentNpcQuestionReplyIdx])
         self.currentNpcQuestionReplyIdx += 1
@@ -41,13 +39,14 @@ class NpcDialog(AbstractBehavior):
         ConnectionsHandler().send(msg)
     
     def onNpcDialogleft(self, event):
-        self.finish(True, None)
+        self.finish(0, None)
 
-    def onNPCMapReached(self, status, error):
+    def onNPCMapReached(self, code, error):
+        Logger().info(f"NPC Map reached with error : {error}")
         if error:
-            return self.finish(status, f"Move to npc Map failed with error : {error}")
+            return self.finish(code, error)
         msg = NpcGenericActionRequestMessage()
         msg.init(self.npcId, self.npcOpenDialogId, self.npcMapId)
-        self.dialogLeftListener = KernelEventsManager().once(KernelEvent.NPC_DIALOG_LEFT, self.onNpcDialogleft, originator=self)
+        KernelEventsManager().once(KernelEvent.NPC_DIALOG_LEFT, self.onNpcDialogleft, originator=self)
         KernelEventsManager().once(KernelEvent.NPC_QUESTION, self.onNpcQuestion, originator=self)
         ConnectionsHandler().send(msg) 

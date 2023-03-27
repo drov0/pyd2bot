@@ -39,6 +39,7 @@ class AbstractBehavior(metaclass=Singleton):
                 Logger().error(error)
             return
         self.running.set()
+        Logger().debug(f"{type(self).__name__} started with args {args}")
         self.run(*args, **kwargs)
         
     def run(self, *args, **kwargs):
