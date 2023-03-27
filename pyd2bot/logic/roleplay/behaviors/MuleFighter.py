@@ -4,6 +4,7 @@ from time import perf_counter
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
 from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
@@ -11,12 +12,14 @@ from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
                                                                      Listener)
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import Vertex
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
+    Vertex
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.GameFightJoinRequestMessage import \
     GameFightJoinRequestMessage
 from pydofus2.com.ankamagames.dofus.network.types.game.context.fight.FightCommonInformations import \
@@ -43,14 +46,25 @@ class MuleFighter(AbstractBehavior):
     def onMoveToVertex(self, event: Event, vertex: Vertex):
         Logger().info(f"Move to vertex {vertex} received")
         for behavior in self.getOtherRunning():
-            Logger().warning(f"I have other running behavriors {self.getOtherRunning()}, can't move to vertex.")
+            Logger().warning(f"I have other running behaviors {self.getOtherRunning()}, can't move to vertex.")
             return behavior.onFinish(lambda: self.onMoveToVertex(event, vertex))
         if PlayedCharacterManager().currVertex is not None:
             if PlayedCharacterManager().currVertex.UID != vertex.UID:
                 def onPosReached(code, error):
                     if error:
                         Logger().error(error)
-                AutoTrip().start(vertex.mapId, vertex.zoneId, callback=onPosReached, parent=self)
+                srcSubArea = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
+                srcAreaId = srcSubArea._area.id
+                dstSubArea = SubArea.getSubAreaByMapId(vertex.mapId)
+                dstAreaId = dstSubArea._area.id
+                if dstAreaId != GetOutOfAnkarnam.ankarnamAreaId and srcAreaId == GetOutOfAnkarnam.ankarnamAreaId:
+                    Logger().info(f"Auto trip to an Area {dstSubArea._area.name} out of ankarnam while character is in Ankarnam {srcSubArea._area.name}.")
+                    def onGotOutOfAnkarnam(code, error):
+                        if error:
+                            return self.finish(code, error)
+                        AutoTrip().start(vertex.mapId, vertex.zoneId, parent=self.parent, callback=onPosReached)
+                    return GetOutOfAnkarnam().start(callback=onGotOutOfAnkarnam, parent=self)
+                AutoTrip().start(vertex.mapId, vertex.zoneId, parent=self.parent, callback=onPosReached)
             else:
                 Logger().info("Dest vertex is the same as the current player vertex")
         else:
