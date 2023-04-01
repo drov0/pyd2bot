@@ -358,14 +358,16 @@ class Pyd2botServer:
     def stopSession(self, sessionId) -> bool:
         return self.sessionsCtrl.stopSession(sessionId)
     
+    @sendTrace
     def getRunSummary(self) -> list[RunSummary]:
         return self.sessionsCtrl.getRunSummary()
     
     def getCharacterRunSummary(self, login) -> RunSummary:
         return self.sessionsCtrl.getCharacterRunSummary(login)
 
-    def getSessionRunSummary(self, sessionid) -> list[RunSummary]:
-        return self.sessionsCtrl.getSessionRunSummary(sessionid)
+    @sendTrace
+    def getSessionRunSummary(self, sessionId) -> list[RunSummary]:
+        return self.sessionsCtrl.getSessionRunSummary(sessionId)
     
     def ping(self) -> str:
         return "pong"

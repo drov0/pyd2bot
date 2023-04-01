@@ -40,7 +40,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  bool stopSession(int sessionId)')
     print('   getRunSummary()')
     print('  RunSummary getCharacterRunSummary(string login)')
-    print('  RunSummary getSessionRunSummary(string sessionId)')
+    print('   getSessionRunSummary(string sessionId)')
     print('')
     sys.exit(0)
 

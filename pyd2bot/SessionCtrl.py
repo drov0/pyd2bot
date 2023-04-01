@@ -169,7 +169,7 @@ class SessionCtrl:
         return run_summaries
     
     def getSessionRunSummary(self, sessionId) -> list[RunSummary]:
-        session = self.getSession(sessionId)        
+        session = self.getSession(sessionId)
         if not session:
             raise DofusError(404, "Session not found")
         if session.type == SessionType.FARM:

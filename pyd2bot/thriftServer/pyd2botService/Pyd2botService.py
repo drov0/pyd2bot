@@ -3556,9 +3556,14 @@ class getSessionRunSummary_result(object):
             if ftype == TType.STOP:
                 break
             if fid == 0:
-                if ftype == TType.STRUCT:
-                    self.success = RunSummary()
-                    self.success.read(iprot)
+                if ftype == TType.LIST:
+                    self.success = []
+                    (_etype52, _size49) = iprot.readListBegin()
+                    for _i53 in range(_size49):
+                        _elem54 = RunSummary()
+                        _elem54.read(iprot)
+                        self.success.append(_elem54)
+                    iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 1:
@@ -3577,8 +3582,11 @@ class getSessionRunSummary_result(object):
             return
         oprot.writeStructBegin('getSessionRunSummary_result')
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRUCT, 0)
-            self.success.write(oprot)
+            oprot.writeFieldBegin('success', TType.LIST, 0)
+            oprot.writeListBegin(TType.STRUCT, len(self.success))
+            for iter55 in self.success:
+                iter55.write(oprot)
+            oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.error is not None:
             oprot.writeFieldBegin('error', TType.STRUCT, 1)
@@ -3602,7 +3610,7 @@ class getSessionRunSummary_result(object):
         return not (self == other)
 all_structs.append(getSessionRunSummary_result)
 getSessionRunSummary_result.thrift_spec = (
-    (0, TType.STRUCT, 'success', [RunSummary, None], None, ),  # 0
+    (0, TType.LIST, 'success', (TType.STRUCT, [RunSummary, None], False), None, ),  # 0
     (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
 )
 fix_spec(all_structs)

@@ -20,6 +20,7 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionType import \
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.DofusClient import DofusClient
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
 class Pyd2Bot(DofusClient):
@@ -60,6 +61,7 @@ class Pyd2Bot(DofusClient):
         if self._role == CharacterRoleEnum.SELLER:
             BotConfig.SELLER_VACANT.set()
         def onKamasUpdate(event, totalKamas):
+            Logger().info(f"Total kamas update : {totalKamas}")
             if self._totalKamas is not None:
                 diff = totalKamas - self._totalKamas
                 if diff > 0:

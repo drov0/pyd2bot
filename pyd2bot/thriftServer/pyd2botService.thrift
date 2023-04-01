@@ -113,7 +113,7 @@ service Pyd2botService {
     bool stopSession(1: int sessionId) throws (1: DofusError error),
     list<RunSummary> getRunSummary() throws (1: DofusError error),
     RunSummary getCharacterRunSummary(1: string login) throws (1: DofusError error),
-    RunSummary getSessionRunSummary(1: string sessionId) throws (1: DofusError error)
+    list<RunSummary> getSessionRunSummary(1: string sessionId) throws (1: DofusError error)
 }
        
     

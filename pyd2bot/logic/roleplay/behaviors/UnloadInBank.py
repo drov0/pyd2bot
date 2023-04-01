@@ -56,7 +56,8 @@ class UnloadInBank(AbstractBehavior):
             self.infos.npcId, 
             self.infos.npcActionId, 
             [self.infos.openBankReplyId], 
-            self.onBankManDialogEnded
+            callback=self.onBankManDialogEnded,
+            parent=self
         )
     
     def onBankManDialogEnded(self, status, error):
