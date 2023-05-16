@@ -18,13 +18,43 @@ all_structs = []
 
 class SessionStatus(object):
     CRASHED = 0
+    TERMINATED = 1
+    RUNNING = 2
+    DISCONNECTED = 3
+    AUTHENTICATING = 4
+    FIGHTING = 5
+    ROLEPLAYING = 6
+    LOADING_MAP = 7
+    PROCESSING_MAP = 8
+    OUT_OF_ROLEPLAY = 9
+    IDLE = 10
 
     _VALUES_TO_NAMES = {
         0: "CRASHED",
+        1: "TERMINATED",
+        2: "RUNNING",
+        3: "DISCONNECTED",
+        4: "AUTHENTICATING",
+        5: "FIGHTING",
+        6: "ROLEPLAYING",
+        7: "LOADING_MAP",
+        8: "PROCESSING_MAP",
+        9: "OUT_OF_ROLEPLAY",
+        10: "IDLE",
     }
 
     _NAMES_TO_VALUES = {
         "CRASHED": 0,
+        "TERMINATED": 1,
+        "RUNNING": 2,
+        "DISCONNECTED": 3,
+        "AUTHENTICATING": 4,
+        "FIGHTING": 5,
+        "ROLEPLAYING": 6,
+        "LOADING_MAP": 7,
+        "PROCESSING_MAP": 8,
+        "OUT_OF_ROLEPLAY": 9,
+        "IDLE": 10,
     }
 
 

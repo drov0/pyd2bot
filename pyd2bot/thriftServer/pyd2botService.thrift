@@ -6,6 +6,16 @@ struct Vertex {
 }
 enum SessionStatus {
     CRASHED = 0
+    TERMINATED = 1
+    RUNNING = 2
+    DISCONNECTED = 3
+    AUTHENTICATING = 4
+    FIGHTING = 5
+    ROLEPLAYING = 6
+    LOADING_MAP = 7
+    PROCESSING_MAP = 8
+    OUT_OF_ROLEPLAY = 9
+    IDLE = 10
 }
 struct RunSummary {
     1: string login,

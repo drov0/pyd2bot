@@ -7,7 +7,8 @@ from pyd2bot.logic.common.frames.BotRPCFrame import BotRPCFrame
 from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.thriftServer.pyd2botService.ttypes import Character, Session
+from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Session,
+                                                        SessionStatus)
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
@@ -19,8 +20,8 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionType import \
     ConnectionType
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.DofusClient import DofusClient
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+from pydofus2.com.DofusClient import DofusClient
 
 
 class Pyd2Bot(DofusClient):
@@ -90,22 +91,22 @@ class Pyd2Bot(DofusClient):
 
     def getState(self):
         if self.terminated.is_set():
-            return "terminated"
+            return SessionStatus.TERMINATED
         if self._crashed:
-            return "crashed"
+            return SessionStatus.CRASHED
         if not ConnectionsHandler.getInstance(self.name) or \
             ConnectionsHandler.getInstance(self.name).connectionType == ConnectionType.DISCONNECTED:
-            return "disconnected"
+            return SessionStatus.DISCONNECTED
         elif ConnectionsHandler.getInstance(self.name).connectionType == ConnectionType.TO_LOGIN_SERVER:
-            return "authenticating"
+            return SessionStatus.AUTHENTICATING
         if PlayedCharacterManager.getInstance(self.name).isInFight:
-            return "fighting"
+            return SessionStatus.FIGHTING
         elif not Kernel.getInstance(self.name).entitiesFrame:
-            return "outOfRolePlay"
+            return SessionStatus.OUT_OF_ROLEPLAY
         elif MapDisplayManager.getInstance(self.name).currentDataMap is None:
-            return "loadingMap"
+            return SessionStatus.LOADING_MAP
         elif not Kernel.getInstance(self.name).entitiesFrame.mcidm_processed:
-            return "processingMapData"
+            return SessionStatus.PROCESSING_MAP
         if AbstractBehavior.hasRunning():
-            return "Running beviors : " + " & ".join([str(b) for b in AbstractBehavior.getRunning()])
-        return "idle"
+            return SessionStatus.ROLEPLAYING
+        return SessionStatus.IDLE
