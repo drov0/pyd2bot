@@ -1,4 +1,5 @@
 import threading
+import traceback
 from enum import Enum
 
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
@@ -27,19 +28,22 @@ class AbstractBehavior(metaclass=Singleton):
         super().__init__()
 
     def start(self, *args, parent: 'AbstractBehavior'=None, callback=None, **kwargs) -> None:
+        Logger().debug(f"Starting '{type(self).__name__}' by parent {type(parent).__name__}...")
+        if self.parent and not self.parent.running.is_set():
+            return Logger().debug(f"Cancel start coz parent is dead")
         self.callback = callback
         self.parent = parent
         if self.parent:
             self.parent.children.append(self)
         if self.running.is_set():
-            error = f"{type(self).__name__} already running with args {args}"
+            error = f"{type(self).__name__} already running."
             if self.callback:
                 self.callback(self.ALREADY_RUNNING, error)
             else:
                 Logger().error(error)
             return
         self.running.set()
-        Logger().debug(f"{type(self).__name__} started with args {args}")
+        Logger().debug(f"{type(self).__name__} started.")
         self.run(*args, **kwargs)
         
     def run(self, *args, **kwargs):
@@ -49,16 +53,16 @@ class AbstractBehavior(metaclass=Singleton):
         self.endListeners.append(callback)
 
     def finish(self, code: bool, error: str = None, **kwargs) -> None:
-        from pyd2bot.misc.BotEventsmanager import BotEventsManager
         if not self.running.is_set():
             return Logger().warning(f"[{type(self).__name__}] wants to finish but not running!")
-        Logger().info(f"[{type(self).__name__}] Finished.")
         KernelEventsManager().clearAllByOrigin(self)
+        from pyd2bot.misc.BotEventsmanager import BotEventsManager
         BotEventsManager().clearAllByOrigin(self)
         callback = self.callback
         self.callback = None
         self.running.clear()
         type(self).clear()
+        Logger().info(f"[{type(self).__name__}] Finished.")
         if self.parent and self in self.parent.children:
             self.parent.children.remove(self)
         error = f"[{type(self).__name__}] failed for reason : {error}" if error else None
@@ -135,3 +139,12 @@ class AbstractBehavior(metaclass=Singleton):
         if self.children:
             result += f", Children: {self.getTreeStr()}"
         return result
+    
+    def stop(self):
+        Logger().debug(f"Stopping {type(self).__name__} ...")
+        self.finish(True, None)
+        Logger().debug(f"{type(self).__name__} has {len(self.children)} children")
+        while self.children:
+            child = self.children.pop()
+            child.stop()
+            

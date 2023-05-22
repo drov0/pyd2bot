@@ -12,6 +12,7 @@ class CharacterRoleEnum(Enum):
     LEADER = 0
     FOLLOWER = 1
     SELLER = 2
+    FARMER = 3
 
 
 class BotConfig(metaclass=Singleton):
@@ -96,9 +97,12 @@ class BotConfig(metaclass=Singleton):
 
     def initFromSession(self, session: Session, role: CharacterRoleEnum, character: Character):
         self.id = session.id
+        if not session.jobFilters:
+            session.jobFilters = []
+        self.jobFilter = { jf.jobId: jf.resoursesIds for jf in session.jobFilters }
         self.sessionType = session.type
         self.unloadType = session.unloadType
-        self.followers = session.followers
+        self.followers = session.followers if session.followers else []
         self.followersIds = [follower.id for follower in self.followers]
         self.party = self.followers is not None and len(self.followers) > 0
         self.character = character
@@ -106,8 +110,9 @@ class BotConfig(metaclass=Singleton):
         self.isFollower = (role == CharacterRoleEnum.FOLLOWER)
         self.isSeller = (role == CharacterRoleEnum.SELLER)
         self.seller = session.seller
-        if self.isFightSession and self.isLeader:
+        if session.path:
             self.path = PathFactory.from_thriftObj(session.path)
+        if self.isFightSession and self.isLeader:
             self.monsterLvlCoefDiff = (
                 session.monsterLvlCoefDiff if session.monsterLvlCoefDiff is not None else float("inf")
             )

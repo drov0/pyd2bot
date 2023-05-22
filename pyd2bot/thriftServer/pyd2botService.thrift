@@ -17,6 +17,10 @@ enum SessionStatus {
     OUT_OF_ROLEPLAY = 9
     IDLE = 10
 }
+struct JobFilter {
+    1: i32 jobId,
+    2: list<i32> resoursesIds
+}
 struct RunSummary {
     1: string login,
     2: i64 startTime,
@@ -100,7 +104,8 @@ struct Session {
     5: UnloadType unloadType,
     6: optional Character seller,
     7: optional Path path,
-    8: optional double monsterLvlCoefDiff
+    8: optional double monsterLvlCoefDiff,
+    9: optional list<JobFilter> jobFilters
 }
 exception DofusError {
     1: int code,
@@ -120,7 +125,7 @@ service Pyd2botService {
     CharacterDetails fetchCharacterDetails(1: string token, 2: i32 serverId, 3: i32 characterId) throws (1: DofusError error)
     bool addSession(1: Session session) throws (1: DofusError error),
     bool startSession(1: Session session) throws (1: DofusError error),
-    bool stopSession(1: int sessionId) throws (1: DofusError error),
+    bool stopSession(1: string sessionId) throws (1: DofusError error),
     list<RunSummary> getRunSummary() throws (1: DofusError error),
     RunSummary getCharacterRunSummary(1: string login) throws (1: DofusError error),
     list<RunSummary> getSessionRunSummary(1: string sessionId) throws (1: DofusError error)

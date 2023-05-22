@@ -6,6 +6,7 @@ from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AttackMonsters import AttackMonsters
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
+from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
 from pyd2bot.logic.roleplay.behaviors.WaitForMembersIdle import \
     WaitForMembersIdle
 from pyd2bot.logic.roleplay.behaviors.WaitForMembersToShow import \
@@ -18,11 +19,13 @@ from pyd2bot.thriftServer.pyd2botService.ttypes import Vertex
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.datacenter.monsters.Monster import Monster
+from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import \
     TransitionTypeEnum
+from pydofus2.com.ankamagames.dofus.network.enums.PlayerLifeStatusEnum import PlayerLifeStatusEnum
 from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.GameRolePlayGroupMonsterInformations import \
     GameRolePlayGroupMonsterInformations
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -44,9 +47,6 @@ class FarmFights(AbstractBehavior):
     def __init__(self):
         super().__init__()
         self.state = FarmerStates.IDLE
-    
-    def stop(self):
-        self.finish(True, None)
 
     def onMapChanged(self, code, error):
         if error:
@@ -58,17 +58,17 @@ class FarmFights(AbstractBehavior):
         if not self.running.is_set():
             return
         self._currTransition, edge = next(BotConfig().path)
-        ChangeMap().start(transition=self._currTransition, dstMapId=edge.dst.mapId, callback=self.onMapChanged)
+        ChangeMap().start(transition=self._currTransition, dstMapId=edge.dst.mapId, callback=self.onMapChanged, parent=self)
         if BotConfig().followers:
             self.askMembersFollow(self._currTransition, edge.dst.mapId)
 
     def getAvailableMonstersTable(self, availableMonsterFights) -> str:
         headers = ["mainMonsterName", "id", "cell", "distance"]
         data = [[e[h] for h in headers] for e in availableMonsterFights]
-        col_widths = [max(len(str(row[i])) for row in data) for i in range(len(headers))]
+        col_widths = [max(len(str(row[i])) for row in data + [headers]) for i in range(len(headers))]
         format_string = "  ".join(["{{:<{}}}".format(width) for width in col_widths])
         tablestr = "\n" + format_string.format(*headers) + "\n"
-        tablestr += '-' * sum(col_widths) + "\n"
+        tablestr += '-' * (sum(col_widths) + (len(col_widths) - 1) * 2) + "\n"  # Add extra spaces for column separators
         for row in data:
             tablestr += format_string.format(*row) + "\n"
         return tablestr
@@ -143,6 +143,7 @@ class FarmFights(AbstractBehavior):
     def run(self, event_id=None, error=None):
         if not self.running.is_set():
             return
+        self.path = BotConfig().path
         Logger().info("run called")
         if BotConfig().followers:
             self.state = FarmerStates.WAITING_FOLLWERS_IDLE
@@ -161,8 +162,26 @@ class FarmFights(AbstractBehavior):
         self.run()
         
     def onBotOutOfFarmPath(self):
-        AutoTrip().start(BotConfig().path.startVertex.mapId, BotConfig().path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self)
-        self.askFollowersMoveToVertex(BotConfig().path.startVertex)
+        srcSubArea = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
+        srcAreaId = srcSubArea._area.id
+        dstSubArea = SubArea.getSubAreaByMapId(self.path.startVertex.mapId)
+        dstAreaId = dstSubArea._area.id
+        if dstAreaId != GetOutOfAnkarnam.ankarnamAreaId and srcAreaId == GetOutOfAnkarnam.ankarnamAreaId:
+            Logger().info(f"Auto trip to an Area ({dstSubArea._area.name}) out of {srcSubArea._area.name}.")
+            def onPosReached(code, error):
+                if error:
+                    return KernelEventsManager().send(KernelEvent.SHUTDOWN, message=error)
+                AutoTrip().start(
+                    self.path.startVertex.mapId, self.path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self
+                )
+            def onGotOutOfAnkarnam(code, error):
+                if error:
+                    return KernelEventsManager().send(KernelEvent.SHUTDOWN, message=error)
+                AutoTrip().start(self.path.startVertex.mapId, self.path.startVertex.zoneId, parent=self, callback=onPosReached)
+            return GetOutOfAnkarnam().start(callback=onGotOutOfAnkarnam, parent=self)
+        AutoTrip().start(
+            self.path.startVertex.mapId, self.path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self
+        )
 
     def onMembersShowed(self, code, errorInfo):
         if errorInfo:
@@ -174,11 +193,14 @@ class FarmFights(AbstractBehavior):
 
     def doFarm(self, event=None):
         Logger().info("do farm called")
+        if PlayerLifeStatusEnum(PlayedCharacterManager().state) in [PlayerLifeStatusEnum.STATUS_TOMBSTONE, PlayerLifeStatusEnum.STATUS_PHANTOM]:
+            Logger().debug(f"Can't farm fights when player is dead")
+            return self.stop()
         if PlayedCharacterManager().currentMap is None:
             Logger().info("Waiting for map to be processed...")
             return KernelEventsManager().onceMapProcessed(self.run, originator=self)
         if PlayedCharacterManager().currVertex not in BotConfig().path:
-            Logger().warning("Player out of ram path")
+            Logger().warning("Player out of farm path")
             return self.onBotOutOfFarmPath()
         if not self.allMembersOnSameMap():
             Logger().warning("Followers are not all on same map")

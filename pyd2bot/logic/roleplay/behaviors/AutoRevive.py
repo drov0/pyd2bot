@@ -32,7 +32,7 @@ class AutoRevive(AbstractBehavior):
     def run(self) -> bool:
         Logger().info("[PhenixAutorevive] Started.")
         if not PlayedCharacterManager().currentMap:
-            return KernelEventsManager().onceMapProcessed(self.start, [self.callback], originator=self)
+            return KernelEventsManager().onceMapProcessed(self.start, originator=self)
         KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_PHANTOM:
             AutoTrip().start(Localizer.phenixMapId(), 1, callback=self.onPhenixMapReached, parent=self)

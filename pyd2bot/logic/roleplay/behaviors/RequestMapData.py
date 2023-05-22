@@ -14,7 +14,7 @@ from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
 class RequestMapData(AbstractBehavior):
-    REQUEST_MAPDATA_TIMEOUT = 1
+    REQUEST_MAPDATA_TIMEOUT = 7
     TIMEOUT_MAX_COUNT = 10
     TIMEOUT = 309
     CURRENT_MAP_NOT_FOUND = 304

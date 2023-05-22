@@ -37,7 +37,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  CharacterDetails fetchCharacterDetails(string token, i32 serverId, i32 characterId)')
     print('  bool addSession(Session session)')
     print('  bool startSession(Session session)')
-    print('  bool stopSession(int sessionId)')
+    print('  bool stopSession(string sessionId)')
     print('   getRunSummary()')
     print('  RunSummary getCharacterRunSummary(string login)')
     print('   getSessionRunSummary(string sessionId)')
@@ -202,7 +202,7 @@ elif cmd == 'stopSession':
     if len(args) != 1:
         print('stopSession requires 1 args')
         sys.exit(1)
-    pp.pprint(client.stopSession(eval(args[0]),))
+    pp.pprint(client.stopSession(args[0],))
 
 elif cmd == 'getRunSummary':
     if len(args) != 0:

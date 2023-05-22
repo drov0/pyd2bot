@@ -57,7 +57,7 @@ class Localizer:
                 dstV = WorldGraph().getVertex(bank["npcMapId"], rpZ)
                 if not dstV:
                     break
-                path = AStar().search(WorldGraph(), srcV, dstV, lambda x: (), False)
+                path = AStar().search(WorldGraph(), srcV, dstV)
                 if path is not None:
                     dist = len(path)
                     if dist < minDist:

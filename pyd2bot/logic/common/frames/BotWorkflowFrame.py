@@ -9,6 +9,7 @@ from pyd2bot.logic.roleplay.behaviors.AutoRevive import AutoRevive
 from pyd2bot.logic.roleplay.behaviors.FarmFights import FarmFights
 from pyd2bot.logic.roleplay.behaviors.GiveItems import GiveItems
 from pyd2bot.logic.roleplay.behaviors.MuleFighter import MuleFighter
+from pyd2bot.logic.roleplay.behaviors.ResourceFarm import ResourceFarm
 from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank
 from pyd2bot.logic.roleplay.messages.SellerVacantMessage import \
     SellerVacantMessage
@@ -76,6 +77,9 @@ class BotWorkflowFrame(Frame):
             Logger().separator(f"{ctxname} Game Context Created")
             self.currentContext = msg.context
             if self.currentContext == GameContextEnum.ROLE_PLAY:
+                state = PlayerLifeStatusEnum(PlayedCharacterManager().state)
+                if state == PlayerLifeStatusEnum.STATUS_TOMBSTONE or state == PlayerLifeStatusEnum.STATUS_PHANTOM:
+                    return Logger().debug(f"Joined roleplay but player is dead so wont start behaviors until revive is done")
                 if PlayedCharacterManager().inventoryWeightMax > 0 and PlayedCharacterManager().inventoryWeight / PlayedCharacterManager().inventoryWeightMax > 0.95:
                     Logger().warning(f"[BotWorkflow] Inventory is almost full will trigger auto unload ...")
                     return self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(self.unloadInventory, originator=self))
@@ -84,6 +88,8 @@ class BotWorkflowFrame(Frame):
                         self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(FarmFights().start, originator=self))
                     elif BotConfig().isFollower and not MuleFighter().isRunning():
                         self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(lambda: MuleFighter().start(BotConfig().leader), originator=self))
+                elif BotConfig().isFarmSession:
+                    self.mapProcessedListeners.append(KernelEventsManager().onceMapProcessed(ResourceFarm().start, originator=self))
             elif self.currentContext == GameContextEnum.FIGHT:
                 if BotConfig().isLeader:
                     Kernel().worker.addFrame(BotFightFrame())
@@ -111,6 +117,8 @@ class BotWorkflowFrame(Frame):
                         FarmFights().stop()
                     elif MuleFighter().isRunning():
                         MuleFighter().stop()
+                elif BotConfig().isFarmSession:
+                    ResourceFarm().stop()
             return True
         
         elif isinstance(msg, GameRolePlayGameOverMessage):
@@ -139,22 +147,33 @@ class BotWorkflowFrame(Frame):
     def onPlayerStateChange(self, event, state):            
         PlayedCharacterManager().state = state
         if state == PlayerLifeStatusEnum.STATUS_TOMBSTONE or state == PlayerLifeStatusEnum.STATUS_PHANTOM:
+            Logger().warning("Player is dead")
             for listener in self.mapProcessedListeners:
                 listener.delete()
-            if BotConfig().isLeader:
+            if FarmFights().isRunning():
                 FarmFights().stop()
-            if not PlayedCharacterManager().currentMap:
-                return KernelEventsManager().onceMapProcessed(AutoRevive().start, [self.onPhenixAutoReviveEnded], originator=self)
-            rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
-            if not rpeframe or not rpeframe.mcidm_processed:
-                return KernelEventsManager().onceMapProcessed(AutoRevive().start, [self.onPhenixAutoReviveEnded], originator=self)
-            AutoRevive().start(callback=self.onPhenixAutoReviveEnded, parent=self)
+            if MuleFighter().isRunning():
+                MuleFighter().stop()
+            if ResourceFarm().isRunning():
+                ResourceFarm().stop()
+            if not AutoRevive().isRunning():
+                if not PlayedCharacterManager().currentMap:
+                    return KernelEventsManager().onceMapProcessed(lambda: AutoRevive().start(callback=self.onPhenixAutoReviveEnded), originator=self)
+                rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
+                if not rpeframe or not rpeframe.mcidm_processed:
+                    return KernelEventsManager().onceMapProcessed(lambda: AutoRevive().start(callback=self.onPhenixAutoReviveEnded), originator=self)
+                AutoRevive().start(callback=self.onPhenixAutoReviveEnded)
         
     def onPhenixAutoReviveEnded(self, status, error):
         if error:
             raise Exception(f"[BotWorkflow] Error while autoreviving player: {error}")
-        if BotConfig().path and not FarmFights().isRunning():
-            FarmFights().start()
+        if BotConfig().isFightSession:
+            if BotConfig().isLeader and not FarmFights().isRunning():
+                FarmFights().start()
+            elif BotConfig().isFollower and not MuleFighter().isRunning():
+                MuleFighter().start(BotConfig().leader)
+        elif BotConfig().isFarmSession and not ResourceFarm().isRunning():
+            ResourceFarm().start()
         return True
 
     def onServerNotif(self, event, msgId, msgType, textId, text, params):
@@ -183,6 +202,8 @@ class BotWorkflowFrame(Frame):
                     FarmFights().start()
                 elif BotConfig().isFollower and not MuleFighter().isRunning():
                     MuleFighter().start(BotConfig().leader)
+            elif BotConfig().isFarmSession:
+                ResourceFarm().start()
             if callback:
                 callback()
         if BotConfig().unloadInBank:

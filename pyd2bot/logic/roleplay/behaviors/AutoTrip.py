@@ -42,39 +42,39 @@ class AutoTrip(AbstractBehavior):
     def currentEdgeIndex(self):
         v = PlayedCharacterManager().currVertex
         for i, step in enumerate(self.path):
-            if step.src == v:
+            if step.src.UID == v.UID:
                 return i
 
     def walkToNextStep(self, event_id=None):
         if PlayedCharacterManager().currentMap is None:
-            Logger().warning("[AutoTrip] Waiting for Map to be processed...")
+            Logger().warning("Waiting for Map to be processed...")
             return KernelEventsManager().onceMapProcessed(self.walkToNextStep, originator=self)
         if self.path:
             self.state = AutoTripState.FOLLOWING_EDGE
             currMapId = PlayedCharacterManager().currVertex.mapId
             dstMapId = self.path[-1].dst.mapId
             if currMapId == dstMapId:
-                Logger().info(f"[AutoTrip] Trip reached destination Map : {dstMapId}")
+                Logger().info(f"Trip reached destination Map : {dstMapId}")
                 return self.finish(True, None)
             currentIndex = self.currentEdgeIndex()
             if currentIndex is None:
-                return self.finish(False, "Current player vertex not found in path")
-            Logger().debug(f"[AutoTrip] Current step index: {currentIndex + 1}/{len(self.path)}")
+                return self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)
+            Logger().debug(f"Current step index: {currentIndex + 1}/{len(self.path)}")
             nextEdge = self.path[currentIndex]
-            Logger().debug(f"[AutoTrip] Moving using next edge :")
+            Logger().debug(f"Moving using next edge :")
             Logger().debug(f"\t|- src {nextEdge.src.mapId} -> dst {nextEdge.dst.mapId}")
             for tr in nextEdge.transitions:
                 Logger().debug(f"\t\t|- direction : {tr.direction}, skill : {tr.skillId}, cell : {tr.cell}")
-            def onProcessed(errType, error):
+            def onProcessed(code, error):
                 if error:
-                    if errType == MovementFailError.CANT_REACH_DEST_CELL or errType == MovementFailError.MAPCHANGE_TIMEOUT:
-                        Logger().warning(f"[AutoTrip] Can't reach destination for reason : {errType.name}")
+                    if code in [MovementFailError.CANT_REACH_DEST_CELL, MovementFailError.MAPCHANGE_TIMEOUT, MovementFailError.NOMORE_SCROLL_CELL]:
+                        Logger().warning(f"Can't reach next step in found path for reason : {code.name}")
                         AStar().addForbidenEdge(nextEdge)
                         return self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)
                     else:
-                        return self.finish(errType, error)
+                        return self.finish(code, error)
                 self.walkToNextStep()
-            ChangeMap().start(edge=nextEdge, callback=onProcessed)
+            ChangeMap().start(edge=nextEdge, callback=onProcessed, parent=self)
         else:
             self.state = AutoTripState.CALCULATING_PATH
             self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)

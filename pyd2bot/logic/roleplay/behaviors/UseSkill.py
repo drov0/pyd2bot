@@ -12,6 +12,8 @@ from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteracti
     InteractiveElementData, RoleplayInteractivesFrame)
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayWorldFrame import \
     RoleplayWorldFrame
+from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveElementUpdatedMessage import \
+    InteractiveElementUpdatedMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
     InteractiveUseRequestMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.skill.InteractiveUseWithParamRequestMessage import \
@@ -22,11 +24,12 @@ from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 class UseSkill(AbstractBehavior):
     ELEM_TAKEN = 9801
     ELEM_BEING_USED = 9802
+    ELEM_UPDATE_TIMEOUT = 66987
     TIMEOUT = 9803
     CANT_USE = 9804
     USE_ERROR = 9805
-    MAX_TIMEOUTS = 5
-    REQ_TIMEOUT = 3
+    MAX_TIMEOUTS = 20
+    REQ_TIMEOUT = 7
 
     def __init__(self) -> None:
         super().__init__()
@@ -46,7 +49,6 @@ class UseSkill(AbstractBehavior):
         elementId=None,
         skilluid=None,
     ):
-        Logger().info(f"Using skill ")
         if ie is None:
             if elementId:
                 def onIeFound(ie: InteractiveElementData):
@@ -77,6 +79,7 @@ class UseSkill(AbstractBehavior):
         cell = self.cell
         if not cell:
             cell, sendInteractiveUseRequest = self.worldFrame.getNearestCellToIe(self.element, self.elementPosition)
+            
         if not sendInteractiveUseRequest:
             return self.finish(self.CANT_USE, "Can't use this interactive element")
 
@@ -87,7 +90,9 @@ class UseSkill(AbstractBehavior):
 
         if self.waitForSkillUsed:
             KernelEventsManager().on(
-                KernelEvent.INTERACTIVE_ELEMENT_BEING_USED, self.onUsingInteractive, originator=self
+                KernelEvent.INTERACTIVE_ELEMENT_BEING_USED, 
+                self.onUsingInteractive, 
+                originator=self
             )
             KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_USED, self.onUsedInteractive, originator=self)
         MapMove().start(cell, self.exactDistination, callback=onmoved, parent=self)
@@ -114,7 +119,24 @@ class UseSkill(AbstractBehavior):
             if entityId != PlayedCharacterManager().id:
                 self.finish(self.ELEM_TAKEN, "Someone else used this element")
             else:
-                self.finish(True, None)
+                KernelEventsManager().once(
+                    KernelEvent.INTERACTIVE_ELEM_UPDATE,
+                    self.onInteractiveUpdated,
+                    timeout=7,
+                    ontimeout=self.onElemUpdateWaitTimeout,
+                    originator=self,
+                )
+        
+    def onInteractiveUpdated(self, event, ieumsg: InteractiveElementUpdatedMessage):
+        Logger().info(f"Elem {ieumsg.interactiveElement.elementId} updated")
+        if ieumsg.interactiveElement.elementId == self.elementId:
+            for skill in ieumsg.interactiveElement.disabledSkills:
+                if skill.skillInstanceUid == self.skillUID:
+                    Logger().info("Element farmed successfully")
+            self.finish(True, None)
+
+    def onElemUpdateWaitTimeout(self, listener: Listener):
+        self.finish(self.ELEM_UPDATE_TIMEOUT, "Elem update wait timedout")
 
     def onUseError(self, event, elementId):
         if MapMove().isRunning():

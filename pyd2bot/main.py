@@ -1,14 +1,16 @@
 if __name__ == "__main__":
+    from pyd2bot.thriftServer.pyd2botService.ttypes import DofusError
     try:
+        import argparse
+        import traceback
+
         from thrift.protocol.TJSONProtocol import TJSONProtocolFactory
         from thrift.server import THttpServer
+
         import pyd2bot.thriftServer.pyd2botService.Pyd2botService as Pyd2botService
         from pyd2bot.thriftServer.HttpRequestHandler import getReqHandler
         from pyd2bot.thriftServer.pyd2botServer import Pyd2botServer
         from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-        import traceback
-        from pyd2bot.thriftServer.pyd2botService.ttypes import DofusError
-        import argparse
         
         parser = argparse.ArgumentParser()
         parser.add_argument("--host", help="the server host", type=str, default="0.0.0.0")
@@ -27,7 +29,7 @@ if __name__ == "__main__":
         e.message = f"START_OF_ERROR\n{e.message}\nEND_OF_ERROR"
         raise e
     except Exception as e:
-        tb = traceback.format_exception(limit=11)
+        tb = traceback.format_exc(limit=11)
         stack_trace = "".join(tb)
         err_message = f"START_OF_ERROR\n{str(e)}\n{stack_trace}\nEND_OF_ERROR"
         client_error = DofusError(401, err_message)

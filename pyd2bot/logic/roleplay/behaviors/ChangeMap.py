@@ -36,12 +36,11 @@ from pydofus2.mapTools import MapTools
 
 
 class ChangeMap(AbstractBehavior):
-    MAPCHANGE_TIMEOUT = 3
-    REQUEST_MAPDATA_TIMEOUT = 1
+    MAPCHANGE_TIMEOUT = 15
+    REQUEST_MAPDATA_TIMEOUT = 15
     MAX_FAIL_COUNT = 10
     MAX_TIMEOUT_COUNT = 0
     LANDED_ON_WRONG_MAP = 1002
-    NOMORE_SCROLL_CELL = 1003
     MAP_ACTION_ALREADY_ONCELL = 1204
     INVALID_TRANSITION = 1342
     MAP_CHANGED_UNEXPECTEDLY = 1556
@@ -62,9 +61,9 @@ class ChangeMap(AbstractBehavior):
         self.movementError = None
         self.exactDestination = True
         self.edge = None
+        self.mapChangeReqSent = False
 
     def run(self, transition: Transition=None, edge: Edge=None, dstMapId=None):
-        Logger().info(f"[ChangeMap] Started")
         if transition:
             self.dstMapId = dstMapId
             self.transition = transition
@@ -111,7 +110,7 @@ class ChangeMap(AbstractBehavior):
         self.askChangeMap()
 
     def onMapRequestFailed(self, reason: MovementFailError):
-        Logger().warning(f"[ChangeMap] request failed for reason: {reason.name}")
+        Logger().warning(f"Request failed for reason: {reason.name}")
         self.requestTimeoutCount = 0
         if not self.isScrollTr():
             self.mapChangeRequestNbrFails += 1
@@ -123,7 +122,8 @@ class ChangeMap(AbstractBehavior):
         self.askChangeMap()
     
     def askChangeMap(self):
-        Logger().info(f"[ChangeMap] {self.trType.name} map change to {self.dstMapId}")
+        Logger().info(f"{self.trType.name} map change to {self.dstMapId}")
+        self.mapChangeReqSent = False
         if self.isInteractiveTr():
             if not self.mapChangeIE:
                 def onTransitionIE(ie: InteractiveElementData):
@@ -133,7 +133,7 @@ class ChangeMap(AbstractBehavior):
                     iePosition, useInteractive = self.worldframe.getNearestCellToIe(self.mapChangeIE.element, self.mapChangeIE.position)
                     if not useInteractive:
                         return self.finish(False, "Cannot use the interactive")
-                    Logger().info(f"[ChangeMap] Interactive Map change using skill '{ie.skillUID}' on cell '{ie.position.cellId}'")
+                    Logger().info(f"Interactive Map change using skill '{ie.skillUID}' on cell '{ie.position.cellId}'.")
                     self.mapChangeCellId = iePosition.cellId
                     self.interactiveMapChange()
                 self.getTransitionIe(self.transition, onTransitionIE)
@@ -150,8 +150,8 @@ class ChangeMap(AbstractBehavior):
     
     def onRequestRejectedByServer(self, event: Event, reason: MovementFailError):
         if MapMove().isRunning():
-            return Logger().warning(f"[ChangeMap] Change map timer kicked while map move to cell stil resolving!")
-        Logger().warning(f"[ChangeMap] Movement failed for reason {reason.name}")
+            return Logger().warning(f"Change map timer kicked while map move to cell stil resolving!")
+        Logger().warning(f"Movement failed for reason {reason.name}")
         self.mapChangeListener.delete()
         self.mapChangeRejectListener.delete()
         def onResult(code, error):
@@ -160,22 +160,20 @@ class ChangeMap(AbstractBehavior):
             self.onMapRequestFailed(reason)
         RequestMapData().start(callback=onResult, parent=self)
 
-    def onRequestTimeout(self, listene: Listener):
-        pingMsg = BasicPingMessage()
-        pingMsg.init(True)
-        ConnectionsHandler().send(pingMsg)
+    def onRequestTimeout(self, listener: Listener):
         if not self.running.is_set():
-            return listene.delete()
-        Logger().warning("[ChangeMap] Map change timeout!")
+            Logger().warning("Map change request timeout called while behavior not running!")
+            return listener.delete()
+        Logger().warning("Map change timeout!")
         if MapMove().isRunning():
-            listene: Listener.armTimer()
-            return Logger().warning(f"[ChangeMap] Change map timer kicked while map move to cell stil resolving!")
+            listener.armTimer()
+            return Logger().warning(f"Change map timer kicked while map move to cell stil resolving!")
         if not self.isMapActionTr():
             self.requestTimeoutCount += 1
             if self.requestTimeoutCount > self.MAX_TIMEOUT_COUNT:
-                listene: Listener.delete()
+                listener.delete()
                 return self.onMapRequestFailed(MovementFailError.MAPCHANGE_TIMEOUT)
-            listene: Listener.armTimer()
+            listener.armTimer()
             self.sendMapChangeRequest()
         else:
             self.onMapRequestFailed(MovementFailError.MAPCHANGE_TIMEOUT)
@@ -184,8 +182,8 @@ class ChangeMap(AbstractBehavior):
         listene.delete()
         self.finish(False, "Request Map data timeout")
         
-    def onCurrentMap(self, event: Event, mapId):
-        Logger().info("[ChangeMap] Map changed!")
+    def onCurrentMap(self, event: Event, mapId: int):
+        Logger().info("Map changed!")
         if mapId == self.dstMapId:
             if self.mapChangeRejectListener:
                 self.mapChangeRejectListener.delete()
@@ -198,7 +196,7 @@ class ChangeMap(AbstractBehavior):
                 originator=self
             )
         else:
-            self.finish(self.LANDED_ON_WRONG_MAP, f"Landed on new map {mapId}, different from dest {self.dstMapId}")
+            self.finish(self.LANDED_ON_WRONG_MAP, f"Landed on new map '{mapId}', different from dest '{self.dstMapId}'.")
 
     def setupMapChangeListener(self):
         if self.mapChangeListener and not self.mapChangeListener._deleted:
@@ -215,7 +213,9 @@ class ChangeMap(AbstractBehavior):
         if self.mapChangeRejectListener and not self.mapChangeRejectListener._deleted:
             self.mapChangeRejectListener.delete()
         def onReqReject(event, *args):
-            self.onRequestRejectedByServer(event, self.movementError)
+            # what about when i receive this when the player confirmed movement but didnt send map request change yet?
+            if self.mapChangeReqSent:
+                self.onRequestRejectedByServer(event, self.movementError)
         self.mapChangeRejectListener = KernelEventsManager().once(
             self.requestRejectedEvent, 
             onReqReject,
@@ -229,10 +229,10 @@ class ChangeMap(AbstractBehavior):
         try:
             x, y = next(self.currentMPChilds)
         except StopIteration:
-            return self.finish(self.MAP_ACTION_ALREADY_ONCELL, "Already on map action cell and can't move away from it")
+            return self.finish(self.MAP_ACTION_ALREADY_ONCELL, "Already on map action cell and can't move away from it.")
         def onMapChangedWhileResolving(event: Event, mapId):
             event.listener.delete()
-            self.finish(self.MAP_CHANGED_UNEXPECTEDLY, "Map changed unexpectedly while resolving")
+            self.finish(self.MAP_CHANGED_UNEXPECTEDLY, "Map changed unexpectedly while resolving.")
         def onWaitForMCAfterResolve(listener: Listener):
             listener.delete()
             MapMove().start(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell, parent=self)
@@ -241,7 +241,7 @@ class ChangeMap(AbstractBehavior):
                 try:    
                     x, y = next(self.currentMPChilds)
                 except StopIteration:
-                    return self.finish(self.MAP_ACTION_ALREADY_ONCELL, f"Already on map action cell, and can't move away from it for reason : {err}")
+                    return self.finish(self.MAP_ACTION_ALREADY_ONCELL, f"Already on map action cell, and can't move away from it for reason : '{err}'.")
                 return MapMove().start(MapPoint.fromCoords(x, y).cellId, self.exactDestination, callback=onMoved, parent=self)
             KernelEventsManager().on(
                 KernelEvent.CURRENT_MAP, 
@@ -278,7 +278,7 @@ class ChangeMap(AbstractBehavior):
         try:
             self.mapChangeCellId = next(self.iterScrollCells)
         except StopIteration:
-            self.finish(self.NOMORE_SCROLL_CELL, f"Tryied all scroll map change cells but no one changed map")
+            return self.finish(MovementFailError.NOMORE_SCROLL_CELL, f"Tryied all scroll map change cells but no one changed map")
         MapMove().start(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell, parent=self)       
 
     def interactiveMapChange(self):
@@ -305,5 +305,6 @@ class ChangeMap(AbstractBehavior):
             cmmsg = ChangeMapMessage()
             cmmsg.init(int(self.transition.transitionMapId), False)
             ConnectionsHandler().send(cmmsg)
+            self.mapChangeReqSent = True
         else:
             Logger().warning(f"Should not send map change request for trnasition type {self.trType.name}")

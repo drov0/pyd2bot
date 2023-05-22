@@ -380,9 +380,8 @@ class BotFightFrame(Frame):
                 self.addTurnAction(self.turnEnd, [])
                 self.nextTurnAction("play turn no targets")
                 return
-        Logger().info(f"MP : {self.movementPoints}, AP : {self.actionPoints}.")
-        Logger().info(f"Current attack spell : {self.spellw.spell.name}.")
-        Logger().info(f"Current spell range : {self.getActualSpellRange(self.spellw)}.")
+        Logger().info(f"MP: {self.movementPoints}, AP: {self.actionPoints}, HP: {self.hitpoints}.")
+        Logger().info(f"Current attack spell : {self.spellw.spell.name}, range: {self.getActualSpellRange(self.spellw)}.")
         Logger().info(f"Found targets : {[str(tgt) for tgt in targets]}.")
         target, path = self.findPathToTarget(self.spellw, targets)
         if path is not None:
@@ -479,7 +478,7 @@ class BotFightFrame(Frame):
             return
         if Kernel().battleFrame._sequenceFrames or Kernel().battleFrame._executingSequence:
             Logger().warning(
-                f"[FightAlgo] Waiting for {len(Kernel().battleFrame._sequenceFrames)} sequences to end, "
+                f"Waiting for {len(Kernel().battleFrame._sequenceFrames)} sequences to end, "
                     f"currently executing {Kernel().battleFrame._executingSequence} ..."
             )
             Kernel().battleFrame.logState()
@@ -501,25 +500,30 @@ class BotFightFrame(Frame):
         return CurrentPlayedFighterManager().canCastThisSpell(self.spellId, self.spellw.spellLevel, targetId)
             
     def onMemberJoinedFight(self, player: Character):
-        if self.fightResumed or self.fightReadySent:
-            return
-        if not ConnectionsHandler.getInstance(player.login) or not ConnectionsHandler.getInstance(player.login).inGameServer():
-            Logger().warning(f"Member {player.name} is still disconnected")
-            return
+        Logger().info(f"Follower '{player.name}' joined fight.")
+        if self.fightResumed:
+            return Logger().warning("Fight resumed so wont check if members joined or not.")
+        if self.fightReadySent:
+            return Logger().warning("Fight ready already sent so wont check if members joined or not.")
         PlayedCharacterManager.getInstance(player.login).isFighting = True
-        startFightMsg = GameFightReadyMessage()
-        startFightMsg.init(True)
-        ConnectionsHandler.getInstance(player.login).send(startFightMsg)
+        self.sendFightReady(ConnectionsHandler.getInstance(player.login))
         notjoined = [
             m.name for m in BotConfig().fightPartyMembers if not Kernel().fightEntitiesFrame.getEntityInfos(m.id)
         ]
         if not notjoined:
             Logger().info(f"All party members joined fight.")
-            startFightMsg = GameFightReadyMessage()
-            startFightMsg.init(True)
-            ConnectionsHandler().send(startFightMsg)
+            self.sendFightReady()
             self.fightReadySent = True
-    
+        else:
+            Logger().info(f"Members not joined : {notjoined}")
+
+    def sendFightReady(self, connh=None):
+        if not connh:
+            connh = ConnectionsHandler()
+        startFightMsg = GameFightReadyMessage()
+        startFightMsg.init(True)
+        connh.send(startFightMsg)
+
     def process(self, msg: Message) -> bool:
         if isinstance(msg, GameFightOptionStateUpdateMessage):
             if msg.option not in BotConfig().fightOptions:
@@ -548,9 +552,6 @@ class BotFightFrame(Frame):
 
         elif isinstance(msg, GameFightEndMessage):
             self._inFight = False
-            # for r in msg.results:
-            #     r.
-            #     r.rewards.kamas
             return True
 
         elif isinstance(msg, GameActionFightNoSpellCastMessage):
@@ -589,10 +590,11 @@ class BotFightFrame(Frame):
                 player = BotConfig().getPlayerById(fighterId)
                 if player:
                     if player.id != BotConfig().character.id:
-                        Logger().info(f"Follower ember {player.name} joined fight.")
                         self.onMemberJoinedFight(player)
                     else:
                         Logger().info(f"Party Leader {player.name} joined fight.")
+                        if not BotConfig().followers:
+                            self.sendFightReady()
                 elif fighterId > 0 and fighterId != BotConfig().character.id:
                     Logger().error(f"Unknown Player {fighterId} joined fight.")
                 elif fighterId < 0:
@@ -711,7 +713,12 @@ class BotFightFrame(Frame):
         self.preparePlayableCharacter()
         self.checkCanPlay()
         self._turnPlayed += 1
-        
+    
+    @property
+    def hitpoints(self) -> int:
+        stats = CurrentPlayedFighterManager().getStats()
+        return stats.getStatTotalValue(StatIds.LIFE_POINTS)
+    
     @property
     def actionPoints(self) -> int:
         stats = CurrentPlayedFighterManager().getStats()
@@ -854,68 +861,3 @@ class BotFightFrame(Frame):
         self._turnAction.clear()
         if Kernel().turnFrame:
             Kernel().turnFrame.myTurn = True
-            
-    def drawPath(self, cell:MapPoint = None) -> None:
-        cells = list[int]()
-        cellsTackled = list[int]()
-        cellsUnreachable = list[int]()
-        stats = StatsManager().getStats(self.playerManager.id)
-        movementPoints = stats.getStatTotalValue(StatIds.MOVEMENT_POINTS)
-        actionPoints = stats.getStatTotalValue(StatIds.ACTION_POINTS)
-        path = Pathfinding().findPath(self.fighterPos, cell, False, False, True)
-        firstObstacle = None
-        if len(DataMapProvider().obstaclesCells) > 0 and (len(path) == 0 or len(path) > movementPoints):
-            path = Pathfinding().findPath(self.fighterPos, cell, False, False, False)
-            if len(path) > 0:
-                for i in range(len(path)):
-                    if path[i].cellId in DataMapProvider().obstaclesCells:
-                        firstObstacle = path[i]
-                        cellsUnreachable += [pe.cellId for pe in path.path[i + 1:]]
-                        path.end = firstObstacle.step
-                        path.path = path.path[:i]
-        if len(path.path) == 0 or len(path.path) > movementPoints:
-            return cells, cellsTackled, cellsUnreachable
-        mpCount = 0
-        mpLost = 0
-        apLost = 0
-        lastPe = path[0]
-        for pe in path.path[1:]:
-            tackle = TackleUtil.getTackle(self.fighterInfos, lastPe.step)
-            mpLost += int((movementPoints - mpCount) * (1 - tackle) + 0.5)
-            if mpLost < 0:
-                mpLost = 0
-            apLost += int(actionPoints * (1 - tackle) + 0.5)
-            if apLost < 0:
-                apLost = 0
-            movementPoints = stats.getStatTotalValue(StatIds.MOVEMENT_POINTS) - mpLost
-            actionPoints = stats.getStatTotalValue(StatIds.ACTION_POINTS) - apLost
-            if mpCount < movementPoints:
-                if mpLost > 0:
-                    cellsTackled.append(pe.cellId)
-                else:
-                    cells.append(pe.cellId)
-                mpCount += 1
-            else:
-                cellsUnreachable.append(pe.cellId)
-            lastPe = pe
-        tackle = TackleUtil.getTackle(self.fighterInfos, lastPe.step)
-        mpLost += int((movementPoints - mpCount) * (1 - tackle) + 0.5)
-        if mpLost < 0:
-            mpLost = 0
-        apLost += int(actionPoints * (1 - tackle) + 0.5)
-        if apLost < 0:
-            apLost = 0
-        movementPoints = stats.getStatTotalValue(StatIds.MOVEMENT_POINTS) - mpLost
-        if mpCount < movementPoints:
-            if firstObstacle:
-                movementPoints = len(path)
-            if mpLost > 0:
-                cellsTackled.append(path.end.cellId)
-            else:
-                cells.append(path.end.cellId)
-        elif firstObstacle:
-            cellsUnreachable.remove(path.end.cellId)
-            movementPoints = len(path) - 1
-        else:
-            cellsUnreachable.append(path.end.cellId)
-        return cells, cellsTackled, cellsUnreachable

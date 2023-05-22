@@ -188,6 +188,82 @@ class Vertex(object):
         return not (self == other)
 
 
+class JobFilter(object):
+    """
+    Attributes:
+     - jobId
+     - resoursesIds
+
+    """
+
+
+    def __init__(self, jobId=None, resoursesIds=None,):
+        self.jobId = jobId
+        self.resoursesIds = resoursesIds
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.jobId = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.LIST:
+                    self.resoursesIds = []
+                    (_etype3, _size0) = iprot.readListBegin()
+                    for _i4 in range(_size0):
+                        _elem5 = iprot.readI32()
+                        self.resoursesIds.append(_elem5)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('JobFilter')
+        if self.jobId is not None:
+            oprot.writeFieldBegin('jobId', TType.I32, 1)
+            oprot.writeI32(self.jobId)
+            oprot.writeFieldEnd()
+        if self.resoursesIds is not None:
+            oprot.writeFieldBegin('resoursesIds', TType.LIST, 2)
+            oprot.writeListBegin(TType.I32, len(self.resoursesIds))
+            for iter6 in self.resoursesIds:
+                oprot.writeI32(iter6)
+            oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
 class RunSummary(object):
     """
     Attributes:
@@ -1068,11 +1144,12 @@ class Session(object):
      - seller
      - path
      - monsterLvlCoefDiff
+     - jobFilters
 
     """
 
 
-    def __init__(self, id=None, leader=None, followers=None, type=None, unloadType=None, seller=None, path=None, monsterLvlCoefDiff=None,):
+    def __init__(self, id=None, leader=None, followers=None, type=None, unloadType=None, seller=None, path=None, monsterLvlCoefDiff=None, jobFilters=None,):
         self.id = id
         self.leader = leader
         self.followers = followers
@@ -1081,6 +1158,7 @@ class Session(object):
         self.seller = seller
         self.path = path
         self.monsterLvlCoefDiff = monsterLvlCoefDiff
+        self.jobFilters = jobFilters
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1105,11 +1183,11 @@ class Session(object):
             elif fid == 3:
                 if ftype == TType.LIST:
                     self.followers = []
-                    (_etype3, _size0) = iprot.readListBegin()
-                    for _i4 in range(_size0):
-                        _elem5 = Character()
-                        _elem5.read(iprot)
-                        self.followers.append(_elem5)
+                    (_etype10, _size7) = iprot.readListBegin()
+                    for _i11 in range(_size7):
+                        _elem12 = Character()
+                        _elem12.read(iprot)
+                        self.followers.append(_elem12)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1140,6 +1218,17 @@ class Session(object):
                     self.monsterLvlCoefDiff = iprot.readDouble()
                 else:
                     iprot.skip(ftype)
+            elif fid == 9:
+                if ftype == TType.LIST:
+                    self.jobFilters = []
+                    (_etype16, _size13) = iprot.readListBegin()
+                    for _i17 in range(_size13):
+                        _elem18 = JobFilter()
+                        _elem18.read(iprot)
+                        self.jobFilters.append(_elem18)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1161,8 +1250,8 @@ class Session(object):
         if self.followers is not None:
             oprot.writeFieldBegin('followers', TType.LIST, 3)
             oprot.writeListBegin(TType.STRUCT, len(self.followers))
-            for iter6 in self.followers:
-                iter6.write(oprot)
+            for iter19 in self.followers:
+                iter19.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.type is not None:
@@ -1184,6 +1273,13 @@ class Session(object):
         if self.monsterLvlCoefDiff is not None:
             oprot.writeFieldBegin('monsterLvlCoefDiff', TType.DOUBLE, 8)
             oprot.writeDouble(self.monsterLvlCoefDiff)
+            oprot.writeFieldEnd()
+        if self.jobFilters is not None:
+            oprot.writeFieldBegin('jobFilters', TType.LIST, 9)
+            oprot.writeListBegin(TType.STRUCT, len(self.jobFilters))
+            for iter20 in self.jobFilters:
+                iter20.write(oprot)
+            oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1294,6 +1390,12 @@ Vertex.thrift_spec = (
     (2, TType.I32, 'zoneId', None, None, ),  # 2
     (3, TType.BOOL, 'onlyDirections', None, None, ),  # 3
 )
+all_structs.append(JobFilter)
+JobFilter.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'jobId', None, None, ),  # 1
+    (2, TType.LIST, 'resoursesIds', (TType.I32, None, False), None, ),  # 2
+)
 all_structs.append(RunSummary)
 RunSummary.thrift_spec = (
     None,  # 0
@@ -1380,6 +1482,7 @@ Session.thrift_spec = (
     (6, TType.STRUCT, 'seller', [Character, None], None, ),  # 6
     (7, TType.STRUCT, 'path', [Path, None], None, ),  # 7
     (8, TType.DOUBLE, 'monsterLvlCoefDiff', None, None, ),  # 8
+    (9, TType.LIST, 'jobFilters', (TType.STRUCT, [JobFilter, None], False), None, ),  # 9
 )
 all_structs.append(DofusError)
 DofusError.thrift_spec = (

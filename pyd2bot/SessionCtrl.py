@@ -5,10 +5,10 @@ import time
 from pyd2bot.logic.managers.BotConfig import CharacterRoleEnum
 from pyd2bot.Pyd2Bot import Pyd2Bot
 from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, DofusError,
-                                                        Path, PathType,
                                                         RunSummary, Session,
+                                                        SessionStatus,
                                                         SessionType,
-                                                        UnloadType, Vertex, SessionStatus)
+                                                        UnloadType)
 from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import \
     DisconnectionReasonEnum
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -143,16 +143,16 @@ class SessionCtrl:
         if status == SessionStatus.CRASHED:
             status_reason = bot._crashMessage
         run_summary = RunSummary(
-            login=login,
-            startTime=bot.startTime,
-            totalRunTime=total_run_time,
-            sessionId=session_id,
-            leaderLogin=leader_login,
-            numberOfRestarts=number_of_restarts,
-            status=status,
-            statusReason=status_reason,
-            earnedKamas=bot.earnedKamas,
-            nbrFightsDone=bot.nbrFightsDone,
+            login=str(login),
+            startTime=float(bot.startTime),
+            totalRunTime=float(total_run_time),
+            sessionId=str(session_id),
+            leaderLogin=str(leader_login),
+            numberOfRestarts=int(number_of_restarts),
+            status=str(status),
+            statusReason=str(status_reason),
+            earnedKamas=int(bot.earnedKamas),
+            nbrFightsDone=int(bot.nbrFightsDone),
         )
         return run_summary
 

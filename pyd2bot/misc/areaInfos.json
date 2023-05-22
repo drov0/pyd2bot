@@ -21,6 +21,18 @@
             "mapId": 88086283.0
         }
     },
+    "5": {
+        "name": "suffokia",
+        "bank": [
+            {
+                "name": "suffokia",
+                "npcMapId": 91753985.0,            
+                "npcActionId": 3,
+                "npcId": -20000,
+                "openBankReplyId": 64367
+            }
+        ]
+    },
     "6": {
         "name": "Astrub",
         "bank": [
