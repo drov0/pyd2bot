@@ -53,7 +53,7 @@ class Localizer:
         srcV = PlayedCharacterManager().currVertex
         closestBankId = cls.AREAINFOS[str(areaId)]["bank"][0]
         rpZ = 1
-        for bank in cls.AREAINFOS[str(areaId)]["bank"][1:]:
+        for bank in cls.AREAINFOS[str(areaId)]["bank"]:
             if bank["npcMapId"] == PlayedCharacterManager().currentMap.mapId:
                 closestBankId = bank["npcMapId"]
                 break
