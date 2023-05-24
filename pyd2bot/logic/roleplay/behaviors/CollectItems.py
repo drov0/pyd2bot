@@ -3,9 +3,9 @@ from enum import Enum
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.BotExchange import (
+    BotExchange, ExchangeDirectionEnum)
 from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank
-from pyd2bot.logic.roleplay.frames.BotExchangeFrame import (
-    BotExchangeFrame, ExchangeDirectionEnum)
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.misc.Localizer import BankInfos
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
@@ -46,7 +46,7 @@ class CollectItems(AbstractBehavior):
     def onGuestDisconnected(self):
         Logger().error("[CollectFromGuest] Guest disconnected!")
         if self.state == CollecteState.EXCHANGING_WITH_GUEST:
-            Kernel().worker.removeFrameByName("BotExchangeFrame")
+            BotExchange().stop()
         self.finish(True, None)
 
     def onTripEnded(self, code, error):
@@ -55,7 +55,7 @@ class CollectItems(AbstractBehavior):
         if error is not None:
             return self.finish(False, error)        
         self.state = CollecteState.EXCHANGING_WITH_GUEST
-        Kernel().worker.addFrame(BotExchangeFrame(ExchangeDirectionEnum.RECEIVE, self.guest, self.onExchangeConcluded, self.items))
+        BotExchange().start(ExchangeDirectionEnum.RECEIVE, self.guest, self.items, callback=self.onExchangeConcluded, parent=self)
     
     def onExchangeConcluded(self, code, error):
         self.guestDisconnectedListener.delete()

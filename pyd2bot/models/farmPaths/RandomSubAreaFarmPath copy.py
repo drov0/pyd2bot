@@ -25,7 +25,7 @@ from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 
 
-class RandomSubAreaFarmPath(AbstractFarmPath):
+class CyclicPath(AbstractFarmPath):
     def __init__(
         self,
         name: str,
@@ -41,7 +41,7 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         self._recent_visited = list[Tuple['Vertex', float]]()
 
     def recentVisitedVerticies(self):
-        self._recent_visited = [(_, time_added) for (_, time_added) in self._recent_visited if (time.time() - time_added) < 60 * 5]
+        self._recent_visited = [(_, time_added) for (_, time_added) in self._recent_visited if (time.time() - time_added) < 60]
         return [v for v, _ in self._recent_visited]
     
     def __next__(self) -> Tuple[Transition, Edge]:

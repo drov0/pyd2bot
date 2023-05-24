@@ -5,9 +5,8 @@ from pyd2bot.logic.common.frames.BotRPCFrame import BotRPCFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.frames.BotExchangeFrame import (
-    BotExchangeFrame, ExchangeDirectionEnum)
-from pyd2bot.misc.BotEventsmanager import BotEventsManager
+from pyd2bot.logic.roleplay.behaviors.BotExchange import (
+    BotExchange, ExchangeDirectionEnum)
 from pyd2bot.misc.Localizer import Localizer
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
@@ -118,7 +117,7 @@ class GiveItems(AbstractBehavior):
     def waitForGuestToComme(self):
         if self.entitiesFrame:
             if self.entitiesFrame.getEntityInfos(self.seller.id):
-                Kernel().worker.addFrame(BotExchangeFrame(ExchangeDirectionEnum.GIVE, target=self.seller, callback=self.onExchangeConcluded))
+                BotExchange().start(ExchangeDirectionEnum.GIVE, target=self.seller, callback=self.onExchangeConcluded, parent=self)
                 self.state = GiveItelsStates.IN_EXCHANGE_WITH_SELLER
                 return True
             else:
@@ -145,6 +144,6 @@ class GiveItems(AbstractBehavior):
             state += f":{self.lastSellerState}"
         elif AutoTrip().isRunning():
             state += f":{AutoTrip().getState()}"
-        elif Kernel().worker.getFrameByName("BotExchangeFrame"):
-            state += f":{Kernel().worker.getFrameByName('BotExchangeFrame').getState()}"
+        elif BotExchange().isRunning():
+            state += f":{BotExchange().getState()}"
         return state

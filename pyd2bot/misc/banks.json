@@ -1,0 +1,26 @@
+{
+    "Astrub": {
+        "npcActionId": 3,
+        "npcId": -20001,
+        "npcMapId": 192415750.0,
+        "openBankReplyId": 64361
+    },
+    "Bonta": {
+        "npcActionId": 3,
+        "npcId": -20000,
+        "npcMapId": 217059328.0,
+        "openBankReplyId": 63535
+    },
+    "Suffokia": {
+        "npcMapId": 91753985.0,            
+        "npcActionId": 3,
+        "npcId": -20000,
+        "openBankReplyId": 64367
+    },
+    "Amakna": {
+        "npcMapId": 99095051.0,
+        "npcActionId": 3,
+        "npcId": -20000,
+        "openBankReplyId": 64367
+    }
+}

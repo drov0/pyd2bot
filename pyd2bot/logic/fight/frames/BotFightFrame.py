@@ -717,7 +717,7 @@ class BotFightFrame(Frame):
     @property
     def hitpoints(self) -> int:
         stats = CurrentPlayedFighterManager().getStats()
-        return stats.getStatTotalValue(StatIds.LIFE_POINTS)
+        return stats.getHealthPoints()
     
     @property
     def actionPoints(self) -> int:

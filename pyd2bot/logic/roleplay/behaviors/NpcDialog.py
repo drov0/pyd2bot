@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
@@ -48,6 +49,6 @@ class NpcDialog(AbstractBehavior):
             return self.finish(code, error)
         msg = NpcGenericActionRequestMessage()
         msg.init(self.npcId, self.npcOpenDialogId, self.npcMapId)
-        KernelEventsManager().once(KernelEvent.NPC_DIALOG_LEFT, self.onNpcDialogleft, originator=self)
+        KernelEventsManager().once(KernelEvent.DIALOG_LEFT, self.onNpcDialogleft, originator=self)
         KernelEventsManager().once(KernelEvent.NPC_QUESTION, self.onNpcQuestion, originator=self)
         ConnectionsHandler().send(msg) 

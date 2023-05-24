@@ -6,6 +6,8 @@ from pyd2bot.logic.roleplay.behaviors.NpcDialog import NpcDialog
 from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
+    ItemWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
@@ -14,7 +16,7 @@ from pydofus2.com.ankamagames.dofus.network.enums.ExchangeTypeEnum import \
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
-class BankUnloadStates(Enum):
+class BankRetrieveStates(Enum):
     WAITING_FOR_MAP = -1
     IDLE = 0
     WALKING_TO_BANK = 1
@@ -22,21 +24,22 @@ class BankUnloadStates(Enum):
     INTERACTING_WITH_BANK_MAN = 3
     BANK_OPENED = 7
     BANK_OPEN_REQUESTED = 4
-    UNLOAD_REQUEST_SENT = 6
+    RETRIEVE_REQUEST_SENT = 6
     LEAVE_BANK_REQUESTED = 5
     RETURNING_TO_START_POINT = 8
 
-class UnloadInBank(AbstractBehavior):
-    TRANSFER_ITEMS_TIMEDOUT = 111111
-    BANK_CLOSE_TIMEDOUT = 222222
+class RetrieveItemsFromBank(AbstractBehavior):
+    BANK_CLOSE_TIMEDOUT = 89987
+    RETRIEVE_ITEMS_TIMEDOUT = 998877
     STORAGE_OPEN_TIMEDOUT = 9874521
     
     def __init__(self):
         super().__init__()
         self.return_to_start = None
-        self.callback = None
-    
-    def run(self, return_to_start=True, bankInfos=None) -> bool:
+
+    def run(self, items:list[ItemWrapper], quantities:list[int], return_to_start=True, bankInfos=None) -> bool:
+        self.items = items
+        self.quantities = quantities
         self.return_to_start = return_to_start
         if bankInfos is None:
             self.infos = Localizer.getBankInfos()
@@ -45,7 +48,7 @@ class UnloadInBank(AbstractBehavior):
         Logger().debug("Bank infos: %s", self.infos.__dict__)
         self._startMapId = PlayedCharacterManager().currentMap.mapId
         self._startRpZone = PlayedCharacterManager().currentZoneRp
-        self.state = BankUnloadStates.WALKING_TO_BANK
+        self.state = BankRetrieveStates.WALKING_TO_BANK
         NpcDialog().start(
             self.infos.npcMapId, 
             self.infos.npcId, 
@@ -54,7 +57,7 @@ class UnloadInBank(AbstractBehavior):
             callback=self.onBankManDialogEnded,
             parent=self
         )
-    
+
     def onBankManDialogEnded(self, code, error):
         if error:
             return self.finish(code, error)
@@ -69,24 +72,23 @@ class UnloadInBank(AbstractBehavior):
         
     def onStorageOpen(self, event, exchangeType, pods):
         if exchangeType == ExchangeTypeEnum.BANK:
-            Logger().info("Bank storage open")
             self.inventoryWeightListener = KernelEventsManager().once(
                 KernelEvent.INVENTORY_WEIGHT_UPDATE, 
                 self.onInventoryWeightUpdate, 
-                timeout=10,
+                timeout=15,
                 retryNbr=5,
-                retryAction=Kernel().exchangeManagementFrame.exchangeObjectTransfertAllFromInv,
-                ontimeout=lambda: self.finish(self.TRANSFER_ITEMS_TIMEDOUT, "Transfer items to bank storage timeout."),
+                retryAction=self.pullItems,
+                ontimeout=lambda: self.finish(self.RETRIEVE_ITEMS_TIMEDOUT, "Pull items from bank storage timeout"),
                 originator=self
             )
-            Kernel().exchangeManagementFrame.exchangeObjectTransfertAllFromInv()
-            Logger().info("Unload items in bank request sent.")
+            self.pullItems()
+            Logger().info("Pull items request sent")
         else:
-            raise Exception(f"Expected BANK storage to open but another type of exchange '{ExchangeTypeEnum.BANK}'!")
+            raise Exception(f"Expected BANK storage to open but another type of exchange '{ExchangeTypeEnum.BANK}' opened!")
 
     def onStorageClose(self, event, success):
         Logger().info("Bank storage closed")
-        self.state = BankUnloadStates.IDLE
+        self.state = BankRetrieveStates.IDLE
         if self.return_to_start:
             Logger().info(f"Returning to start point")
             AutoTrip().start(self._startMapId, self._startRpZone, callback=self.finish, parent=self)
@@ -94,14 +96,19 @@ class UnloadInBank(AbstractBehavior):
             self.finish(True, None)
 
     def onInventoryWeightUpdate(self, event, weight, max):
-        Logger().info(f"Inventory Weight percent changed to : {round(100 * weight / max, 1)}%")
+        Logger().info(f"Inventory weight percent changed to : {round(100 * weight / max, 1)}%")
         self.storageCloseListener = KernelEventsManager().once(
-            KernelEvent.EXCHANGE_CLOSE, 
-            self.onStorageClose,
+            event_id=KernelEvent.EXCHANGE_CLOSE, 
+            callback=self.onStorageClose,
             timeout=10,
-            retryNbr=5,
-            retryAction=Kernel().exchangeManagementFrame.laveDialogRequest,
             ontimeout=lambda: self.finish(self.BANK_CLOSE_TIMEDOUT, "Bank close timedout!"),
+            retryNbr=5,
+            retryAction=Kernel().commonExchangeManagementFrame.leaveShopStock,
             originator=self
         )
-        Kernel().exchangeManagementFrame.laveDialogRequest()
+        Kernel().commonExchangeManagementFrame.leaveShopStock()
+
+    def pullItems(self):
+        ids = [it.objectUID for it in self.items]
+        Kernel().exchangeManagementFrame.exchangeObjectTransfertListWithQuantityToInv(ids, self.quantities)
+        self.state = BankRetrieveStates.RETRIEVE_REQUEST_SENT

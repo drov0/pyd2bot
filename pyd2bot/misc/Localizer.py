@@ -1,13 +1,15 @@
 import json
 import os
 
-from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
+from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
+    MapDisplayManager
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import (
-    PlayedCharacterManager,
-)
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import AStar
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import WorldGraph
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import \
+    AStar
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
+    WorldGraph
 
 
 class BankInfos:
@@ -39,7 +41,9 @@ class Localizer:
     base_dir = os.path.dirname(os.path.abspath(__file__))
     with open(os.path.join(base_dir, "areaInfos.json"), "r") as f:
         AREAINFOS: dict = json.load(f)
-
+    with open(os.path.join(base_dir, "banks.json"), "r") as f:
+        BANKS: dict = json.load(f)
+        
     @classmethod
     def getBankInfos(cls) -> BankInfos:
         subareaId = MapDisplayManager().currentDataMap.subareaId
@@ -47,11 +51,11 @@ class Localizer:
         areaId = subarea._area.id
         minDist = float("inf")
         srcV = PlayedCharacterManager().currVertex
-        closestBank = cls.AREAINFOS[str(areaId)]["bank"][0]
+        closestBankId = cls.AREAINFOS[str(areaId)]["bank"][0]
         rpZ = 1
         for bank in cls.AREAINFOS[str(areaId)]["bank"][1:]:
             if bank["npcMapId"] == PlayedCharacterManager().currentMap.mapId:
-                closestBank = bank["npcMapId"]
+                closestBankId = bank["npcMapId"]
                 break
             while True:
                 dstV = WorldGraph().getVertex(bank["npcMapId"], rpZ)
@@ -62,12 +66,13 @@ class Localizer:
                     dist = len(path)
                     if dist < minDist:
                         minDist = dist
-                        closestBank = bank
+                        closestBankId = bank
                     break
                 rpZ += 1
-        if closestBank is None:
+        if closestBankId is None:
             raise Exception(f"Could not find closest bank to areaId {areaId}")
-        return BankInfos(**closestBank)
+        
+        return BankInfos(**cls.BANKS[closestBankId])
 
     @classmethod
     def phenixMapId(cls) -> float:

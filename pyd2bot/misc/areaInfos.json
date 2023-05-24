@@ -1,77 +1,31 @@
 {
     "0": {
-        "name": "Amakna",
-        "bank": [
-            {
-                "name": "village",
-                "npcMapId": 99095051.0,
-                "npcActionId": 3,
-                "npcId": -20000,
-                "openBankReplyId": 64367
-            },
-            {
-                "name": "suffokia",
-                "npcMapId": 91753985.0,            
-                "npcActionId": 3,
-                "npcId": -20000,
-                "openBankReplyId": 64367
-            }
-        ],
+        "bank": ["Amakna"],
         "phoenix": {
             "mapId": 88086283.0
         }
     },
     "5": {
-        "name": "suffokia",
-        "bank": [
-            {
-                "name": "suffokia",
-                "npcMapId": 91753985.0,            
-                "npcActionId": 3,
-                "npcId": -20000,
-                "openBankReplyId": 64367
-            }
-        ]
+        "bank": ["Suffokia"]
     },
     "6": {
-        "name": "Astrub",
-        "bank": [
-            {
-                "name": "Astrub village",
-                "npcActionId": 3,
-                "npcId": -20001,
-                "npcMapId": 192415750.0,
-                "openBankReplyId": 64361
-            }
-        ],
+        "bank": ["Astrub"],
         "phoenix": {
             "mapId": 190843392
         }
     },    
     "18": {
-        "bank": [
-            {
-                "name": "Astrub village",
-                "npcActionId": 3,
-                "npcId": -20001,
-                "npcMapId": 192415750.0,
-                "openBankReplyId": 64361
-            }
-        ],
+        "bank": ["Astrub"],
         "phoenix": {
             "mapId": 190843392
         }
     },
     "45": {},
+    "7": {
+        "bank": ["Bonta"]
+    },
     "8": {
-        "bank": [
-            {
-                "npcActionId": 3,
-                "npcId": -20000,
-                "npcMapId": 217059328.0,
-                "openBankReplyId": 63535
-            }
-        ],
+        "bank": ["Bonta"],
         "phoenix": {
             "mapId": 128059398.0
         }
