@@ -5,6 +5,7 @@ from pyd2bot.logic.common.frames.BotRPCFrame import BotRPCFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
 from pyd2bot.logic.roleplay.behaviors.BotExchange import (
     BotExchange, ExchangeDirectionEnum)
 from pyd2bot.misc.Localizer import Localizer
@@ -97,7 +98,7 @@ class GiveItems(AbstractBehavior):
                 return Logger().warning("Worker finished while fetching player status returning")
             self.lastSellerState = self.getGuestStatus(self.seller.login)
         self.state = GiveItelsStates.WALKING_TO_BANK
-        AutoTrip().start(self.bankInfos.npcMapId, 1, callback=self.onTripEnded, parent=self)
+        AutoTripUseZaap().start(self.bankInfos.npcMapId, 1, callback=self.onTripEnded, parent=self)
 
     def onTripEnded(self, errorId, error):
         if error:
@@ -136,7 +137,7 @@ class GiveItems(AbstractBehavior):
             return self.finish(True, None)
         else:
             self.state = GiveItelsStates.RETURNING_TO_START_POINT
-            AutoTrip().start(self._startMapId, self._startRpZone, callback=self.onTripEnded, parent=self)
+            AutoTripUseZaap().start(self._startMapId, self._startRpZone, callback=self.onTripEnded, parent=self)
     
     def getState(self):
         state = self.state.name 

@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
@@ -28,7 +29,7 @@ class NpcDialog(AbstractBehavior):
         self.npcQuestionsReplies = npcQuestionsReplies
         self.currentNpcQuestionReplyIdx = 0
         self.dialogLeftListener = None
-        AutoTrip().start(self.npcMapId, 1, callback=self.onNPCMapReached, parent=self)
+        AutoTripUseZaap().start(self.npcMapId, 1, callback=self.onNPCMapReached, parent=self)
 
     def onNpcQuestion(self, event, messageId, dialogParams, visibleReplies):
         if self.currentNpcQuestionReplyIdx == len(self.npcQuestionsReplies):

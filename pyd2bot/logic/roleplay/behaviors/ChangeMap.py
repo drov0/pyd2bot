@@ -62,6 +62,7 @@ class ChangeMap(AbstractBehavior):
         self.exactDestination = True
         self.edge = None
         self.mapChangeReqSent = False
+        self.forbidenScrollCels = dict[int, list]()
 
     def run(self, transition: Transition=None, edge: Edge=None, dstMapId=None):
         if transition:
@@ -119,7 +120,11 @@ class ChangeMap(AbstractBehavior):
                     self.mapChangeRequestNbrFails = 0
                     return self.followEdge()
                 return self.finish(reason, f"Change map failed for reason: {reason.name}")
-        self.askChangeMap()
+        else:
+            if self.transition.id not in self.forbidenScrollCels:
+                self.forbidenScrollCels[self.transition.id] = []
+            self.forbidenScrollCels[self.transition.id].append(self.mapChangeCellId)
+            self.askChangeMap()
     
     def askChangeMap(self):
         Logger().info(f"{self.trType.name} map change to {self.dstMapId}")
@@ -141,13 +146,25 @@ class ChangeMap(AbstractBehavior):
                 self.interactiveMapChange()
         elif self.isScrollTr():
             if not self.iterScrollCells:
-                self.iterScrollCells = MapTools.iterMapChangeCells(self.transition.direction)
+                self.iterScrollCells = self.getScrollCells()
             self.scrollMapChange()
         elif self.isMapActionTr():
             self.actionMapChange()
         else:
             self.finish(self.INVALID_TRANSITION, f"Unsupported transition type {self.trType.name}")
     
+    def getScrollCells(self):
+        if self.transition.id in self.forbidenScrollCels:
+            if self.transition.cell not in self.forbidenScrollCels[self.transition.id]:
+                yield self.transition.cell
+            for c in MapTools.iterMapChangeCells(self.transition.direction):
+                if c not in self.forbidenScrollCels[self.transition.id]:
+                    yield c
+        else:
+            yield self.transition.cell
+            for c in MapTools.iterMapChangeCells(self.transition.direction):
+                yield c
+
     def onRequestRejectedByServer(self, event: Event, reason: MovementFailError):
         if MapMove().isRunning():
             return Logger().warning(f"Change map timer kicked while map move to cell stil resolving!")

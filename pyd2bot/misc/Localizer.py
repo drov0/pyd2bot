@@ -51,12 +51,13 @@ class Localizer:
         areaId = subarea._area.id
         minDist = float("inf")
         srcV = PlayedCharacterManager().currVertex
-        closestBankId = cls.AREAINFOS[str(areaId)]["bank"][0]
-        rpZ = 1
-        for bank in cls.AREAINFOS[str(areaId)]["bank"]:
+        closestBankId = None
+        for bankId in cls.AREAINFOS[str(areaId)]["bank"]:
+            bank = cls.BANKS[bankId]
             if bank["npcMapId"] == PlayedCharacterManager().currentMap.mapId:
-                closestBankId = bank["npcMapId"]
+                closestBankId = bankId
                 break
+            rpZ = 1
             while True:
                 dstV = WorldGraph().getVertex(bank["npcMapId"], rpZ)
                 if not dstV:
@@ -66,7 +67,7 @@ class Localizer:
                     dist = len(path)
                     if dist < minDist:
                         minDist = dist
-                        closestBankId = bank
+                        closestBankId = bankId
                     break
                 rpZ += 1
         if closestBankId is None:

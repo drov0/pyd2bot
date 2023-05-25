@@ -4,6 +4,7 @@ from time import perf_counter
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
 from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
 from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
@@ -62,9 +63,9 @@ class MuleFighter(AbstractBehavior):
                     def onGotOutOfAnkarnam(code, error):
                         if error:
                             return self.finish(code, error)
-                        AutoTrip().start(vertex.mapId, vertex.zoneId, parent=self.parent, callback=onPosReached)
+                        AutoTripUseZaap().start(vertex.mapId, vertex.zoneId, parent=self.parent, callback=onPosReached)
                     return GetOutOfAnkarnam().start(callback=onGotOutOfAnkarnam, parent=self)
-                AutoTrip().start(vertex.mapId, vertex.zoneId, parent=self.parent, callback=onPosReached)
+                AutoTripUseZaap().start(vertex.mapId, vertex.zoneId, parent=self.parent, callback=onPosReached)
             else:
                 Logger().info("Dest vertex is the same as the current player vertex")
         else:

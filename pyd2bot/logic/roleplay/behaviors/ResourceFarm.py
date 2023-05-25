@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Tuple
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
 from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
 from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
 from pyd2bot.logic.roleplay.behaviors.RequestMapData import RequestMapData
@@ -76,15 +77,15 @@ class ResourceFarm(AbstractBehavior):
             def onPosReached(code, error):
                 if error:
                     return KernelEventsManager().send(KernelEvent.SHUTDOWN, message=error)
-                AutoTrip().start(
+                AutoTripUseZaap().start(
                     self.path.startVertex.mapId, self.path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self
                 )
             def onGotOutOfAnkarnam(code, error):
                 if error:
                     return KernelEventsManager().send(KernelEvent.SHUTDOWN, message=error)
-                AutoTrip().start(self.path.startVertex.mapId, self.path.startVertex.zoneId, parent=self.parent, callback=onPosReached)
+                AutoTripUseZaap().start(self.path.startVertex.mapId, self.path.startVertex.zoneId, parent=self.parent, callback=onPosReached)
             return GetOutOfAnkarnam().start(callback=onGotOutOfAnkarnam, parent=self)
-        AutoTrip().start(
+        AutoTripUseZaap().start(
             self.path.startVertex.mapId, self.path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self
         )
 

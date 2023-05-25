@@ -3,6 +3,7 @@ from enum import Enum
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
 from pyd2bot.logic.roleplay.behaviors.BotExchange import (
     BotExchange, ExchangeDirectionEnum)
 from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank
@@ -41,7 +42,7 @@ class CollectItems(AbstractBehavior):
         self.items = items
         self.state = CollecteState.GOING_TO_BANK
         self.guestDisconnectedListener = BotEventsManager().onceBotDisconnected(self.guest.login, self.onGuestDisconnected, originator=self)
-        AutoTrip().start(self.bankInfos.npcMapId, 1, callback=self.onTripEnded, parent=self)
+        AutoTripUseZaap().start(self.bankInfos.npcMapId, 1, callback=self.onTripEnded, parent=self)
 
     def onGuestDisconnected(self):
         Logger().error("[CollectFromGuest] Guest disconnected!")

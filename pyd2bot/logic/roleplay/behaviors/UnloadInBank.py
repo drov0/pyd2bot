@@ -1,7 +1,7 @@
 from enum import Enum
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
 from pyd2bot.logic.roleplay.behaviors.NpcDialog import NpcDialog
 from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
@@ -89,7 +89,7 @@ class UnloadInBank(AbstractBehavior):
         self.state = BankUnloadStates.IDLE
         if self.return_to_start:
             Logger().info(f"Returning to start point")
-            AutoTrip().start(self._startMapId, self._startRpZone, callback=self.finish, parent=self)
+            AutoTripUseZaap().start(self._startMapId, self._startRpZone, callback=self.finish, parent=self)
         else:
             self.finish(True, None)
 
