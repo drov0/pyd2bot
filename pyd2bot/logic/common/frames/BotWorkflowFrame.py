@@ -207,6 +207,12 @@ class BotWorkflowFrame(Frame):
             if callback:
                 callback()
         if BotConfig().unloadInBank:
+            if ResourceFarm().isRunning():
+                ResourceFarm().stop()
+            if FarmFights().isRunning():
+                FarmFights().stop()
+            if MuleFighter().isRunning():
+                MuleFighter().stop()
             UnloadInBank().start(callback=onInventoryUnloaded)
         elif BotConfig().unloadInSeller:
             Logger().info("Aquiring seller lock")
@@ -221,6 +227,8 @@ class BotWorkflowFrame(Frame):
             BotConfig().hasSellerLock = True
             BotConfig.SELLER_VACANT.clear()            
             Logger().info("Seller lock aquired")
+            if ResourceFarm().isRunning():
+                ResourceFarm().stop()
             if FarmFights().isRunning():
                 FarmFights().stop()
             if MuleFighter().isRunning():

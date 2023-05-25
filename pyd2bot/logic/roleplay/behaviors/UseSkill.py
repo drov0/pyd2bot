@@ -9,9 +9,7 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
-    InteractiveElementData, RoleplayInteractivesFrame)
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayWorldFrame import \
-    RoleplayWorldFrame
+    InteractiveElementData, RoleplayInteractivesFrame)    
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveElementUpdatedMessage import \
     InteractiveElementUpdatedMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
@@ -36,10 +34,6 @@ class UseSkill(AbstractBehavior):
         self.timeoutsCount = 0
         self.ie = None
         self.useErrorListener = None
-
-    @property
-    def worldFrame(self) -> "RoleplayWorldFrame":
-        return Kernel().worker.getFrameByName("RoleplayWorldFrame")
 
     def run(self,
         ie: InteractiveElementData,
@@ -78,7 +72,7 @@ class UseSkill(AbstractBehavior):
         sendInteractiveUseRequest = True
         cell = self.cell
         if not cell:
-            cell, sendInteractiveUseRequest = self.worldFrame.getNearestCellToIe(self.element, self.elementPosition)
+            cell, sendInteractiveUseRequest = RoleplayInteractivesFrame.getNearestCellToIe(self.element, self.elementPosition)
             
         if not sendInteractiveUseRequest:
             return self.finish(self.CANT_USE, "Can't use this interactive element")

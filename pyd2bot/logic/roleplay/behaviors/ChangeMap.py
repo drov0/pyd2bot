@@ -14,8 +14,6 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterMa
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
     InteractiveElementData, RoleplayInteractivesFrame)
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayWorldFrame import \
-    RoleplayWorldFrame
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
     MovementFailError
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
@@ -79,11 +77,7 @@ class ChangeMap(AbstractBehavior):
     @property
     def rpiframe(cls) -> "RoleplayInteractivesFrame":
         return Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
-    
-    @property
-    def worldframe(cls) -> "RoleplayWorldFrame":
-        return Kernel().worker.getFrameByName("RoleplayWorldFrame")
-    
+
     @property
     def transitions(self) -> Iterable[Transition]:
         for tr in self.edge.transitions:
@@ -135,7 +129,7 @@ class ChangeMap(AbstractBehavior):
                     if not ie:
                         return self.finish(False, f"InteractiveElement {self.transition.id} not found")
                     self.mapChangeIE = ie
-                    iePosition, useInteractive = self.worldframe.getNearestCellToIe(self.mapChangeIE.element, self.mapChangeIE.position)
+                    iePosition, useInteractive = RoleplayInteractivesFrame.getNearestCellToIe(self.mapChangeIE.element, self.mapChangeIE.position)
                     if not useInteractive:
                         return self.finish(False, "Cannot use the interactive")
                     Logger().info(f"Interactive Map change using skill '{ie.skillUID}' on cell '{ie.position.cellId}'.")

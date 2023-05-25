@@ -1,8 +1,5 @@
-from typing import TYPE_CHECKING
-
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
 from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
 from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
@@ -33,7 +30,7 @@ class AutoRevive(AbstractBehavior):
             return KernelEventsManager().onceMapProcessed(self.start, originator=self)
         KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange, originator=self)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_PHANTOM:
-            AutoTripUseZaap().start(Localizer.phenixMapId(), 1, callback=self.onPhenixMapReached, parent=self)
+            AutoTrip().start(Localizer.phenixMapId(), 1, callback=self.onPhenixMapReached, parent=self)
         elif PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
             KernelEventsManager().onceMapProcessed(self.onCimetaryMapLoaded, originator=self)
             self.releaseSoulRequest()
@@ -42,14 +39,14 @@ class AutoRevive(AbstractBehavior):
         if playerState == PlayerLifeStatusEnum.STATUS_PHANTOM:
             Logger().info(f"Player saoul released wating for cimetary map to load.")
         elif playerState == PlayerLifeStatusEnum.STATUS_ALIVE_AND_KICKING:
-            Logger().info("Player is alive and kicking")
+            Logger().info("Player is alive and kicking.")
             self.finish(True, None)
 
     def onCimetaryMapLoaded(self, event_id=None):
         Logger().debug(f"Cimetary map loaded.")
         if self.requestTimer:
             self.requestTimer.cancel()
-        AutoTripUseZaap().start(Localizer.phenixMapId(), 1, callback=self.onPhenixMapReached, parent=self)
+        AutoTrip().start(Localizer.phenixMapId(), 1, callback=self.onPhenixMapReached, parent=self)
 
     def onPhenixMapReached(self, code, error):
         if error:
