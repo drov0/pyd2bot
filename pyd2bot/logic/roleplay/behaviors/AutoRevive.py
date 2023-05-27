@@ -4,6 +4,8 @@ from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
 from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.dofus.datacenter.world.Phoenix import Phoenix
+from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
@@ -25,17 +27,18 @@ class AutoRevive(AbstractBehavior):
         self.requestTimer = None
 
     def run(self) -> bool:
-        Logger().info("Started.")
+        self.phenixMapId = Kernel().playedCharacterUpdatesFrame._phenixMapId
         if not PlayedCharacterManager().currentMap:
             return KernelEventsManager().onceMapProcessed(self.start, originator=self)
         KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange, originator=self)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_PHANTOM:
-            AutoTrip().start(Localizer.phenixMapId(), 1, callback=self.onPhenixMapReached, parent=self)
+            AutoTrip().start(self.phenixMapId, 1, callback=self.onPhenixMapReached, parent=self)
         elif PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
             KernelEventsManager().onceMapProcessed(self.onCimetaryMapLoaded, originator=self)
             self.releaseSoulRequest()
 
-    def onPlayerStateChange(self, event, playerState: PlayerLifeStatusEnum):
+    def onPlayerStateChange(self, event, playerState: PlayerLifeStatusEnum, phenixMapId):
+        self.phenixMapId = phenixMapId
         if playerState == PlayerLifeStatusEnum.STATUS_PHANTOM:
             Logger().info(f"Player saoul released wating for cimetary map to load.")
         elif playerState == PlayerLifeStatusEnum.STATUS_ALIVE_AND_KICKING:
@@ -46,7 +49,7 @@ class AutoRevive(AbstractBehavior):
         Logger().debug(f"Cimetary map loaded.")
         if self.requestTimer:
             self.requestTimer.cancel()
-        AutoTrip().start(Localizer.phenixMapId(), 1, callback=self.onPhenixMapReached, parent=self)
+        AutoTrip().start(self.phenixMapId, 1, callback=self.onPhenixMapReached, parent=self)
 
     def onPhenixMapReached(self, code, error):
         if error:

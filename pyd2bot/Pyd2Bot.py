@@ -5,8 +5,12 @@ from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import \
     BotCharacterUpdatesFrame
 from pyd2bot.logic.common.frames.BotRPCFrame import BotRPCFrame
 from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
+from pyd2bot.logic.fight.frames.BotFightFrame import BotFightFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
+from pyd2bot.logic.roleplay.behaviors.FarmFights import FarmFights
+from pyd2bot.logic.roleplay.behaviors.MuleFighter import MuleFighter
+from pyd2bot.logic.roleplay.behaviors.ResourceFarm import ResourceFarm
 from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Session,
                                                         SessionStatus)
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
@@ -18,6 +22,8 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionType import \
     ConnectionType
+from pydofus2.com.ankamagames.dofus.kernel.net.PlayerDisconnectedMessage import \
+    PlayerDisconnectedMessage
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -62,16 +68,26 @@ class Pyd2Bot(DofusClient):
         if self._role == CharacterRoleEnum.SELLER:
             BotConfig.SELLER_VACANT.set()
         def onKamasUpdate(event, totalKamas):
-            Logger().info(f"Total kamas update : {totalKamas}")
             if self._totalKamas is not None:
                 diff = totalKamas - self._totalKamas
                 if diff > 0:
                     self.earnedKamas += diff
             self._totalKamas = totalKamas
         def onFight(event):
+            Kernel().worker.addFrame(BotFightFrame())
             self.nbrFightsDone += 1
+        for instId, inst in Kernel.getInstances():
+            if instId != self.name:
+                inst.worker.process(PlayerDisconnectedMessage(self.name))
         KernelEventsManager().on(KernelEvent.FIGHT_STARTED, onFight)
         KernelEventsManager().on(KernelEvent.KAMAS_UPDATE, onKamasUpdate)
+        if BotConfig().isFarmSession:
+            ResourceFarm().start()
+        elif BotConfig().isFightSession:
+            if BotConfig().isLeader:
+                FarmFights().start()
+            else:
+                MuleFighter().start()
 
     def addShutDownListener(self, callback):
         self._shutDownListeners.append(callback)

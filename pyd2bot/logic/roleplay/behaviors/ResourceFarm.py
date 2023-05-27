@@ -18,25 +18,23 @@ class ResourceFarm(AbstractFarmBehavior):
     def init(self):
         self.jobFilter = BotConfig().jobFilter
         self.path = BotConfig().path
-        self.collectBehavior = UseSkill
-        self.currentCollected = None
 
     def isCollectErrRequireRestart(self, code: int) -> bool:
-        return code not in [UseSkill.ELEM_TAKEN, UseSkill.CANT_USE, UseSkill.USE_ERROR]
+        return code not in [UseSkill.ELEM_BEING_USED, UseSkill.ELEM_TAKEN, UseSkill.CANT_USE, UseSkill.USE_ERROR]
     
     def isCollectErrCodeRequireRefresh(self, code: int) -> bool:
         return code in [UseSkill.ELEM_BEING_USED]
-
-    def getCollectBehaviorArgs(self):
-        return []
     
-    def getCollectBehaviorKwrgs(self):
-        return { "ie": self.currentTarget["interactiveElement"], "cell": self.currentTarget["nearestCell"] }
+    def isCollectErrRequireShutdown(self, code):
+        return False
+    
+    def collectCurrResource(self):
+        UseSkill().start(ie=self.currentTarget["interactiveElement"], cell=self.currentTarget["nearestCell"], parent=self, callback=self.onCollectEnd)
 
     def getResourcesTableHeaders(self) -> list[str]:
         return ["jobName", "resourceName", "distance", "enabled", "reachable", "canFarm"]
 
-    def findResourceToCollect(self) -> list[dict]:
+    def iterResourceToCollect(self) -> list[dict]:
         collectables = Kernel().interactivesFrame.collectables.values()
         availableResources = []
         for it in collectables:
@@ -51,7 +49,7 @@ class ResourceFarm(AbstractFarmBehavior):
                 "interactiveElement": ie,
                 "enabled": it.enabled,
                 "playerJobLevel": playerJobLevel,
-                "haveTheRequiredJobLevel": playerJobLevel >= it.skill.levelMin,
+                "hasLevel": playerJobLevel >= it.skill.levelMin,
                 "insidePlayerZone": PlayedCharacterManager().inSameRpZone(ie.position.cellId),
             }
             movePath = Pathfinding().findPath(PlayedCharacterManager().entity.position, ie.position)
@@ -67,14 +65,16 @@ class ResourceFarm(AbstractFarmBehavior):
                 and r["enabled"]
                 and r["jobId"] in self.jobFilter
                 and (not self.jobFilter[r["jobId"]] or r["resourceId"] in self.jobFilter[r["jobId"]])
-                and r["haveTheRequiredJobLevel"]
+                and r["hasLevel"]
             )
             r["canFarm"] = canFarm
             availableResources.append(r)
         if availableResources:
             Logger().debug(self.getAvailableResourcesTable(availableResources))
             availableResources.sort(key=lambda r : r['distance'])
-            return [r for r in availableResources if r['canFarm']]
+            for r in availableResources:
+                if r['canFarm'] :
+                    yield r
         else:
             return []
 

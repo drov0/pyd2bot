@@ -9,7 +9,7 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
-    InteractiveElementData, RoleplayInteractivesFrame)    
+    InteractiveElementData, RoleplayInteractivesFrame)
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveElementUpdatedMessage import \
     InteractiveElementUpdatedMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
@@ -77,9 +77,9 @@ class UseSkill(AbstractBehavior):
         if not sendInteractiveUseRequest:
             return self.finish(self.CANT_USE, "Can't use this interactive element")
 
-        def onmoved(errType, error):
+        def onmoved(code, error):
             if error:
-                return self.finish(errType, error)
+                return self.finish(code, error)
             self.requestActivateSkill()
 
         if self.waitForSkillUsed:
@@ -122,12 +122,10 @@ class UseSkill(AbstractBehavior):
                 )
         
     def onInteractiveUpdated(self, event, ieumsg: InteractiveElementUpdatedMessage):
-        Logger().info(f"Elem {ieumsg.interactiveElement.elementId} updated")
         if ieumsg.interactiveElement.elementId == self.elementId:
             for skill in ieumsg.interactiveElement.disabledSkills:
                 if skill.skillInstanceUid == self.skillUID:
-                    Logger().info("Element farmed successfully")
-            self.finish(True, None)
+                    self.finish(True, None)
 
     def onElemUpdateWaitTimeout(self, listener: Listener):
         self.finish(self.ELEM_UPDATE_TIMEOUT, "Elem update wait timedout")

@@ -33,8 +33,6 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovemen
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
     Pathfinding
-from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import \
-    DirectionsEnum
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import \
     MovementPath
@@ -62,7 +60,7 @@ class MovementAnimation(threading.Thread):
         for pe in self.movePath.path[1:] + [self.movePath.end]:
             if Kernel().worker.terminated.is_set():
                 return Logger().warning("Stoped movement anim woz worker terminated")
-            stepDuration = self.getStepDuration(self.currStep.orientation)
+            stepDuration = self.movePath.getStepDuration(self.currStep.orientation)
             if self.stopEvt.wait(stepDuration):
                 Logger().warning(f"Movement animation stopped")
                 canceledMoveMessage = GameMapMovementCancelMessage()
@@ -70,37 +68,15 @@ class MovementAnimation(threading.Thread):
                 ConnectionsHandler().send(canceledMoveMessage)
                 self.running.clear()
                 return
-            # Logger().info(f"Reached cell {pe.cellId}")
             self.currStep = pe
-        Logger().info(f"Movement animation ended")
-        if self.stopEvt.wait(0.2):
-            return
         gmmcmsg = GameMapMovementConfirmMessage()
         ConnectionsHandler().send(gmmcmsg)
+        Logger().info(f"Movement animation ended")
         self.running.clear()
         self.callback(True)
+
             
-    def getStepDuration(self, orientation) -> float:
-        if PlayedCharacterManager().inventoryWeightMax != 0:
-            weightCoef = PlayedCharacterManager().inventoryWeight / PlayedCharacterManager().inventoryWeightMax
-        else:
-            weightCoef = 0
-        canRun = weightCoef < 1.0
-        if isinstance(orientation, DirectionsEnum):
-            orientation = orientation.value
-        if not canRun:
-            if orientation % 2 == 0:
-                if orientation % 4 == 0:
-                    duration = self.movePath.WALK_HORIZONTAL_DIAG_DURATION
-                duration = self.movePath.WALK_VERTICAL_DIAG_DURATION
-            duration = self.movePath.WALK_LINEAR_DURATION
-        else:
-            if orientation % 2 == 0:
-                if orientation % 4 == 0:
-                    duration = self.movePath.RUN_HORIZONTAL_DIAG_DURATION
-                duration = self.movePath.RUN_VERTICAL_DIAG_DURATION
-            duration = self.movePath.RUN_LINEAR_DURATION
-        return duration / 1000
+
 
 class MapMove(AbstractBehavior):
     CONSECUTIVE_MOVEMENT_DELAY = 0.25

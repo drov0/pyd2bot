@@ -28,7 +28,6 @@ class AbstractBehavior(metaclass=Singleton):
         super().__init__()
 
     def start(self, *args, parent: 'AbstractBehavior'=None, callback=None, **kwargs) -> None:
-        Logger().debug(f"Starting '{type(self).__name__}' by parent {type(parent).__name__}...")
         if self.parent and not self.parent.running.is_set():
             return Logger().debug(f"Cancel start coz parent is dead")
         self.callback = callback
@@ -43,7 +42,6 @@ class AbstractBehavior(metaclass=Singleton):
                 Logger().error(error)
             return
         self.running.set()
-        Logger().debug(f"{type(self).__name__} started.")
         self.run(*args, **kwargs)
         
     def run(self, *args, **kwargs):
@@ -144,7 +142,9 @@ class AbstractBehavior(metaclass=Singleton):
         Logger().debug(f"Stopping {type(self).__name__} ...")
         self.finish(True, None)
         Logger().debug(f"{type(self).__name__} has {len(self.children)} children")
+        self.stopChilds()
+    
+    def stopChilds(self):
         while self.children:
             child = self.children.pop()
             child.stop()
-            
