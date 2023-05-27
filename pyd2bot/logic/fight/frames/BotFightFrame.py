@@ -652,6 +652,7 @@ class BotFightFrame(Frame):
                 self.checkCanPlay()
             else:
                 self._turnStartPlaying = True
+            return True
 
         elif isinstance(msg, GameFightTurnReadyRequestMessage):
             if Kernel().battleFrame._executingSequence:
