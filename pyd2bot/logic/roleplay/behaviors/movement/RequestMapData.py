@@ -30,7 +30,7 @@ class RequestMapData(AbstractBehavior):
         if not mapId:
             mapId = MapDisplayManager().currentMapPoint.mapId
         self.mapId = mapId
-        Logger().info(f"[RequestMapData] Requesting data for map {mapId}")
+        Logger().info(f"Requesting data for map {mapId}")
         self.listener = KernelEventsManager().onceMapProcessed(
             lambda: self.finish(True, None), 
             mapId=mapId,

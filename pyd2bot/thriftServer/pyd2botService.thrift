@@ -74,6 +74,7 @@ enum UnloadType {
 }
 enum PathType {
     RandomSubAreaFarmPath = 0,
+    RandomAreaFarmPath=2,
     CyclicFarmPath = 1,
 }
 struct Path {

@@ -1,7 +1,7 @@
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractFarmBehavior import \
     AbstractFarmBehavior
-from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
+from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager

@@ -10,9 +10,9 @@ from pyd2bot.logic.common.rpcMessages.RCPResponseMessage import \
 from pyd2bot.logic.common.rpcMessages.RPCMessage import RPCMessage
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
-from pyd2bot.logic.roleplay.behaviors.CollectItems import CollectItems
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
+from pyd2bot.logic.roleplay.behaviors.exchange.CollectItems import CollectItems
 from pyd2bot.logic.roleplay.messages.FollowTransitionMessage import \
     FollowTransitionMessage
 from pyd2bot.logic.roleplay.messages.MoveToVertexMessage import \

@@ -1,6 +1,6 @@
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
-from pyd2bot.logic.roleplay.behaviors.RequestMapData import RequestMapData
+from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
+from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import RequestMapData
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
                                                                      Listener)
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
@@ -38,8 +38,8 @@ class AttackMonsters(AbstractBehavior):
     ENTITY_VANISHED = 801
     ENTITY_MOVED = 802
     MAP_CHANGED = 803
-    TIMEOUT = 804
-    FIGHT_REQ_TIMEOUT = 3
+    FIGHT_REQ_TIMEDOUT = 804
+    FIGHT_REQ_TIMEOUT = 7
 
     def __init__(self) -> None:
         super().__init__()
@@ -91,10 +91,13 @@ class AttackMonsters(AbstractBehavior):
         if error:
             return self.finish(status, error)
         Logger().info(f"[AttackMonsters] Reached monster group cell")
-        self.attackMonsterListener = KernelEventsManager().onceFightStarted(
-            lambda event: self.finish(True, None), 
+        self.attackMonsterListener = KernelEventsManager().once(
+            event_id=KernelEvent.FIGHT_STARTED,
+            callback=lambda event: self.finish(True, None), 
             timeout=self.FIGHT_REQ_TIMEOUT, 
-            ontimeout=self.onRequestTimeout, 
+            ontimeout=self.finish, 
+            retryNbr=3,
+            retryAction=self.restart,
             originator=self
         )
         self.requestAttackMonsters()
@@ -107,14 +110,6 @@ class AttackMonsters(AbstractBehavior):
             Logger().warning("Entity moved but we already asked server for attack")
             return
         self.restart()
-
-    def onRequestTimeout(self, listener: Listener):
-        Logger().warning(f"Fight entity {self.entityId} request timeout")
-        self.nbrFails += 1
-        if self.nbrFails > 3:
-            self.finish(False, self.TIMEOUT)
-        else:
-            self.restart()
         
     def restart(self):
         KernelEventsManager().clearAllByOrigin(self)

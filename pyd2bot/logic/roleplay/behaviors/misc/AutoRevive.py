@@ -1,6 +1,6 @@
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)

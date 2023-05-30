@@ -3,10 +3,10 @@ import re
 from time import perf_counter
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
-from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
-from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
+from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import GetOutOfAnkarnam
+from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,

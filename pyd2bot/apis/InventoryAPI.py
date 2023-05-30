@@ -11,6 +11,7 @@ from pydofus2.com.ankamagames.dofus.logic.game.roleplay.actions.DeleteObjectActi
 
 
 class InventoryAPI:
+    
     @classmethod
     def getWeightPercent(cls):
         pourcentt = round(

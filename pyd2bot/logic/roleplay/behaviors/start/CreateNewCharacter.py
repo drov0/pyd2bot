@@ -5,7 +5,7 @@ from time import sleep
 from typing import TYPE_CHECKING
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.UseSkill import UseSkill
+from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)

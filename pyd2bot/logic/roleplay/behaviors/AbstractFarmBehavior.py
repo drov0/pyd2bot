@@ -1,12 +1,12 @@
 from typing import Any, Tuple
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.AutoRevive import AutoRevive
-from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
-from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
-from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
-from pyd2bot.logic.roleplay.behaviors.RequestMapData import RequestMapData
-from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank
+from pyd2bot.logic.roleplay.behaviors.misc.AutoRevive import AutoRevive
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
+from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
+from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import GetOutOfAnkarnam
+from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import RequestMapData
+from pyd2bot.logic.roleplay.behaviors.bank.UnloadInBank import UnloadInBank
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
@@ -38,6 +38,7 @@ class AbstractFarmBehavior(AbstractBehavior):
         KernelEventsManager().on(KernelEvent.FIGHT_STARTED, self.onFight)
         self.inFight = False
         KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange, originator=self)
+        self.roleplayListener = None
         self.doFarm()
 
     def init(self, *args, **kwargs):
@@ -51,8 +52,9 @@ class AbstractFarmBehavior(AbstractBehavior):
             if code == MovementFailError.PLAYER_IS_DEAD:
                 Logger().warning(f"Player is dead.")
                 return AutoRevive().start(callback=self.onRevived, parent=self)
-            Logger().error(f"Error while moving to next step: {error}, code {code}")
-            return KernelEventsManager().send(KernelEvent.RESTART, "Error while moving to next step: %s." % error)
+            elif code != ChangeMap.LANDED_ON_WRONG_MAP:
+                Logger().error(f"Error while moving to next step {error}, code {code}.")
+                return KernelEventsManager().send(KernelEvent.RESTART, "Error while moving to next step: %s." % error)
         self.doFarm()
 
     def moveToNextStep(self):
@@ -86,7 +88,11 @@ class AbstractFarmBehavior(AbstractBehavior):
                 AutoTripUseZaap().start(self.path.startVertex.mapId, self.path.startVertex.zoneId, parent=self.parent, callback=onPosReached)
             return GetOutOfAnkarnam().start(callback=onGotOutOfAnkarnam, parent=self)
         AutoTripUseZaap().start(
-            self.path.startVertex.mapId, self.path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self
+            self.path.startVertex.mapId, 
+            self.path.startVertex.zoneId,
+            withSaveZaap=True,
+            callback=self.onFarmPathMapReached, 
+            parent=self
         )
 
     def onBotUnloaded(self, code, err):
@@ -112,15 +118,16 @@ class AbstractFarmBehavior(AbstractBehavior):
         Logger().warning(f"Player is in fight")
         self.inFight = True
         self.stopChilds()
-
+        self.roleplayListener = KernelEventsManager().once(KernelEvent.ROLEPLAY_STARTED, self.onRoleplay, originator=self)
+                
     def isCollectErrCodeRequireRefresh(self, code: int) -> bool:
-        raise NotImplementedError()
+        return False
     
     def isCollectErrRequireRestart(self, code: int) -> bool:
-        raise NotImplementedError()
+        return False
 
     def isCollectErrRequireShutdown(self, code):
-        raise NotImplementedError()
+        return False
 
     def collectCurrResource(self):
         raise NotImplementedError()
@@ -131,11 +138,12 @@ class AbstractFarmBehavior(AbstractBehavior):
     def onRevived(self, code, error):
         if error:
             raise Exception(f"[BotWorkflow] Error while autoreviving player: {error}")
+        self.availableResources = None
         self.doFarm()
 
     def onRoleplay(self, event=None):
         self.inFight = False
-        self.doFarm()
+        KernelEventsManager().onceMapProcessed(self.doFarm, originator=self)
 
     def doFarm(self, event_id=None, error=None):
         if not self.running.is_set():
@@ -144,7 +152,7 @@ class AbstractFarmBehavior(AbstractBehavior):
         if PlayedCharacterManager().currentMap is None:
             return KernelEventsManager().onceMapProcessed(callback=self.doFarm, originator=self)
         if self.inFight:
-            return KernelEventsManager().once(KernelEvent.ROLEPLAY_STARTED, self.onRoleplay, originator=self)
+            return
         if PlayedCharacterManager().isDead():
             Logger().warning(f"Player is dead.")
             return AutoRevive().start(callback=self.onRevived, parent=self)

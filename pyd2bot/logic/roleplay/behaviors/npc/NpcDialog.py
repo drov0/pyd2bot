@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \

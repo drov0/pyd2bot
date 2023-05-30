@@ -25,7 +25,7 @@ from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 
 
-class CyclicPath(AbstractFarmPath):
+class RandomAreaFarmPath(AbstractFarmPath):
     def __init__(
         self,
         name: str,
@@ -34,21 +34,28 @@ class CyclicPath(AbstractFarmPath):
     ) -> None:
         self.name = name
         self.startVertex = startVertex
-        self.subArea = SubArea.getSubAreaByMapId(startVertex.mapId)
+        self.area = SubArea.getSubAreaByMapId(startVertex.mapId).area
+        self.subAreas = list[SubArea]()
+        self.mapIds = set[int]()
+        for sa in SubArea.getAllSubArea():
+            if sa.areaId == self.area.id:
+                self.subAreas.append(sa)
+                for mapId in sa.mapIds:
+                    self.mapIds.add(mapId)
         self._currentVertex = None
         self._verticies = list[Vertex]()
         self.onlyDirections = onlyDirections
         self._recent_visited = list[Tuple['Vertex', float]]()
 
     def recentVisitedVerticies(self):
-        self._recent_visited = [(_, time_added) for (_, time_added) in self._recent_visited if (time.time() - time_added) < 60]
+        self._recent_visited = [(_, time_added) for (_, time_added) in self._recent_visited if (time.time() - time_added) < 60 * 5]
         return [v for v, _ in self._recent_visited]
     
     def __next__(self) -> Tuple[Transition, Edge]:
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(self.currentVertex)
         transitions = list[Tuple[Edge, Transition]]()
         for edge in outgoingEdges:
-            if edge.dst.mapId in self.subArea.mapIds:
+            if edge.dst.mapId in self.mapIds:
                 if AStar.hasValidTransition(edge):
                     for tr in edge.transitions:
                         if not self.onlyDirections or tr.direction != -1:
@@ -76,7 +83,7 @@ class CyclicPath(AbstractFarmPath):
     def neighbors(self, vertex: Vertex) -> Iterator[Vertex]:
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
         for edge in outgoingEdges:
-            if edge.dst.mapId in self.subArea.mapIds:
+            if edge.dst.mapId in self.mapIds:
                 found = False
                 for tr in edge.transitions:
                     if tr.direction != -1:
@@ -110,7 +117,7 @@ class CyclicPath(AbstractFarmPath):
         return {
             "type": self.__class__.__name__,
             "name": self.name,
-            "subAreaId": self.subArea.id,
+            "areaId": self.area.id,
             "startVertex": {
                 "mapId": self.startVertex.mapId,
                 "mapRpZone": self.startVertex.zoneId,
@@ -118,7 +125,7 @@ class CyclicPath(AbstractFarmPath):
         }
 
     @classmethod
-    def from_thriftObj(cls, path: Path) -> "RandomSubAreaFarmPath":
+    def from_thriftObj(cls, path: Path) -> "RandomAreaFarmPath":
         startVertex = WorldGraph().getVertex(path.startVertex.mapId, path.startVertex.zoneId)
         if startVertex is None:
             raise ValueError("Could not find start vertex from startVertex : " + str(path.startVertex))

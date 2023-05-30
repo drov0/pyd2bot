@@ -37,7 +37,7 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         self.subArea = SubArea.getSubAreaByMapId(startVertex.mapId)
         self._currentVertex = None
         self._verticies = list[Vertex]()
-        self.onlyDirections = onlyDirections
+        self.noInteractive = onlyDirections
         self._recent_visited = list[Tuple['Vertex', float]]()
 
     def recentVisitedVerticies(self):
@@ -51,15 +51,16 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
             if edge.dst.mapId in self.subArea.mapIds:
                 if AStar.hasValidTransition(edge):
                     for tr in edge.transitions:
-                        if not self.onlyDirections or tr.direction != -1:
-                            if TransitionTypeEnum(tr.type) != TransitionTypeEnum.INTERACTIVE:
+                        if self.noInteractive and TransitionTypeEnum(tr.type) == TransitionTypeEnum.INTERACTIVE:
+                            continue
+                        if TransitionTypeEnum(tr.type) != TransitionTypeEnum.INTERACTIVE:
                                 currMP = PlayedCharacterManager().entity.position
                                 candidate = MapPoint.fromCellId(tr.cell)
                                 movePath = Pathfinding().findPath(currMP, candidate)
                                 if movePath.end == candidate:
                                     transitions.append((edge, tr))
-                            else:
-                                transitions.append((edge, tr))
+                        else:
+                            transitions.append((edge, tr))
         notrecent = [(edge, tr) for edge, tr in transitions if edge.dst not in self.recentVisitedVerticies()]
         if notrecent:
             edge, tr = random.choice(notrecent)

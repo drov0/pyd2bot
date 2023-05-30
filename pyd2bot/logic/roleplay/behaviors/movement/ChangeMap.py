@@ -1,8 +1,8 @@
 from typing import Iterable, Tuple
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
-from pyd2bot.logic.roleplay.behaviors.RequestMapData import RequestMapData
+from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
+from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import RequestMapData
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
                                                                      Listener)
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (

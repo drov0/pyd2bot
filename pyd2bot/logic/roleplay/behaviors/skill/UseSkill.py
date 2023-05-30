@@ -1,5 +1,5 @@
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.MapMove import MapMove
+from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
     KernelEvent, KernelEventsManager)

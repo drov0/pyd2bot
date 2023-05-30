@@ -5,10 +5,10 @@ import threading
 import traceback
 from time import sleep
 
-from pyd2bot.logic.roleplay.behaviors.CreateNewCharacter import \
+from pyd2bot.logic.roleplay.behaviors.start.CreateNewCharacterracter import \
     CreateNewCharacter
-from pyd2bot.logic.roleplay.behaviors.DeleteCharacter import DeleteCharacter
-from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
+from pyd2bot.logic.roleplay.behaviors.start.DeleteCharacter import DeleteCharacter
+from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import GetOutOfAnkarnam
 from pyd2bot.SessionCtrl import SessionCtrl
 from pyd2bot.thriftServer.pyd2botService.ttypes import (Breed, Character,
                                                         CharacterDetails,

@@ -2,7 +2,7 @@ from enum import Enum
 from time import perf_counter
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
+from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
@@ -32,10 +32,10 @@ class AutoTrip(AbstractBehavior):
         self.dstMapId = None
         self.dstRpZone = None
         
-    def run(self, dstMapId, dstZoneId):
+    def run(self, dstMapId, dstZoneId, path: list[Edge]=None):
         self.dstMapId = dstMapId
         self.dstRpZone = dstZoneId
-        self.path: list[Edge] = None
+        self.path = path
         AStar().resetForbinedEdges()
         self.walkToNextStep()
 

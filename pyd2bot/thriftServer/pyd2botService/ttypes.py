@@ -96,15 +96,18 @@ class UnloadType(object):
 
 class PathType(object):
     RandomSubAreaFarmPath = 0
+    RandomAreaFarmPath = 2
     CyclicFarmPath = 1
 
     _VALUES_TO_NAMES = {
         0: "RandomSubAreaFarmPath",
+        2: "RandomAreaFarmPath",
         1: "CyclicFarmPath",
     }
 
     _NAMES_TO_VALUES = {
         "RandomSubAreaFarmPath": 0,
+        "RandomAreaFarmPath": 2,
         "CyclicFarmPath": 1,
     }
 

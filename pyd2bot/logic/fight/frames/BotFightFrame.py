@@ -51,12 +51,8 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.actions.sequence.Seque
     SequenceEndMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.actions.sequence.SequenceStartMessage import \
     SequenceStartMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.character.GameFightShowFighterMessage import \
-    GameFightShowFighterMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.GameFightEndMessage import \
     GameFightEndMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.GameFightJoinMessage import \
-    GameFightJoinMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.GameFightOptionStateUpdateMessage import \
     GameFightOptionStateUpdateMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.fight.GameFightOptionToggleMessage import \
@@ -88,8 +84,6 @@ from pydofus2.com.ankamagames.dofus.network.types.game.context.fight.GameFightMo
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
-from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
-    Pathfinding
 from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import \
@@ -156,14 +150,50 @@ class BotFightFrame(Frame):
         self._turnStartPlaying = False
         self._suspectedUnreachableCell = None
         self.fightResumed = False
-        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerTextInfo, originator=self)
-        KernelEventsManager().once(KernelEvent.FIGHT_RESUMED, self.onFightResumed, originator=self)
 
+    def onFightJoined(self, event, isFightStarted, fightType, isTeamPhase, timeMaxBeforeFightStart):
+        Logger().separator("Joined fight", "*")
+        BotConfig().lastFightTime = perf_counter()
+        self._fightCount += 1
+        self._spellCastFails = 0
+        self._inFight = True
+        self.fightReadySent = False 
+        if BotConfig().isLeader:
+            if FightOptionsEnum.FIGHT_OPTION_SET_SECRET:
+                gfotmsg = GameFightOptionToggleMessage()
+                gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_SECRET)
+                ConnectionsHandler().send(gfotmsg)
+            if FightOptionsEnum.FIGHT_OPTION_SET_TO_PARTY_ONLY:
+                gfotmsg = GameFightOptionToggleMessage()
+                gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_TO_PARTY_ONLY)
+                ConnectionsHandler().send(gfotmsg)
+    
+    def onFighterShowed(self, event, fighterId):
+        if BotConfig().isLeader:
+            self._turnPlayed = 0
+            self._myTurn = False
+            player = BotConfig().getPlayerById(fighterId)
+            if player:
+                if player.id != BotConfig().character.id:
+                    self.onMemberJoinedFight(player)
+                else:
+                    Logger().info(f"Party Leader {player.name} joined fight.")
+                    if not BotConfig().followers:
+                        self.sendFightReady()
+            elif fighterId > 0 and fighterId != BotConfig().character.id:
+                Logger().error(f"Unknown Player {fighterId} joined fight.")
+            elif fighterId < 0:
+                Logger().info(f"Monster {fighterId} appeared.")
+            
     def onFightResumed(self, event):
         self.fightResumed = True
 
     def pushed(self) -> bool:
         self.init()
+        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerTextInfo, originator=self)
+        KernelEventsManager().once(KernelEvent.FIGHT_RESUMED, self.onFightResumed, originator=self)
+        KernelEventsManager().on(KernelEvent.FIGHTER_SHOWED, self.onFighterShowed, originator=self)
+        KernelEventsManager().once(KernelEvent.FIGHT_JOINED, self.onFightJoined, originator=self)
         return True
 
     @property
@@ -372,7 +402,6 @@ class BotFightFrame(Frame):
             self.addTurnAction(self.turnEnd, [])
             self.nextTurnAction("play turn no targets")
             return
-        
         targets = self.getTargetableEntities(self.spellw, targetSum=False)
         if not targets:
             targets = self.getTargetableEntities(self.spellw, targetSum=True)
@@ -525,6 +554,7 @@ class BotFightFrame(Frame):
         connh.send(startFightMsg)
 
     def process(self, msg: Message) -> bool:
+        
         if isinstance(msg, GameFightOptionStateUpdateMessage):
             if msg.option not in BotConfig().fightOptions:
                 BotConfig().fightOptions.append(msg.option)
@@ -532,26 +562,9 @@ class BotFightFrame(Frame):
                 return False
             return True
 
-        elif isinstance(msg, GameFightJoinMessage):
-            Logger().separator("Joined fight", "*")
-            BotConfig().lastFightTime = perf_counter()
-            self._fightCount += 1
-            self._spellCastFails = 0
-            self._inFight = True
-            self.fightReadySent = False 
-            if BotConfig().isLeader:
-                if FightOptionsEnum.FIGHT_OPTION_SET_SECRET not in BotConfig().fightOptions:
-                    gfotmsg = GameFightOptionToggleMessage()
-                    gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_SECRET)
-                    ConnectionsHandler().send(gfotmsg)
-                if FightOptionsEnum.FIGHT_OPTION_SET_TO_PARTY_ONLY not in BotConfig().fightOptions:
-                    gfotmsg = GameFightOptionToggleMessage()
-                    gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_TO_PARTY_ONLY)
-                    ConnectionsHandler().send(gfotmsg)
-            return True
-
         elif isinstance(msg, GameFightEndMessage):
             self._inFight = False
+            Kernel().worker.removeFrame(self)
             return True
 
         elif isinstance(msg, GameActionFightNoSpellCastMessage):
@@ -581,25 +594,6 @@ class BotFightFrame(Frame):
                 self._moveRequestFails += 1
                 self.playTurn()
             return True
-
-        elif isinstance(msg, GameFightShowFighterMessage):
-            if BotConfig().isLeader:
-                fighterId = msg.informations.contextualId
-                self._turnPlayed = 0
-                self._myTurn = False
-                player = BotConfig().getPlayerById(fighterId)
-                if player:
-                    if player.id != BotConfig().character.id:
-                        self.onMemberJoinedFight(player)
-                    else:
-                        Logger().info(f"Party Leader {player.name} joined fight.")
-                        if not BotConfig().followers:
-                            self.sendFightReady()
-                elif fighterId > 0 and fighterId != BotConfig().character.id:
-                    Logger().error(f"Unknown Player {fighterId} joined fight.")
-                elif fighterId < 0:
-                    Logger().info(f"Monster {fighterId} appeared.")
-            return False
 
         elif isinstance(msg, SequenceEndMessage):
             if self._myTurn:
@@ -667,6 +661,7 @@ class BotFightFrame(Frame):
             Logger().info(f"Mule {msg.muleId} in fight context")
             BotEventsManager().send(BotEventsManager.MULE_FIGHT_CONTEXT, msg.muleId)
             return True
+
         return False
 
     def onServerTextInfo(self, event, msgId, msgType, textId, text, params):

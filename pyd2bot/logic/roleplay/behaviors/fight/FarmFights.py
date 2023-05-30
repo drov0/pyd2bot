@@ -3,14 +3,14 @@ from typing import TYPE_CHECKING
 
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.AttackMonsters import AttackMonsters
-from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
-from pyd2bot.logic.roleplay.behaviors.ChangeMap import ChangeMap
-from pyd2bot.logic.roleplay.behaviors.GetOutOfAnkarnam import GetOutOfAnkarnam
-from pyd2bot.logic.roleplay.behaviors.WaitForMembersIdle import \
+from pyd2bot.logic.roleplay.behaviors.fight.AttackMonsters import AttackMonsters
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
+from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
+from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import GetOutOfAnkarnam
+from pyd2bot.logic.roleplay.behaviors.party.WaitForMembersIdle import \
     WaitForMembersIdle
-from pyd2bot.logic.roleplay.behaviors.WaitForMembersToShow import \
+from pyd2bot.logic.roleplay.behaviors.party.WaitForMembersToShow import \
     WaitForMembersToShow
 from pyd2bot.logic.roleplay.messages.FollowTransitionMessage import \
     FollowTransitionMessage

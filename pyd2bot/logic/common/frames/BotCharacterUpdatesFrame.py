@@ -1,24 +1,29 @@
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
-from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
+from typing import TYPE_CHECKING
+
 from pyd2bot.logic.managers.BotConfig import BotConfig
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
+    KernelEvent, KernelEventsManager)
 from pydofus2.com.ankamagames.dofus.datacenter.breeds.Breed import Breed
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.network.messages.game.achievement.AchievementFinishedMessage import (
-    AchievementFinishedMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.achievement.AchievementRewardRequestMessage import (
-    AchievementRewardRequestMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.stats.StatsUpgradeRequestMessage import StatsUpgradeRequestMessage
+from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.network.messages.game.achievement.AchievementFinishedMessage import \
+    AchievementFinishedMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.achievement.AchievementRewardRequestMessage import \
+    AchievementRewardRequestMessage
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.stats.StatsUpgradeRequestMessage import \
+    StatsUpgradeRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
 from pydofus2.damageCalculation.tools.StatIds import StatIds
-from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import RoleplayEntitiesFrame
+    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import \
+        RoleplayEntitiesFrame
 
 class BotCharacterUpdatesFrame(Frame):
     def __init__(self):
@@ -26,7 +31,7 @@ class BotCharacterUpdatesFrame(Frame):
 
     def pushed(self) -> bool:
         KernelEventsManager().on(KernelEvent.LEVEL_UP, self.onBotLevelUp)
-        KernelEventsManager().on(KernelEvent.CHARACTER_STATS, self.onPlayerStats)
+        KernelEventsManager().on(KernelEvent.CHARACTER_STATS, self.onBotStats)
         return True
 
     def pulled(self) -> bool:
@@ -37,24 +42,16 @@ class BotCharacterUpdatesFrame(Frame):
     def priority(self) -> int:
         return Priority.VERY_LOW
 
-    def onPlayerStats(self, event):
+    def onBotStats(self, event):
         unusedStatPoints = PlayedCharacterManager().stats.getStatBaseValue(StatIds.STATS_POINTS)
         if unusedStatPoints > 0:
-            # Logger().debug(f"Have {unusedStatPoints} unused stat points")
             boost, usedCapital = self.getBoost(unusedStatPoints)
             if boost > 0:
                 Logger().info(f"can boost point with {boost}")
                 self.boostCharacs(usedCapital, BotConfig().primaryStatId)
 
     def onBotLevelUp(self, event, previousLevel, newLevel):
-        previousLevel = PlayedCharacterManager().infos.level
-        Logger().warning(f"Reccived a player new level {newLevel}, player current level {previousLevel}.")
-        PlayedCharacterManager().infos.level = newLevel
-        if PlayedCharacterManager().stats and BotConfig().primaryStatId is not None:
-            pointsEarned = 5 * (newLevel - previousLevel)
-            boost, usedCapital = self.getBoost(pointsEarned)
-            if boost > 0:
-                self.boostCharacs(usedCapital, BotConfig().primaryStatId)
+        pass
 
     def getStatFloor(self, statId: int):
         breed = Breed.getBreedById(PlayedCharacterManager().infos.breed)
@@ -120,6 +117,6 @@ class BotCharacterUpdatesFrame(Frame):
             arrmsg = AchievementRewardRequestMessage()
             arrmsg.init(msg.achievement.id)
             ConnectionsHandler().send(arrmsg)
-            return False
+            return True
 
 

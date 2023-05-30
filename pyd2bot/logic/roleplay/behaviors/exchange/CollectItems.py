@@ -2,11 +2,11 @@ from enum import Enum
 
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.AutoTripUseZaap import AutoTripUseZaap
-from pyd2bot.logic.roleplay.behaviors.BotExchange import (
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
+from pyd2bot.logic.roleplay.behaviors.exchange.BotExchange import (
     BotExchange, ExchangeDirectionEnum)
-from pyd2bot.logic.roleplay.behaviors.UnloadInBank import UnloadInBank
+from pyd2bot.logic.roleplay.behaviors.bank.UnloadInBank import UnloadInBank
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.misc.Localizer import BankInfos
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character

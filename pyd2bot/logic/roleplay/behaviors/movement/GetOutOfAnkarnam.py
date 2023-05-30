@@ -1,11 +1,13 @@
 from typing import TYPE_CHECKING
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.NpcDialog import NpcDialog
+from pyd2bot.logic.roleplay.behaviors.npc.NpcDialog import NpcDialog
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 if TYPE_CHECKING:
@@ -29,7 +31,7 @@ class GetOutOfAnkarnam(AbstractBehavior):
         self.finish(0, None)
 
     def onAstrubMapLoadTimeout(self, listener: Listener):
-        return self.finish(self.ASTRUB_MAPLOAD_TIMEOUT, "Load Astrub map 192416776 timeout!")
+        return self.finish(self.ASTRUB_MAPLOAD_TIMEOUT, f"Load Astrub map '{self.astrubLandingMapId}' timedout!")
 
     def onGetOutOfIncarnamNpcInterEnd(self, code, error):
         if error:

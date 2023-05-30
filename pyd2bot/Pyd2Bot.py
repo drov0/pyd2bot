@@ -5,12 +5,16 @@ from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import \
     BotCharacterUpdatesFrame
 from pyd2bot.logic.common.frames.BotRPCFrame import BotRPCFrame
 from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
+from pyd2bot.logic.common.rpcMessages.PlayerConnectedMessage import \
+    PlayerConnectedMessage
 from pyd2bot.logic.fight.frames.BotFightFrame import BotFightFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.FarmFights import FarmFights
-from pyd2bot.logic.roleplay.behaviors.MuleFighter import MuleFighter
-from pyd2bot.logic.roleplay.behaviors.ResourceFarm import ResourceFarm
+from pyd2bot.logic.roleplay.behaviors.fight.FarmFights import FarmFights
+from pyd2bot.logic.roleplay.behaviors.fight.SoloFarmFights import \
+    SoloFarmFights
+from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
+from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import ResourceFarm
 from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Session,
                                                         SessionStatus)
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
@@ -26,6 +30,8 @@ from pydofus2.com.ankamagames.dofus.kernel.net.PlayerDisconnectedMessage import 
     PlayerDisconnectedMessage
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
+    BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
 
@@ -43,6 +49,7 @@ class Pyd2Bot(DofusClient):
         session: Session,
         role: CharacterRoleEnum,
         character: Character,
+        mitmMode=False
     ):
         self._apiKey = apiKey
         self._certId = certId
@@ -57,6 +64,7 @@ class Pyd2Bot(DofusClient):
         self.nbrFightsDone = 0
         self.startTime = None
         self.mule = role != CharacterRoleEnum.LEADER
+        self.mitm = mitmMode
 
     def onRestart(self, event, mesg):
         if BotConfig().hasSellerLock:
@@ -67,25 +75,34 @@ class Pyd2Bot(DofusClient):
     def onInGame(self, event, msg):
         if self._role == CharacterRoleEnum.SELLER:
             BotConfig.SELLER_VACANT.set()
-        def onKamasUpdate(event, totalKamas):
-            if self._totalKamas is not None:
-                diff = totalKamas - self._totalKamas
-                if diff > 0:
-                    self.earnedKamas += diff
-            self._totalKamas = totalKamas
-        def onFight(event):
-            Kernel().worker.addFrame(BotFightFrame())
-            self.nbrFightsDone += 1
         for instId, inst in Kernel.getInstances():
             if instId != self.name:
-                inst.worker.process(PlayerDisconnectedMessage(self.name))
-        KernelEventsManager().on(KernelEvent.FIGHT_STARTED, onFight)
-        KernelEventsManager().on(KernelEvent.KAMAS_UPDATE, onKamasUpdate)
+                inst.worker.process(PlayerConnectedMessage(self.name))
+        KernelEventsManager().on(KernelEvent.FIGHT_STARTED, self.onFight)
+        KernelEventsManager().on(KernelEvent.KAMAS_UPDATE, self.onKamasUpdate)
+        if not Kernel().mitm:
+            self.startSessionMainBehavior()
+
+    def onKamasUpdate(self, event, totalKamas):
+        if self._totalKamas is not None:
+            diff = totalKamas - self._totalKamas
+            if diff > 0:
+                self.earnedKamas += diff
+        self._totalKamas = totalKamas
+        
+    def onFight(self, event):
+        Kernel().worker.addFrame(BotFightFrame())
+        self.nbrFightsDone += 1
+        
+    def startSessionMainBehavior(self):
         if BotConfig().isFarmSession:
             ResourceFarm().start()
         elif BotConfig().isFightSession:
             if BotConfig().isLeader:
-                FarmFights().start()
+                if BotConfig().followers:
+                    FarmFights().start()
+                else:
+                    SoloFarmFights().start()
             else:
                 MuleFighter().start()
 

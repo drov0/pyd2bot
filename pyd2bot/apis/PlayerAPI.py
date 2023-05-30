@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.MuleFighter import MuleFighter
+from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
