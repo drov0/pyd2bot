@@ -14,8 +14,9 @@ from pydofus2.com.ankamagames.atouin.managers.EntitiesManager import \
     EntitiesManager
 from pydofus2.com.ankamagames.atouin.utils.DataMapProvider import \
     DataMapProvider
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.effects.EffectInstance import \
     EffectInstance
 from pydofus2.com.ankamagames.dofus.datacenter.monsters.Monster import Monster

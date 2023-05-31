@@ -2,31 +2,34 @@ import threading
 from time import perf_counter
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import RequestMapData
-from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import MapDisplayManager
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event, Listener
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEvent, KernelEventsManager
+from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
+    RequestMapData
+from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
+    MapDisplayManager
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.common.misc.DofusEntities import DofusEntities
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import RoleplayMovementFrame
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import MovementFailError
-from pydofus2.com.ankamagames.dofus.network.enums.PlayerLifeStatusEnum import PlayerLifeStatusEnum
-from pydofus2.com.ankamagames.dofus.network.messages.common.basic.BasicPingMessage import BasicPingMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovementCancelMessage import (
-    GameMapMovementCancelMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovementConfirmMessage import (
-    GameMapMovementConfirmMessage,
-)
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovementRequestMessage import (
-    GameMapMovementRequestMessage,
-)
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.misc.DofusEntities import \
+    DofusEntities
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayMovementFrame import \
+    RoleplayMovementFrame
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
+    MovementFailError
+from pydofus2.com.ankamagames.dofus.network.enums.PlayerLifeStatusEnum import \
+    PlayerLifeStatusEnum
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.GameMapMovementRequestMessage import \
+    GameMapMovementRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import Pathfinding
+from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
+    Pathfinding
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
-from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import MovementPath
+from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import \
+    MovementPath
 
 
 class MapMove(AbstractBehavior):
@@ -112,7 +115,7 @@ class MapMove(AbstractBehavior):
         ConnectionsHandler().send(gmmrmsg)
         Logger().info(f"Requested move from {PlayedCharacterManager().currentCellId} to {self.dstCell.cellId}")
 
-    def onPlayerMoving(self, event: Event, clientMovePath: MovementPath):
+    def onPlayerMoving(self, event, clientMovePath: MovementPath):
         Logger().info(f"Move request accepted.")
         if clientMovePath.end.cellId != self.dstCell.cellId:
             Logger().warning(f"Landed on cell {clientMovePath.end.cellId} not dst {self.dstCell.cellId}!")
@@ -120,7 +123,7 @@ class MapMove(AbstractBehavior):
             KernelEvent.PLAYER_MOVEMENT_COMPLETED, callback=self.onMovementCompleted, originator=self
         )
 
-    def onMovementCompleted(self, success):
+    def onMovementCompleted(self, event, success):
         if success:
             self.finish(success, None)
         else:

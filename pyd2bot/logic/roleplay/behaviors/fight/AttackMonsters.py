@@ -1,10 +1,12 @@
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
-from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import RequestMapData
+from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
+    RequestMapData
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
                                                                      Listener)
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler

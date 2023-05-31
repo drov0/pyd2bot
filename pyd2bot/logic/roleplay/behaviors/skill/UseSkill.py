@@ -1,8 +1,9 @@
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
@@ -114,7 +115,7 @@ class UseSkill(AbstractBehavior):
                 self.finish(self.ELEM_TAKEN, "Someone else used this element")
             else:
                 KernelEventsManager().once(
-                    KernelEvent.INTERACTIVE_ELEM_UPDATE,
+                    KernelEvent.IinteractiveElemUpdate,
                     self.onInteractiveUpdated,
                     timeout=7,
                     ontimeout=self.onElemUpdateWaitTimeout,

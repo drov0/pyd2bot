@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (
     Event, EventsHandler)
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 from pydofus2.com.ankamagames.jerakine.types.positions.MovementPath import \

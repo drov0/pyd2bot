@@ -10,17 +10,21 @@ from pyd2bot.logic.common.rpcMessages.PlayerConnectedMessage import \
 from pyd2bot.logic.fight.frames.BotFightFrame import BotFightFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
+from pyd2bot.logic.roleplay.behaviors.bank.RetrieveRecipeFromBank import \
+    RetrieveRecipeFromBank
+from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import ResourceFarm
 from pyd2bot.logic.roleplay.behaviors.fight.FarmFights import FarmFights
+from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
 from pyd2bot.logic.roleplay.behaviors.fight.SoloFarmFights import \
     SoloFarmFights
-from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
-from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import ResourceFarm
 from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Session,
                                                         SessionStatus)
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
+from pydofus2.com.ankamagames.dofus.datacenter.jobs.Recipe import Recipe
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
@@ -79,7 +83,7 @@ class Pyd2Bot(DofusClient):
             if instId != self.name:
                 inst.worker.process(PlayerConnectedMessage(self.name))
         KernelEventsManager().on(KernelEvent.FIGHT_STARTED, self.onFight)
-        KernelEventsManager().on(KernelEvent.KAMAS_UPDATE, self.onKamasUpdate)
+        KernelEventsManager().on(KernelEvent.KamasUpdate, self.onKamasUpdate)
         if not Kernel().mitm:
             self.startSessionMainBehavior()
 
@@ -95,16 +99,30 @@ class Pyd2Bot(DofusClient):
         self.nbrFightsDone += 1
         
     def startSessionMainBehavior(self):
-        if BotConfig().isFarmSession:
-            ResourceFarm().start()
-        elif BotConfig().isFightSession:
-            if BotConfig().isLeader:
-                if BotConfig().followers:
-                    FarmFights().start()
-                else:
-                    SoloFarmFights().start()
-            else:
-                MuleFighter().start()
+        recipe = Recipe.getRecipeByResultId(16490)
+        def onDone(code, err):
+            if err:
+                Logger().error(err)
+            self.shutdown()
+        def test():
+            try:
+                RetrieveRecipeFromBank().start(recipe, callback=onDone)
+            except Exception as e:
+                Logger().error(e, exc_info=True)
+                self.shutdown()
+        KernelEventsManager().onceMapProcessed(test)
+
+
+        # if BotConfig().isFarmSession:
+        #     ResourceFarm().start()
+        # elif BotConfig().isFightSession:
+        #     if BotConfig().isLeader:
+        #         if BotConfig().followers:
+        #             FarmFights().start()
+        #         else:
+        #             SoloFarmFights().start()
+        #     else:
+        #         MuleFighter().start()
 
     def addShutDownListener(self, callback):
         self._shutDownListeners.append(callback)

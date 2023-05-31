@@ -3,11 +3,14 @@ from typing import TYPE_CHECKING
 
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.fight.AttackMonsters import AttackMonsters
+from pyd2bot.logic.roleplay.behaviors.fight.AttackMonsters import \
+    AttackMonsters
 from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import \
+    AutoTripUseZaap
 from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
-from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import GetOutOfAnkarnam
+from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import \
+    GetOutOfAnkarnam
 from pyd2bot.logic.roleplay.behaviors.party.WaitForMembersIdle import \
     WaitForMembersIdle
 from pyd2bot.logic.roleplay.behaviors.party.WaitForMembersToShow import \
@@ -17,8 +20,9 @@ from pyd2bot.logic.roleplay.messages.FollowTransitionMessage import \
 from pyd2bot.logic.roleplay.messages.MoveToVertexMessage import \
     MoveToVertexMessage
 from pyd2bot.thriftServer.pyd2botService.ttypes import Vertex
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.monsters.Monster import Monster
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -26,7 +30,8 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterMa
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import \
     TransitionTypeEnum
-from pydofus2.com.ankamagames.dofus.network.enums.PlayerLifeStatusEnum import PlayerLifeStatusEnum
+from pydofus2.com.ankamagames.dofus.network.enums.PlayerLifeStatusEnum import \
+    PlayerLifeStatusEnum
 from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.GameRolePlayGroupMonsterInformations import \
     GameRolePlayGroupMonsterInformations
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger

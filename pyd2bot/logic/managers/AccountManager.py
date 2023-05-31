@@ -52,7 +52,7 @@ class AccountManager:
     @classmethod
     def getkey(cls, accountId):
         acc = cls.getAccount(accountId)
-        return cls.apikeys.get(acc["login"])
+        return cls.apikeys.get(acc["login"]).get("key")
 
 
 if __name__ == "__main__":

@@ -5,8 +5,12 @@ from pyd2bot.logic.roleplay.behaviors.bank.OpenBank import OpenBank
 from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import \
     AutoTripUseZaap
 from pyd2bot.misc.Localizer import Localizer
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.Ankama_Common.ui.Recipes import Recipes
+from pydofus2.Ankama_storage.ui.enum.StorageState import StorageState
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
+from pydofus2.com.ankamagames.dofus.datacenter.jobs.Recipe import Recipe
 from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
     ItemWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
@@ -25,7 +29,7 @@ class BankRetrieveStates(Enum):
     LEAVE_BANK_REQUESTED = 5
     RETURNING_TO_START_POINT = 8
 
-class RetrieveItemsFromBank(AbstractBehavior):
+class RetrieveRecipeFromBank(AbstractBehavior):
     BANK_CLOSE_TIMEDOUT = 89987
     RETRIEVE_ITEMS_TIMEDOUT = 998877
     STORAGE_OPEN_TIMEDOUT = 9874521
@@ -34,9 +38,8 @@ class RetrieveItemsFromBank(AbstractBehavior):
         super().__init__()
         self.return_to_start = None
 
-    def run(self, items:list[ItemWrapper], quantities:list[int], return_to_start=True, bankInfos=None) -> bool:
-        self.items = items
-        self.quantities = quantities
+    def run(self, recipe: Recipe, return_to_start=True, bankInfos=None) -> bool:
+        self.recipe = recipe
         self.return_to_start = return_to_start
         if bankInfos is None:
             self.infos = Localizer.getBankInfos()
@@ -45,12 +48,14 @@ class RetrieveItemsFromBank(AbstractBehavior):
         Logger().debug("Bank infos: %s", self.infos.__dict__)
         self._startMapId = PlayedCharacterManager().currentMap.mapId
         self._startRpZone = PlayedCharacterManager().currentZoneRp
+        self.recipesUi = Recipes()
         self.state = BankRetrieveStates.WALKING_TO_BANK
         OpenBank().start(self.infos, callback=self.onStorageOpen, parent=self)
-        
-    def onStorageOpen(self, code, err):
-        if err:
-            return self.finish(code, err)
+    
+    def onBankContent(self, event, objects, kamas):
+        self.recipesUi.load(storage=StorageState.BANK_MOD, uiName="storage")
+        self.ids, self.qtys = self.recipesUi.calculateIngredientsToRetrieve(self.recipe)
+        self.recipesUi.unload()
         KernelEventsManager().once(
             KernelEvent.INVENTORY_WEIGHT_UPDATE, 
             self.onInventoryWeightUpdate, 
@@ -62,6 +67,15 @@ class RetrieveItemsFromBank(AbstractBehavior):
         )
         self.pullItems()
         Logger().info("Pull items request sent")
+        
+    def onStorageOpen(self, code, err):
+        if err:
+            return self.finish(code, err)
+        KernelEventsManager().once(
+            KernelEvent.InventoryContent, 
+            self.onBankContent,
+            originator=self
+        )
 
     def onStorageClose(self, event, success):
         Logger().info("Bank storage closed")
@@ -86,6 +100,5 @@ class RetrieveItemsFromBank(AbstractBehavior):
         Kernel().commonExchangeManagementFrame.leaveShopStock()
 
     def pullItems(self):
-        ids = [it.objectUID for it in self.items]
-        Kernel().exchangeManagementFrame.exchangeObjectTransfertListWithQuantityToInv(ids, self.quantities)
+        Kernel().exchangeManagementFrame.exchangeObjectTransfertListWithQuantityToInv(self.ids, self.qtys)
         self.state = BankRetrieveStates.RETRIEVE_REQUEST_SENT

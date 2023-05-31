@@ -10,9 +10,9 @@ from pyd2bot.logic.common.rpcMessages.RCPResponseMessage import \
 from pyd2bot.logic.common.rpcMessages.RPCMessage import RPCMessage
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
+from pyd2bot.logic.roleplay.behaviors.exchange.CollectItems import CollectItems
 from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
-from pyd2bot.logic.roleplay.behaviors.exchange.CollectItems import CollectItems
 from pyd2bot.logic.roleplay.messages.FollowTransitionMessage import \
     FollowTransitionMessage
 from pyd2bot.logic.roleplay.messages.MoveToVertexMessage import \
@@ -20,8 +20,9 @@ from pyd2bot.logic.roleplay.messages.MoveToVertexMessage import \
 from pyd2bot.logic.roleplay.messages.SellerVacantMessage import \
     SellerVacantMessage
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager

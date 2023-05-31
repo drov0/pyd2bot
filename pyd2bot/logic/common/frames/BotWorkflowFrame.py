@@ -4,8 +4,9 @@ from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.messages.SellerVacantMessage import \
     SellerVacantMessage
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.kernel.net.PlayerDisconnectedMessage import \
@@ -16,6 +17,7 @@ from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.messages.Frame import Frame
 from pydofus2.com.ankamagames.jerakine.messages.Message import Message
 from pydofus2.com.ankamagames.jerakine.types.enums.Priority import Priority
+
 
 class BotWorkflowFrame(Frame):
     def __init__(self):

@@ -2,6 +2,12 @@ from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractFarmBehavior import \
     AbstractFarmBehavior
 from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
+from pydofus2.com.ankamagames.dofus.internalDatacenter.DataEnum import DataEnum
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
+    ItemWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
@@ -18,7 +24,13 @@ class ResourceFarm(AbstractFarmBehavior):
     def init(self):
         self.jobFilter = BotConfig().jobFilter
         self.path = BotConfig().path
+        KernelEventsManager().send(KernelEvent.ObjectAdded, self.onObjectAdded)
 
+    def onObjectAdded(self, event, iw:ItemWrapper):
+        for eff in iw.effectsList:
+            if eff.actionId == DataEnum.SKILL_WRAP_GIFT:
+                return Kernel().inventoryManagementFrame.useItem(iw.objectUID, iw.quantity, False, iw)
+        
     def isCollectErrRequireRestart(self, code: int) -> bool:
         return code not in [UseSkill.ELEM_BEING_USED, UseSkill.ELEM_TAKEN, UseSkill.CANT_USE, UseSkill.USE_ERROR]
     

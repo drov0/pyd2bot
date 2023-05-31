@@ -1,15 +1,19 @@
 from typing import Any, Tuple
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.misc.AutoRevive import AutoRevive
-from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
-from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
-from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import GetOutOfAnkarnam
-from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import RequestMapData
 from pyd2bot.logic.roleplay.behaviors.bank.UnloadInBank import UnloadInBank
+from pyd2bot.logic.roleplay.behaviors.misc.AutoRevive import AutoRevive
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import \
+    AutoTripUseZaap
+from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
+from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import \
+    GetOutOfAnkarnam
+from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
+    RequestMapData
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import (
-    KernelEvent, KernelEventsManager)
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
