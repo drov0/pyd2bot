@@ -27,9 +27,9 @@ class ResourceFarm(AbstractFarmBehavior):
         KernelEventsManager().send(KernelEvent.ObjectAdded, self.onObjectAdded)
 
     def onObjectAdded(self, event, iw:ItemWrapper):
-        for eff in iw.effectsList:
-            if eff.actionId == DataEnum.SKILL_WRAP_GIFT:
-                return Kernel().inventoryManagementFrame.useItem(iw.objectUID, iw.quantity, False, iw)
+        Logger().debug(f"Received item : {iw.name} x {iw.quantity}")
+        if iw.usable:
+            return Kernel().inventoryManagementFrame.useItem(iw.objectUID, iw.quantity, False, iw)
         
     def isCollectErrRequireRestart(self, code: int) -> bool:
         return code not in [UseSkill.ELEM_BEING_USED, UseSkill.ELEM_TAKEN, UseSkill.CANT_USE, UseSkill.USE_ERROR]

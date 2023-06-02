@@ -3,6 +3,7 @@ import os
 
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
+from pydofus2.com.ankamagames.dofus.datacenter.world.Hint import Hint
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
@@ -10,6 +11,8 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import
     AStar
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
+from pydofus2.com.ankamagames.jerakine.types.positions.WorldPoint import \
+    WorldPoint
 
 
 class BankInfos:
@@ -37,6 +40,10 @@ class BankInfos:
 
 
 class Localizer:
+    
+    ZAAP_GFX = 410
+    BANK_GFX = 401 
+    
     _phenixesByAreaId = dict[int, list]()
     base_dir = os.path.dirname(os.path.abspath(__file__))
     with open(os.path.join(base_dir, "areaInfos.json"), "r") as f:
@@ -72,7 +79,6 @@ class Localizer:
         #         rpZ += 1
         # if closestBankId is None:
         #     raise Exception(f"Could not find closest bank to areaId {areaId}")
-        
         return BankInfos(**cls.BANKS["Astrub"])
 
     @classmethod
@@ -81,3 +87,26 @@ class Localizer:
         subarea = SubArea.getSubAreaById(subareaId)
         areaId = subarea._area.id
         return cls.AREAINFOS[str(areaId)]["phoenix"]["mapId"]
+
+    @classmethod
+    def findClosestHintMapByGfx(cls, mapId, gfx):
+        startVertex = WorldGraph().getVertex(mapId, 1)
+        candidates = []
+        for hint in Hint.getHints():
+            if hint.gfx == gfx:
+                candidates.extend(WorldGraph().getVertices(hint.mapId).values())
+        if not candidates:
+            return None
+        return AStar().search(WorldGraph(), startVertex, candidates)
+
+    @classmethod
+    def findCloseZaapMapId(cls, mapId):
+        subArea = SubArea.getSubAreaByMapId(mapId)
+        if subArea.associatedZaapMapId:
+            return subArea.associatedZaapMapId
+        else:
+            path = cls.findClosestHintMapByGfx(mapId, cls.ZAAP_GFX)
+            if path:
+                return path[-1].dst.mapId
+            else:
+                return None

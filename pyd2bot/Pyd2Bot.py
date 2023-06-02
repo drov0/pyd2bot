@@ -70,11 +70,14 @@ class Pyd2Bot(DofusClient):
         self.mule = role != CharacterRoleEnum.LEADER
         self.mitm = mitmMode
 
-    def onRestart(self, event, mesg):
+    def onRestart(self, event, message):
+        self.onReconnect(event, message)
+
+    def onReconnect(self, event, mesg):
         if BotConfig().hasSellerLock:
             BotConfig().releaseSellerLock()
         AbstractBehavior.clearAllChilds()
-        return super().onRestart(event, mesg)
+        return super().onReconnect(event, mesg)
     
     def onInGame(self, event, msg):
         if self._role == CharacterRoleEnum.SELLER:
@@ -99,30 +102,16 @@ class Pyd2Bot(DofusClient):
         self.nbrFightsDone += 1
         
     def startSessionMainBehavior(self):
-        recipe = Recipe.getRecipeByResultId(16490)
-        def onDone(code, err):
-            if err:
-                Logger().error(err)
-            self.shutdown()
-        def test():
-            try:
-                RetrieveRecipeFromBank().start(recipe, callback=onDone)
-            except Exception as e:
-                Logger().error(e, exc_info=True)
-                self.shutdown()
-        KernelEventsManager().onceMapProcessed(test)
-
-
-        # if BotConfig().isFarmSession:
-        #     ResourceFarm().start()
-        # elif BotConfig().isFightSession:
-        #     if BotConfig().isLeader:
-        #         if BotConfig().followers:
-        #             FarmFights().start()
-        #         else:
-        #             SoloFarmFights().start()
-        #     else:
-        #         MuleFighter().start()
+        if BotConfig().isFarmSession:
+            ResourceFarm().start()
+        elif BotConfig().isFightSession:
+            if BotConfig().isLeader:
+                if BotConfig().followers:
+                    FarmFights().start()
+                else:
+                    SoloFarmFights().start()
+            else:
+                MuleFighter().start()
 
     def addShutDownListener(self, callback):
         self._shutDownListeners.append(callback)

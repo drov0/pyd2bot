@@ -7,8 +7,7 @@ from time import sleep
 
 from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import \
     GetOutOfAnkarnam
-from pyd2bot.logic.roleplay.behaviors.start.CreateNewCharacterracter import \
-    CreateNewCharacter
+from pyd2bot.logic.roleplay.behaviors.start.CreateNewCharacter import CreateNewCharacter
 from pyd2bot.logic.roleplay.behaviors.start.DeleteCharacter import \
     DeleteCharacter
 from pyd2bot.SessionCtrl import SessionCtrl

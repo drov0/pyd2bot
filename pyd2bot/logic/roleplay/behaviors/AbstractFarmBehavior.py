@@ -11,6 +11,7 @@ from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import \
 from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
     RequestMapData
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
+from pyd2bot.models.farmPaths.RandomAreaFarmPath import NoTransitionFound
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
@@ -43,6 +44,8 @@ class AbstractFarmBehavior(AbstractBehavior):
         self.inFight = False
         KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange, originator=self)
         self.roleplayListener = None
+        self._currEdge: Edge = None
+        self._currTransition = None
         self.doFarm()
 
     def init(self, *args, **kwargs):
@@ -56,17 +59,22 @@ class AbstractFarmBehavior(AbstractBehavior):
             if code == MovementFailError.PLAYER_IS_DEAD:
                 Logger().warning(f"Player is dead.")
                 return AutoRevive().start(callback=self.onRevived, parent=self)
+            elif code == MovementFailError.CANT_REACH_DEST_CELL:
+                self.path.blackListTransition(self._currTransition, self._currEdge)
+                self.moveToNextStep()
             elif code != ChangeMap.LANDED_ON_WRONG_MAP:
                 Logger().error(f"Error while moving to next step {error}, code {code}.")
                 return KernelEventsManager().send(KernelEvent.RESTART, "Error while moving to next step: %s." % error)
         self.doFarm()
 
     def moveToNextStep(self):
-        edge: Edge = None
         if not self.running.is_set():
             return
-        self._currTransition, edge = next(self.path)
-        ChangeMap().start(transition=self._currTransition, dstMapId=edge.dst.mapId, callback=self.onMapChanged, parent=self)
+        try:
+            self._currTransition, self._currEdge = next(self.path)
+        except NoTransitionFound as e:
+            return self.onBotOutOfFarmPath()
+        ChangeMap().start(transition=self._currTransition, dstMapId=self._currEdge.dst.mapId, callback=self.onMapChanged, parent=self)
 
     def onFarmPathMapReached(self, code, error):
         if error:
@@ -110,6 +118,8 @@ class AbstractFarmBehavior(AbstractBehavior):
             return
         if error:
             Logger().warning(error)
+            if code == MovementFailError.CANT_REACH_DEST_CELL:
+                return self.doFarm()
             if self.isCollectErrCodeRequireRefresh(code):
                 return RequestMapData().start(parent=self, callback=self.doFarm)
             elif self.isCollectErrRequireRestart(code):
@@ -147,6 +157,7 @@ class AbstractFarmBehavior(AbstractBehavior):
 
     def onRoleplay(self, event=None):
         self.inFight = False
+        self.availableResources = None
         KernelEventsManager().onceMapProcessed(self.doFarm, originator=self)
 
     def doFarm(self, event_id=None, error=None):

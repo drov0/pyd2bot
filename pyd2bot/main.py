@@ -33,3 +33,4 @@ if __name__ == "__main__":
         stack_trace = "".join(tb)
         err_message = f"START_OF_ERROR\n{str(e)}\n{stack_trace}\nEND_OF_ERROR"
         client_error = DofusError(401, err_message)
+        raise client_error

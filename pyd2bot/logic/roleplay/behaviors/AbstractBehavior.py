@@ -148,3 +148,12 @@ class AbstractBehavior(metaclass=Singleton):
         while self.children:
             child = self.children.pop()
             child.stop()
+    
+    def on(self, event_id, callback, timeout=None, ontimeout=None, retryNbr=None, retryAction=None):
+        return KernelEventsManager().on(event_id=event_id, callback=callback, once=False, timeout=timeout, ontimeout=ontimeout, retryNbr=retryNbr, retryAction=retryAction, originator=self)
+    
+    def once(self, event_id, callback, timeout=None, ontimeout=None, retryNbr=None, retryAction=None):
+        return KernelEventsManager().on(event_id=event_id, callback=callback, once=True, timeout=timeout, ontimeout=ontimeout, retryNbr=retryNbr, retryAction=retryAction, originator=self)
+        
+    def send(self, event_id, *args, **kwargs):
+        return KernelEventsManager().send(event_id=event_id, *args, **kwargs)

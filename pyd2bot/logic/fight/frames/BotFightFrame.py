@@ -755,10 +755,14 @@ class BotFightFrame(Frame):
 
     @property
     def fighterPos(self) -> "MapPoint":
+        if EntitiesManager().getEntity(self.currentPlayer.id) is None:
+            return None
         return EntitiesManager().getEntity(self.currentPlayer.id).position
 
     def castSpell(self, spellId: int, cellId: bool) -> None:
         Logger().info(f"Casting spell {spellId} on cell {cellId}")
+        if not self.fighterPos:
+            return
         if not self._requestingCastSpell:
             canCast, reason = self.canCastSpell(cellId)
             if canCast:

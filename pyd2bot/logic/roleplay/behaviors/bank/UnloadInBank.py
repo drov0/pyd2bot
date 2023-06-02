@@ -1,13 +1,10 @@
 from enum import Enum
-
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import \
     AutoTripUseZaap
 from pyd2bot.logic.roleplay.behaviors.npc.NpcDialog import NpcDialog
 from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
@@ -61,25 +58,23 @@ class UnloadInBank(AbstractBehavior):
         if error:
             return self.finish(code, error)
         Logger().info("Ended bank man dialog waiting for storage to open...")
-        KernelEventsManager().once(
+        self.once(
             event_id=KernelEvent.ExchangeBankStartedWithStorage, 
             callback=self.onStorageOpen,
             timeout=30,
             ontimeout=lambda: self.finish(self.STORAGE_OPEN_TIMEDOUT, "Dialog with Bank NPC ended correctly but storage didnt open on time!"),
-            originator=self
         )
         
     def onStorageOpen(self, event, exchangeType, pods):
         if exchangeType == ExchangeTypeEnum.BANK:
             Logger().info("Bank storage open")
-            self.inventoryWeightListener = KernelEventsManager().once(
-                KernelEvent.INVENTORY_WEIGHT_UPDATE, 
-                self.onInventoryWeightUpdate, 
+            self.once(
+                event_id=KernelEvent.INVENTORY_WEIGHT_UPDATE, 
+                callback=self.onInventoryWeightUpdate, 
                 timeout=10,
                 retryNbr=5,
                 retryAction=Kernel().exchangeManagementFrame.exchangeObjectTransfertAllFromInv,
                 ontimeout=lambda: self.finish(self.TRANSFER_ITEMS_TIMEDOUT, "Transfer items to bank storage timeout."),
-                originator=self
             )
             Kernel().exchangeManagementFrame.exchangeObjectTransfertAllFromInv()
             Logger().info("Unload items in bank request sent.")
@@ -97,13 +92,12 @@ class UnloadInBank(AbstractBehavior):
 
     def onInventoryWeightUpdate(self, event, weight, max):
         Logger().info(f"Inventory Weight percent changed to : {round(100 * weight / max, 1)}%")
-        self.storageCloseListener = KernelEventsManager().once(
-            KernelEvent.EXCHANGE_CLOSE, 
-            self.onStorageClose,
+        self.once(
+            event_id=KernelEvent.EXCHANGE_CLOSE, 
+            callback=self.onStorageClose,
             timeout=10,
             retryNbr=5,
             retryAction=Kernel().exchangeManagementFrame.laveDialogRequest,
             ontimeout=lambda: self.finish(self.BANK_CLOSE_TIMEDOUT, "Bank close timedout!"),
-            originator=self
         )
         Kernel().exchangeManagementFrame.laveDialogRequest()

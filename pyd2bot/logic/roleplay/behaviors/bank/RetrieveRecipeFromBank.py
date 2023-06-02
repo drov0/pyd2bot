@@ -56,14 +56,13 @@ class RetrieveRecipeFromBank(AbstractBehavior):
         self.recipesUi.load(storage=StorageState.BANK_MOD, uiName="storage")
         self.ids, self.qtys = self.recipesUi.calculateIngredientsToRetrieve(self.recipe)
         self.recipesUi.unload()
-        KernelEventsManager().once(
+        self.once(
             KernelEvent.INVENTORY_WEIGHT_UPDATE, 
             self.onInventoryWeightUpdate, 
             timeout=15,
             retryNbr=5,
             retryAction=self.pullItems,
             ontimeout=lambda: self.finish(self.RETRIEVE_ITEMS_TIMEDOUT, "Pull items from bank storage timeout"),
-            originator=self
         )
         self.pullItems()
         Logger().info("Pull items request sent")
@@ -71,10 +70,9 @@ class RetrieveRecipeFromBank(AbstractBehavior):
     def onStorageOpen(self, code, err):
         if err:
             return self.finish(code, err)
-        KernelEventsManager().once(
+        self.once(
             KernelEvent.InventoryContent, 
             self.onBankContent,
-            originator=self
         )
 
     def onStorageClose(self, event, success):
@@ -88,14 +86,13 @@ class RetrieveRecipeFromBank(AbstractBehavior):
 
     def onInventoryWeightUpdate(self, event, weight, max):
         Logger().info(f"Inventory weight percent changed to : {round(100 * weight / max, 1)}%")
-        self.storageCloseListener = KernelEventsManager().once(
+        self.once(
             event_id=KernelEvent.EXCHANGE_CLOSE, 
             callback=self.onStorageClose,
             timeout=10,
             ontimeout=lambda: self.finish(self.BANK_CLOSE_TIMEDOUT, "Bank close timedout!"),
             retryNbr=5,
             retryAction=Kernel().commonExchangeManagementFrame.leaveShopStock,
-            originator=self
         )
         Kernel().commonExchangeManagementFrame.leaveShopStock()
 

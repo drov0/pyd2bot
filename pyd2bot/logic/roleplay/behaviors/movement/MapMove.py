@@ -52,6 +52,8 @@ class MapMove(AbstractBehavior):
         self.move()
 
     def stop(self) -> None:
+        if PlayedCharacterManager().entity and PlayedCharacterManager().entity.isMoving:
+            PlayedCharacterManager().entity.stop()
         KernelEventsManager().clearAllByOrigin(self)
         MapMove.clear()
 
@@ -74,9 +76,7 @@ class MapMove(AbstractBehavior):
         self.movePath = Pathfinding().findPath(playerEntity.position, self.dstCell)
         if self.movePath is None:
             return self.fail(MovementFailError.NO_PATH_FOUND)
-        if len(self.movePath) == 0:
-            return self.finish(True, None)
-        if self.exactDestination and self.movePath.end.cellId != self.dstCell.cellId:
+        if len(self.movePath) == 0 or (self.exactDestination and self.movePath.end.cellId != self.dstCell.cellId):
             return self.fail(MovementFailError.CANT_REACH_DEST_CELL)
         self.countMoveFail = 0
         self.requestMovement()
@@ -87,17 +87,16 @@ class MapMove(AbstractBehavior):
     def requestMovement(self) -> None:
         if len(self.movePath) == 0:
             return self.finish(True, None)
-        KernelEventsManager().once(
+        self.once(
             KernelEvent.MOVE_REQUEST_REJECTED,
             callback=lambda event: self.onMoveRequestReject(MovementFailError.MOVE_REQUEST_REJECTED),
-            originator=self,
         )
         KernelEventsManager().onceEntityMoved(
             PlayedCharacterManager().id,
             callback=self.onPlayerMoving,
             timeout=15,
             ontimeout=lambda listener: self.onMoveRequestReject(MovementFailError.MOVE_REQUEST_TIMEOUT),
-            originator=self,
+            originator=self, 
         )
         self.sendMoveRequest()
 
@@ -106,7 +105,7 @@ class MapMove(AbstractBehavior):
         if self.countMoveFail > 10:
             return self.fail(reason)
         Logger().warning(f"server rejected movement for reason {reason.name}")
-        KernelEventsManager.clearAllByOrigin(self)
+        KernelEventsManager().clearAllByOrigin(self)
         RequestMapData().start(callback=lambda code, error: self.move())
 
     def sendMoveRequest(self):
@@ -119,8 +118,8 @@ class MapMove(AbstractBehavior):
         Logger().info(f"Move request accepted.")
         if clientMovePath.end.cellId != self.dstCell.cellId:
             Logger().warning(f"Landed on cell {clientMovePath.end.cellId} not dst {self.dstCell.cellId}!")
-        KernelEventsManager().once(
-            KernelEvent.PLAYER_MOVEMENT_COMPLETED, callback=self.onMovementCompleted, originator=self
+        self.once(
+            KernelEvent.PLAYER_MOVEMENT_COMPLETED, callback=self.onMovementCompleted
         )
 
     def onMovementCompleted(self, event, success):

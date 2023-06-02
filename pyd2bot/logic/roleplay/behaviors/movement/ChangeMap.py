@@ -165,8 +165,10 @@ class ChangeMap(AbstractBehavior):
         if MapMove().isRunning():
             return Logger().warning(f"Change map timer kicked while map move to cell stil resolving!")
         Logger().warning(f"Movement failed for reason {reason.name}")
-        self.mapChangeListener.delete()
-        self.mapChangeRejectListener.delete()
+        if self.mapChangeListener:
+            self.mapChangeListener.delete()
+        if self.mapChangeRejectListener:
+            self.mapChangeRejectListener.delete()
         def onResult(code, error):
             if error:
                 return self.finish(False, error)
@@ -200,7 +202,8 @@ class ChangeMap(AbstractBehavior):
         if mapId == self.dstMapId:
             if self.mapChangeRejectListener:
                 self.mapChangeRejectListener.delete()
-            self.mapChangeListener.delete()
+            if self.mapChangeListener:
+                self.mapChangeListener.delete()
             KernelEventsManager().onceMapProcessed(
                 lambda: self.finish(True, None),
                 mapId=self.dstMapId,
@@ -212,27 +215,25 @@ class ChangeMap(AbstractBehavior):
             self.finish(self.LANDED_ON_WRONG_MAP, f"Landed on new map '{mapId}', different from dest '{self.dstMapId}'.")
 
     def setupMapChangeListener(self):
-        if self.mapChangeListener and not self.mapChangeListener._deleted:
+        if self.mapChangeListener:
             self.mapChangeListener.delete()
-        self.mapChangeListener = KernelEventsManager().on(
+        self.mapChangeListener = self.on(
             KernelEvent.CURRENT_MAP,
             self.onCurrentMap,
             timeout=self.MAPCHANGE_TIMEOUT,
             ontimeout=self.onRequestTimeout, 
-            originator=self
         )
     
     def setupMapChangeRejectListener(self):
         if self.mapChangeRejectListener and not self.mapChangeRejectListener._deleted:
             self.mapChangeRejectListener.delete()
         def onReqReject(event, *args):
-            # what about when i receive this when the player confirmed movement but didnt send map request change yet?
+            # what about when i receive this when the player confirmed movement but didn't send map request change yet?
             if self.mapChangeReqSent:
                 self.onRequestRejectedByServer(event, self.movementError)
-        self.mapChangeRejectListener = KernelEventsManager().once(
+        self.mapChangeRejectListener = self.once(
             self.requestRejectedEvent, 
             onReqReject,
-            originator=self
         )
     
     def handleOnsameCellForMapActionCell(self):

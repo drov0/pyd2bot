@@ -20,11 +20,14 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
     Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
     Pathfinding
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 
 
+class NoTransitionFound(Exception):
+    pass
 class RandomAreaFarmPath(AbstractFarmPath):
     def __init__(
         self,
@@ -45,36 +48,38 @@ class RandomAreaFarmPath(AbstractFarmPath):
         self._currentVertex = None
         self._verticies = list[Vertex]()
         self.onlyDirections = onlyDirections
-        self._recent_visited = list[Tuple['Vertex', float]]()
+        self._recentVisited = list[Tuple['Vertex', float]]()
+        self._transitionBlacklist = list[int]()
 
     def recentVisitedVerticies(self):
-        self._recent_visited = [(_, time_added) for (_, time_added) in self._recent_visited if (time.time() - time_added) < 60 * 5]
-        return [v for v, _ in self._recent_visited]
+        self._recentVisited = [(_, t) for (_, t) in self._recentVisited if (time.time() - t) < 60 * 5]
+        return [v for v, _ in self._recentVisited]
     
+    def blackListTransition(self, tr: Transition, edge: Edge):
+        self._verticies = None
+        self._transitionBlacklist.append(tr)
+        
     def __next__(self) -> Tuple[Transition, Edge]:
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(self.currentVertex)
         transitions = list[Tuple[Edge, Transition]]()
+        Logger().debug(f"blacklist : {self._transitionBlacklist}")
         for edge in outgoingEdges:
+            Logger().debug((edge, AStar.hasValidTransition(edge), edge.dst.mapId in self.mapIds))
             if edge.dst.mapId in self.mapIds:
                 if AStar.hasValidTransition(edge):
                     for tr in edge.transitions:
-                        if not self.onlyDirections or tr.direction != -1:
-                            if TransitionTypeEnum(tr.type) != TransitionTypeEnum.INTERACTIVE:
-                                currMP = PlayedCharacterManager().entity.position
-                                candidate = MapPoint.fromCellId(tr.cell)
-                                movePath = Pathfinding().findPath(currMP, candidate)
-                                if movePath.end == candidate:
-                                    transitions.append((edge, tr))
-                            else:
-                                transitions.append((edge, tr))
+                        if tr in self._transitionBlacklist:
+                            continue
+                        if self.onlyDirections and TransitionTypeEnum(tr.type) not in [TransitionTypeEnum.INTERACTIVE]:
+                            transitions.append((edge, tr))
         notrecent = [(edge, tr) for edge, tr in transitions if edge.dst not in self.recentVisitedVerticies()]
         if notrecent:
             edge, tr = random.choice(notrecent)
         else:
             if len(transitions) == 0:
-                raise Exception("Couldnt find next transition in path from current vertex.")
+                raise NoTransitionFound("Couldnt find next transition in path from current vertex.")
             edge, tr = random.choice(transitions)
-        self._recent_visited.append((self.currentVertex, time.time()))
+        self._recentVisited.append((self.currentVertex, time.time()))
         return tr, edge
 
     def currNeighbors(self) -> Iterator[Vertex]:
@@ -86,7 +91,9 @@ class RandomAreaFarmPath(AbstractFarmPath):
             if edge.dst.mapId in self.mapIds:
                 found = False
                 for tr in edge.transitions:
-                    if tr.direction != -1:
+                    if tr.id in self._transitionBlacklist:
+                        continue
+                    if self.onlyDirections and TransitionTypeEnum(tr.type) not in [TransitionTypeEnum.INTERACTIVE]:
                         found = True
                         break
                 if found:
