@@ -7,7 +7,8 @@ from time import sleep
 
 from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import \
     GetOutOfAnkarnam
-from pyd2bot.logic.roleplay.behaviors.start.CreateNewCharacter import CreateNewCharacter
+from pyd2bot.logic.roleplay.behaviors.start.CreateNewCharacter import \
+    CreateNewCharacter
 from pyd2bot.logic.roleplay.behaviors.start.DeleteCharacter import \
     DeleteCharacter
 from pyd2bot.SessionCtrl import SessionCtrl
@@ -177,8 +178,8 @@ class Pyd2botServer:
         KernelEventsManager.WaitThreadRegister(token, 25)
         Logger().info("kernel event manager instance created")
         stop = threading.Event()
-        def onCrash(evt, message="unknown"):
-            client.shutdown()
+        def onCrash(evt, message="unknown", reason=None):
+            client.shutdown(reason, message)
             stop.set()
             result[0] = DofusError(1002, "Internal error")
         def onGetOutOfIncarnamEnded(code, error):
@@ -244,8 +245,8 @@ class Pyd2botServer:
         stop = threading.Event()
         client.start()
         result = [None]
-        def onCrash(evt, message="unknown"):
-            client.shutdown()
+        def onCrash(evt, message="unknown", reason=None):
+            client.shutdown(reason, message)
             result[0] = DofusError(code=1002, message="Internal error")
             stop.set()
         def onMapProcessed():

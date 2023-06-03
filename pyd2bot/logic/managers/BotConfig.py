@@ -80,6 +80,10 @@ class BotConfig(metaclass=Singleton):
     def isFightSession(self) -> bool:
         return self.sessionType == SessionType.FIGHT
 
+    @property
+    def isMixed(self) -> bool:
+        return self.sessionType == SessionType.MIXED
+    
     def getPlayerById(self, playerId: int) -> Character:
         if playerId == self.character.id:
             return self.character
@@ -112,10 +116,9 @@ class BotConfig(metaclass=Singleton):
         self.seller = session.seller
         if session.path:
             self.path = PathFactory.from_thriftObj(session.path)
-        if self.isFightSession and self.isLeader:
+        if self.monsterLvlCoefDiff:
             self.monsterLvlCoefDiff = (
                 session.monsterLvlCoefDiff if session.monsterLvlCoefDiff is not None else float("inf")
             )
-            self.fightPartyMembers = self.followers + [self.character]
-        else:
-            self.leader = session.leader
+        self.leader = session.leader
+        self.fightPartyMembers = self.followers + [self.character]

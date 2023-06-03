@@ -95,12 +95,15 @@ class SessionCtrl:
 
     def removeSession(self, sessionId):
         session = self._sessions[sessionId]
-        del self._running[session.leader.id]
+        if session.leader.id in self._running:
+            del self._running[session.leader.id]
         if session.followers:
             for follower in session.followers:
-                del self._running[follower.id]
+                if follower.id in self._running:
+                    del self._running[follower.id]
         if session.seller:
-            del self._running[session.seller.id]
+            if session.seller.id in self._running:
+                del self._running[session.seller.id]
         del self._sessions[sessionId]
 
     def stopFightSession(self, session: Session, reason="N/A", crash=False):
@@ -153,6 +156,7 @@ class SessionCtrl:
             statusReason=str(status_reason),
             earnedKamas=int(bot.earnedKamas),
             nbrFightsDone=int(bot.nbrFightsDone),
+            earnedLevels=int(bot.earnedLevels)
         )
         return run_summary
 

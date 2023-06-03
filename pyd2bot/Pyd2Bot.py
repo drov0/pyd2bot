@@ -1,3 +1,4 @@
+import random
 import time
 from datetime import datetime
 
@@ -65,6 +66,7 @@ class Pyd2Bot(DofusClient):
         self._characterId = character.id
         self.earnedKamas = 0
         self._totalKamas = None
+        self.earnedLevels = 0
         self.nbrFightsDone = 0
         self.startTime = None
         self.mule = role != CharacterRoleEnum.LEADER
@@ -85,12 +87,13 @@ class Pyd2Bot(DofusClient):
         for instId, inst in Kernel.getInstances():
             if instId != self.name:
                 inst.worker.process(PlayerConnectedMessage(self.name))
-        KernelEventsManager().on(KernelEvent.FIGHT_STARTED, self.onFight)
         KernelEventsManager().on(KernelEvent.KamasUpdate, self.onKamasUpdate)
+        KernelEventsManager().on(KernelEvent.LEVEL_UP, self.onLvlUp)
         if not Kernel().mitm:
             self.startSessionMainBehavior()
 
     def onKamasUpdate(self, event, totalKamas):
+        Logger().debug(f"Player kamas : {totalKamas}")
         if self._totalKamas is not None:
             diff = totalKamas - self._totalKamas
             if diff > 0:
@@ -100,6 +103,9 @@ class Pyd2Bot(DofusClient):
     def onFight(self, event):
         Kernel().worker.addFrame(BotFightFrame())
         self.nbrFightsDone += 1
+    
+    def onLvlUp(self, event, previousLevel, newLevel):
+        self.earnedLevels += (newLevel - previousLevel)
         
     def startSessionMainBehavior(self):
         if BotConfig().isFarmSession:
@@ -112,12 +118,21 @@ class Pyd2Bot(DofusClient):
                     SoloFarmFights().start()
             else:
                 MuleFighter().start()
+        elif BotConfig().isMixed:
+            activity = random.choice([ResourceFarm(60 * 5), SoloFarmFights(60 * 3)])
+            activity.start(callback=self.switchActivity)
+        
+    def switchActivity(self, code, err):
+        AbstractBehavior.clearAllChilds()
+        self.worker.terminated.wait(random.random() * 3)
+        activity = random.choice([ResourceFarm(60), SoloFarmFights(60)])
+        activity.start(callback=self.switchActivity)
 
     def addShutDownListener(self, callback):
         self._shutDownListeners.append(callback)
 
-    def onShutdown(self, event, message):
-        super().onShutdown(event, message)
+    def onShutdown(self, event, message, reason=""):
+        super().onShutdown(event, message, reason)
         for callback in self._shutDownListeners:
             callback()
         

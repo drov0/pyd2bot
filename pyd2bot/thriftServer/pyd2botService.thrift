@@ -31,7 +31,8 @@ struct RunSummary {
     7: string status,
     8: optional string statusReason,
     9: required int earnedKamas,
-    10: required int nbrFightsDone
+    10: required int nbrFightsDone,
+    11: required int earnedLevels,
 }
 struct CharacterDetails {
     1: required int level,
@@ -65,7 +66,8 @@ struct Breed {
 enum SessionType {
     FIGHT = 0,
     FARM = 1,
-    SELL = 3
+    SELL = 3,
+    MIXED = 4
 }
 enum UnloadType {
     BANK = 0,

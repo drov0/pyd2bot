@@ -50,8 +50,8 @@ class FarmerStates(Enum):
 
 class FarmFights(AbstractBehavior):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, timeout):
+        super().__init__(timeout)
         self.state = FarmerStates.IDLE
 
     def onMapChanged(self, code, error):

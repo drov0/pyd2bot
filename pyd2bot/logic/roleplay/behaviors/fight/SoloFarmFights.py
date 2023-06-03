@@ -20,11 +20,12 @@ from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 
 class SoloFarmFights(AbstractFarmBehavior):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, timeout):
+        super().__init__(timeout)
     
     def init(self):
         self.path = BotConfig().path
+        Logger().debug(f"Solo farm fights started")
 
     def getResourcesTableHeaders(self) -> list[str]:
         return ["mainMonsterName", "id", "cell", "distance"]

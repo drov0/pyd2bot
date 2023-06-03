@@ -7,13 +7,19 @@ from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import \
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
+from pydofus2.com.ankamagames.dofus.datacenter.npcs.Npc import Npc
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.misc.utils.ParamsDecoder import \
+    ParamsDecoder
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcDialogReplyMessage import \
     NpcDialogReplyMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcGenericActionRequestMessage import \
     NpcGenericActionRequestMessage
+from pydofus2.com.ankamagames.jerakine.data.I18n import I18n
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+from pydofus2.com.ankamagames.jerakine.utils.pattern.PatternDecoder import \
+    PatternDecoder
 
 if TYPE_CHECKING:
     pass
@@ -31,16 +37,53 @@ class NpcDialog(AbstractBehavior):
         self.npcQuestionsReplies = npcQuestionsReplies
         self.currentNpcQuestionReplyIdx = 0
         self.dialogLeftListener = None
+        self.npc: Npc = None
+        self._textParams = {}
+        self._textParams["m"] = False;
+        self._textParams["f"] = True;
+        self._textParams["n"] = True;
+        self._textParams["g"] = False;
         AutoTripUseZaap().start(self.npcMapId, 1, callback=self.onNPCMapReached, parent=self)
-
+        
+    def getTextWithParams(textId:int, params:list, replace:str = "%") -> str:
+        msgContent:str = I18n.getText(textId)
+        if msgContent:
+            return ParamsDecoder.applyParams(msgContent, params, replace)
+        return ""
+    
+    def decodeText(str:str, params:list) -> str:
+        return PatternDecoder.decode(str,params)
+    
+    def getTextFromkey(self, key, replace="%", *args):
+        return I18n.getText(key, args, replace)
+    
+    def displayReplies(self, replies: list[int]):
+        for rep in replies:
+            for reply in self.npc.dialogReplies:
+                replyId = int(reply[0])
+                replyTextId = int(reply[1])
+                if replyId == rep:
+                    replyText = self.decodeText(self.getTextFromkey(replyTextId), self._textParams)
+                    Logger().debug(f"Reply : {replyText}")
+                    
     def onNpcQuestion(self, event, messageId, dialogParams, visibleReplies):
         if self.currentNpcQuestionReplyIdx == len(self.npcQuestionsReplies):
             return self.finish(self.NO_MORE_REPLIES, "Received an NPC question but have no more replies programmed")
         Logger().info(f"Received NPC question : {messageId}")
+        Logger().info(f"Visible replies : {visibleReplies}")
+        self.npc = Npc.getNpcById(self.npcId)
+        if self.npc:
+            for msg in self.npc.dialogMessages:
+                msgId = int(msg[0])
+                msgTextId = int(msg[1])
+                if msgId == messageId:
+                    messagenpc = self.decodeText(self.getTextWithParams(msgTextId, dialogParams, "#"))
+                    Logger().debug(f"Dialog message : {messagenpc}")
+            self.displayReplies(visibleReplies)
         msg = NpcDialogReplyMessage()
-        msg.init(self.npcQuestionsReplies[self.currentNpcQuestionReplyIdx])
+        msg.init(visibleReplies[0])
         self.currentNpcQuestionReplyIdx += 1
-        KernelEventsManager().once(KernelEvent.NPC_QUESTION, self.onNpcQuestion, originator=self)
+        self.once(KernelEvent.NPC_QUESTION, self.onNpcQuestion)
         ConnectionsHandler().send(msg)
     
     def onNpcDialogleft(self, event):
@@ -52,6 +95,6 @@ class NpcDialog(AbstractBehavior):
             return self.finish(code, error)
         msg = NpcGenericActionRequestMessage()
         msg.init(self.npcId, self.npcOpenDialogId, self.npcMapId)
-        KernelEventsManager().once(KernelEvent.DIALOG_LEFT, self.onNpcDialogleft, originator=self)
-        KernelEventsManager().once(KernelEvent.NPC_QUESTION, self.onNpcQuestion, originator=self)
+        self.once(KernelEvent.DIALOG_LEFT, self.onNpcDialogleft)
+        self.once(KernelEvent.NPC_QUESTION, self.onNpcQuestion)
         ConnectionsHandler().send(msg) 

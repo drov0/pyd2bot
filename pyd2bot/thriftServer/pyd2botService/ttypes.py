@@ -62,17 +62,20 @@ class SessionType(object):
     FIGHT = 0
     FARM = 1
     SELL = 3
+    MIXED = 4
 
     _VALUES_TO_NAMES = {
         0: "FIGHT",
         1: "FARM",
         3: "SELL",
+        4: "MIXED",
     }
 
     _NAMES_TO_VALUES = {
         "FIGHT": 0,
         "FARM": 1,
         "SELL": 3,
+        "MIXED": 4,
     }
 
 
@@ -280,11 +283,12 @@ class RunSummary(object):
      - statusReason
      - earnedKamas
      - nbrFightsDone
+     - earnedLevels
 
     """
 
 
-    def __init__(self, login=None, startTime=None, totalRunTime=None, sessionId=None, leaderLogin=None, numberOfRestarts=None, status=None, statusReason=None, earnedKamas=None, nbrFightsDone=None,):
+    def __init__(self, login=None, startTime=None, totalRunTime=None, sessionId=None, leaderLogin=None, numberOfRestarts=None, status=None, statusReason=None, earnedKamas=None, nbrFightsDone=None, earnedLevels=None,):
         self.login = login
         self.startTime = startTime
         self.totalRunTime = totalRunTime
@@ -295,6 +299,7 @@ class RunSummary(object):
         self.statusReason = statusReason
         self.earnedKamas = earnedKamas
         self.nbrFightsDone = nbrFightsDone
+        self.earnedLevels = earnedLevels
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -355,6 +360,11 @@ class RunSummary(object):
                     self.nbrFightsDone = iprot.readI32()
                 else:
                     iprot.skip(ftype)
+            elif fid == 11:
+                if ftype == TType.I32:
+                    self.earnedLevels = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -405,6 +415,10 @@ class RunSummary(object):
             oprot.writeFieldBegin('nbrFightsDone', TType.I32, 10)
             oprot.writeI32(self.nbrFightsDone)
             oprot.writeFieldEnd()
+        if self.earnedLevels is not None:
+            oprot.writeFieldBegin('earnedLevels', TType.I32, 11)
+            oprot.writeI32(self.earnedLevels)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
@@ -413,6 +427,8 @@ class RunSummary(object):
             raise TProtocolException(message='Required field earnedKamas is unset!')
         if self.nbrFightsDone is None:
             raise TProtocolException(message='Required field nbrFightsDone is unset!')
+        if self.earnedLevels is None:
+            raise TProtocolException(message='Required field earnedLevels is unset!')
         return
 
     def __repr__(self):
@@ -1412,6 +1428,7 @@ RunSummary.thrift_spec = (
     (8, TType.STRING, 'statusReason', 'UTF8', None, ),  # 8
     (9, TType.I32, 'earnedKamas', None, None, ),  # 9
     (10, TType.I32, 'nbrFightsDone', None, None, ),  # 10
+    (11, TType.I32, 'earnedLevels', None, None, ),  # 11
 )
 all_structs.append(CharacterDetails)
 CharacterDetails.thrift_spec = (

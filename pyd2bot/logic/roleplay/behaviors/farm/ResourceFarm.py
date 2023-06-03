@@ -18,8 +18,8 @@ from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
 
 class ResourceFarm(AbstractFarmBehavior):
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, timeout):
+        super().__init__(timeout)
         
     def init(self):
         self.jobFilter = BotConfig().jobFilter

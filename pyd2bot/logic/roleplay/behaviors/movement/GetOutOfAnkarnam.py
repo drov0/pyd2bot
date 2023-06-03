@@ -19,8 +19,8 @@ class GetOutOfAnkarnam(AbstractBehavior):
     npcId = -20001
     npcMapId = 153880835
     openGoToAstrubActionId = 3
-    iAmSureReplyId = 36979
-    goToAstrubReplyId = 36977
+    iAmSureReplyId = 36980
+    goToAstrubReplyId = 36982
     ankarnamAreaId = 45
     astrubLandingMapId = 192416776
 
@@ -53,7 +53,7 @@ class GetOutOfAnkarnam(AbstractBehavior):
             self.npcMapId,
             self.npcId,
             self.openGoToAstrubActionId,
-            [self.iAmSureReplyId, self.goToAstrubReplyId],
+            [self.goToAstrubReplyId, self.iAmSureReplyId],
             callback=self.onGetOutOfIncarnamNpcInterEnd,
             parent=self,
         )
