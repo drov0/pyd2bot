@@ -135,7 +135,7 @@ class AbstractFarmBehavior(AbstractBehavior):
         Logger().warning(f"Player is in fight")
         self.inFight = True
         self.stopChilds()
-        self.roleplayListener = self.once(KernelEvent.ROLEPLAY_STARTED, self.onRoleplay, originator=self)
+        self.roleplayListener = self.once(KernelEvent.ROLEPLAY_STARTED, self.onRoleplay)
                 
     def isCollectErrCodeRequireRefresh(self, code: int) -> bool:
         return False

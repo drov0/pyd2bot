@@ -75,11 +75,11 @@ class Pyd2Bot(DofusClient):
     def onRestart(self, event, message):
         self.onReconnect(event, message)
 
-    def onReconnect(self, event, mesg):
+    def onReconnect(self, event, message, afterTime=0):
         if BotConfig().hasSellerLock:
             BotConfig().releaseSellerLock()
         AbstractBehavior.clearAllChilds()
-        return super().onReconnect(event, mesg)
+        return super().onReconnect(event, message, afterTime)
     
     def onInGame(self, event, msg):
         if self._role == CharacterRoleEnum.SELLER:
@@ -123,10 +123,7 @@ class Pyd2Bot(DofusClient):
             activity.start(callback=self.switchActivity)
         
     def switchActivity(self, code, err):
-        AbstractBehavior.clearAllChilds()
-        self.worker.terminated.wait(random.random() * 3)
-        activity = random.choice([ResourceFarm(60), SoloFarmFights(60)])
-        activity.start(callback=self.switchActivity)
+        self.onReconnect(None, f"Fake disconnect and take nap", random.random() * 3)
 
     def addShutDownListener(self, callback):
         self._shutDownListeners.append(callback)
