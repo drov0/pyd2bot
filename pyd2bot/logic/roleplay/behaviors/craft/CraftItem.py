@@ -1,5 +1,5 @@
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
+from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
 
 
 

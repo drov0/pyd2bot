@@ -10,7 +10,7 @@ from pyd2bot.logic.roleplay.behaviors.bank.UnloadInBank import UnloadInBank
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
 from pyd2bot.misc.Localizer import BankInfos
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
+from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 

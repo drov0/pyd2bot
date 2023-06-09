@@ -2,7 +2,7 @@ import threading
 import traceback
 from enum import Enum
 
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
+from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger

@@ -225,7 +225,7 @@ class ChangeMap(AbstractBehavior):
         )
     
     def setupMapChangeRejectListener(self):
-        if self.mapChangeRejectListener and not self.mapChangeRejectListener._deleted:
+        if self.mapChangeRejectListener and not self.mapChangeRejectListener.deleted:
             self.mapChangeRejectListener.delete()
         def onReqReject(event, *args):
             # what about when i receive this when the player confirmed movement but didn't send map request change yet?

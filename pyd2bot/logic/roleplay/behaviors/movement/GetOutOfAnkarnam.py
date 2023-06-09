@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.npc.NpcDialog import NpcDialog
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
+from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea

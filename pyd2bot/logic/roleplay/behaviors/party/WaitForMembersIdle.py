@@ -5,7 +5,7 @@ from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Listener
+from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
