@@ -1,3 +1,4 @@
+import threading
 from typing import TYPE_CHECKING
 
 from pyd2bot.logic.managers.BotConfig import BotConfig
@@ -31,8 +32,9 @@ class BotCharacterUpdatesFrame(Frame):
         super().__init__()
 
     def pushed(self) -> bool:
-        KernelEventsManager().on(KernelEvent.LEVEL_UP, self.onBotLevelUp)
-        KernelEventsManager().on(KernelEvent.CHARACTER_STATS, self.onBotStats)
+        KernelEventsManager().on(KernelEvent.PlayerLeveledUp, self.onBotLevelUp)
+        KernelEventsManager().on(KernelEvent.CharacterStats, self.onBotStats)
+        self.waitingForCharactsBoost = threading.Event()
         return True
 
     def pulled(self) -> bool:
@@ -45,10 +47,11 @@ class BotCharacterUpdatesFrame(Frame):
 
     def onBotStats(self, event):
         unusedStatPoints = PlayedCharacterManager().stats.getStatBaseValue(StatIds.STATS_POINTS)
-        if unusedStatPoints > 0:
+        if unusedStatPoints > 0 and not self.waitingForCharactsBoost.is_set():
             boost, usedCapital = self.getBoost(unusedStatPoints)
             if boost > 0:
                 Logger().info(f"can boost point with {boost}")
+                self.waitingForCharactsBoost.set()
                 self.boostCharacs(usedCapital, BotConfig().primaryStatId)
 
     def onBotLevelUp(self, event, previousLevel, newLevel):
@@ -110,6 +113,10 @@ class BotCharacterUpdatesFrame(Frame):
         sumsg = StatsUpgradeRequestMessage()
         sumsg.init(False, statId, boost)
         ConnectionsHandler().send(sumsg)
+        KernelEventsManager().once(KernelEvent.StatsUpgradeResult, self.onStatUpgradeResult, originator=self)
+
+    def onStatUpgradeResult(self, event, result, boost):
+        self.waitingForCharactsBoost.clear()
 
     def process(self, msg: Message) -> bool:
 

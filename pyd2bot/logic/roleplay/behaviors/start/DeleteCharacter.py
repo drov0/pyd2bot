@@ -31,7 +31,7 @@ class DeleteCharacter(AbstractBehavior):
         msg.init(characterId)
         def onCharDelPrepared(event, msg):
             self.sendCharDeleteRequest(characterId)
-        KernelEventsManager().on(KernelEvent.CHAR_DEL_PREP, onCharDelPrepared)
+        KernelEventsManager().on(KernelEvent.CharacterDelPrepare, onCharDelPrepared)
         ConnectionsHandler().send(msg)
 
     def sendCharDeleteRequest(self, characterId):
@@ -45,5 +45,5 @@ class DeleteCharacter(AbstractBehavior):
                 if c == characterId:
                     return self.finish(False, "Character wasent deleted and still in chars list")
             self.finish(True, None)
-        KernelEventsManager().once(KernelEvent.CHARACTERS_LIST, oncharList, originator=self)
+        KernelEventsManager().once(KernelEvent.CharactersList, oncharList, originator=self)
         ConnectionsHandler().send(cdrmsg)

@@ -42,7 +42,7 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
                     Logger().info("[BotEventsManager] Party member %s showed" % follower.name)
                     callback(e, *args)
 
-        return KernelEventsManager().on(KernelEvent.ACTORSHOWED, onActorShowed, originator=originator)
+        return KernelEventsManager().on(KernelEvent.ActorShowed, onActorShowed, originator=originator)
 
     def onceAllMembersJoinedParty(self, callback, args=[], originator=None):
         def onEvt(e):
@@ -56,7 +56,7 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
                 event.listener.delete()
                 callback(movePath, *args)
 
-        return KernelEventsManager().on(KernelEvent.FIGHTER_MOVEMENT_APPLIED, onEvt, originator=originator)
+        return KernelEventsManager().on(KernelEvent.FighterMovementApplied, onEvt, originator=originator)
 
     def onceFighterCastedSpell(self, fighterId, cellId, callback, args=[], originator=None):
         def onEvt(event: Event, sourceId, destinationCellId, sourceCellId, spellId):
@@ -64,7 +64,7 @@ class BotEventsManager(EventsHandler, metaclass=Singleton):
                 event.listener.delete()
                 callback(*args)
 
-        return KernelEventsManager().on(KernelEvent.FIGHTER_CASTED_SPELL, onEvt, originator=originator)
+        return KernelEventsManager().on(KernelEvent.FighterCastedSpell, onEvt, originator=originator)
 
     def onceMuleJoinedFightContext(self, tgt_muleId, callback, originator=None):
         def onMuleJoinedFightContext(event: Event, muleId):

@@ -43,8 +43,8 @@ class MuleFighter(AbstractBehavior):
         self.leader = leader
         self.running.set()
         self.checkIfLeaderInFight()
-        KernelEventsManager().on(KernelEvent.FIGHT_SWORD_SHOWED, self.onFightSword, originator=self)
-        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerNotif, originator=self)
+        KernelEventsManager().on(KernelEvent.FightSwordShowed, self.onFightSword, originator=self)
+        KernelEventsManager().on(KernelEvent.ServerTextInfo, self.onServerNotif, originator=self)
         BotEventsManager().on(BotEventsManager.MOVE_TO_VERTEX, self.onMoveToVertex, originator=self)
     
     def onMoveToVertex(self, event: Event, vertex: Vertex):
@@ -117,7 +117,7 @@ class MuleFighter(AbstractBehavior):
     
     def joinFight(self):
         self.joinFightListener = KernelEventsManager().once(
-            KernelEvent.FIGHT_STARTED, 
+            KernelEvent.FightStarted, 
             self.onfight, 
             timeout=self.FIGHT_JOIN_TIMEOUT, 
             ontimeout=self.onJoinFightTimeout, 

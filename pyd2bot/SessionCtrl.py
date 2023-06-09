@@ -23,15 +23,18 @@ class SessionCtrl:
     INVALID_SESSION_TYPE = 77896
 
     def __init__(self) -> None:
+        self.loadCreds()
+        self._running = dict[str, Pyd2Bot]()
+        self._sessions = dict[str, Session]()
+
+    def loadCreds(self):
         with open(accounts_jsonfile, "r") as fp:
             self.accounts: dict = json.load(fp)
         with open(creds_jsonfile, "r") as fp:
             creds: dict = json.load(fp)
             self.certificates: dict = creds["certificates"]
             self.apikeys: dict = creds["apikeys"]
-        self._running = dict[str, Pyd2Bot]()
-        self._sessions = dict[str, Session]()
-
+            
     def stopCharacter(self, login, reason="N/A", crash=False):
         bot = self._running.get(login)
         if not bot:
@@ -69,6 +72,7 @@ class SessionCtrl:
         return True
 
     def startSession(self, session: Session):
+        self.loadCreds()
         if session.id not in self._sessions:
             self._sessions[session.id] = session
         if session.type == SessionType.FIGHT:

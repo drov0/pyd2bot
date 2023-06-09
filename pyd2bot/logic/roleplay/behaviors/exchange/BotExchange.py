@@ -155,7 +155,7 @@ class BotExchange(AbstractBehavior):
             if self.acceptExchangeListener:
                 self.acceptExchangeListener.cancelTimer()
             KernelEventsManager().once(
-                event_id=KernelEvent.EXCHANGE_CLOSE, 
+                event_id=KernelEvent.ExchangeClose, 
                 callback=lambda: self.finish(self.CANT_TAKE_ALL_SOURCE_ITEMS, "Space not enough to take guest items!"), 
                 originator=self
             )
@@ -168,7 +168,7 @@ class BotExchange(AbstractBehavior):
                 if timer:
                     timer.cancel()
                 self.finish(self.TARGET_CANT_TAKE_ALL_ITEMS, "Space in target inventory not enough!")
-            KernelEventsManager().once(KernelEvent.EXCHANGE_CLOSE, onExchangeClose, originator=self)
+            KernelEventsManager().once(KernelEvent.ExchangeClose, onExchangeClose, originator=self)
             timer.start()
 
     def onExchangeLeave(self, event, success):
@@ -184,9 +184,9 @@ class BotExchange(AbstractBehavior):
             self.finish(self.EXCHANGE_FAILED, "Exchange failed")
 
     def sendExchangeReady(self):
-        self.serverNotifListener = KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerNotif, originator=self)
+        self.serverNotifListener = KernelEventsManager().on(KernelEvent.ServerTextInfo, self.onServerNotif, originator=self)
         self.exchangeLeaveListener = KernelEventsManager().once(
-            event_id=KernelEvent.EXCHANGE_CLOSE, 
+            event_id=KernelEvent.ExchangeClose, 
             callback=self.onExchangeLeave, 
             timeout=5,
             retryNbr=5,

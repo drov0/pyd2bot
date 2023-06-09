@@ -159,15 +159,20 @@ class BotFightFrame(Frame):
         self._spellCastFails = 0
         self._inFight = True
         self.fightReadySent = False 
-        if BotConfig().isLeader:
-            if FightOptionsEnum.FIGHT_OPTION_SET_SECRET:
+        if not BotConfig().fightOptionsSent:
+            if BotConfig().isLeader:
                 gfotmsg = GameFightOptionToggleMessage()
                 gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_SECRET)
                 ConnectionsHandler().send(gfotmsg)
-            if FightOptionsEnum.FIGHT_OPTION_SET_TO_PARTY_ONLY:
-                gfotmsg = GameFightOptionToggleMessage()
-                gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_TO_PARTY_ONLY)
-                ConnectionsHandler().send(gfotmsg)
+                if BotConfig().followers:
+                    gfotmsg = GameFightOptionToggleMessage()
+                    gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_TO_PARTY_ONLY)
+                    ConnectionsHandler().send(gfotmsg)
+                else:
+                    gfotmsg = GameFightOptionToggleMessage()
+                    gfotmsg.init(FightOptionsEnum.FIGHT_OPTION_SET_CLOSED)
+                    ConnectionsHandler().send(gfotmsg)
+            BotConfig().fightOptionsSent = True
     
     def onFighterShowed(self, event, fighterId):
         if BotConfig().isLeader:
@@ -191,10 +196,10 @@ class BotFightFrame(Frame):
 
     def pushed(self) -> bool:
         self.init()
-        KernelEventsManager().on(KernelEvent.TEXT_INFO, self.onServerTextInfo, originator=self)
-        KernelEventsManager().once(KernelEvent.FIGHT_RESUMED, self.onFightResumed, originator=self)
-        KernelEventsManager().on(KernelEvent.FIGHTER_SHOWED, self.onFighterShowed, originator=self)
-        KernelEventsManager().once(KernelEvent.FIGHT_JOINED, self.onFightJoined, originator=self)
+        KernelEventsManager().on(KernelEvent.ServerTextInfo, self.onServerTextInfo, originator=self)
+        KernelEventsManager().once(KernelEvent.FightResumed, self.onFightResumed, originator=self)
+        KernelEventsManager().on(KernelEvent.FighterShowed, self.onFighterShowed, originator=self)
+        KernelEventsManager().once(KernelEvent.FightJoined, self.onFightJoined, originator=self)
         return True
 
     @property
@@ -512,7 +517,7 @@ class BotFightFrame(Frame):
                     f"currently executing {Kernel().battleFrame._executingSequence} ..."
             )
             Kernel().battleFrame.logState()
-            KernelEventsManager().once(KernelEvent.SEQUENCE_EXEC_FINISHED, self.nextTurnAction, originator=self)
+            KernelEventsManager().once(KernelEvent.SequenceExecFinished, self.nextTurnAction, originator=self)
             return
         if self.VERBOSE:
             Logger().info(f"Next turn actions, {[a['fct'].__name__ for a in self._turnAction]}")

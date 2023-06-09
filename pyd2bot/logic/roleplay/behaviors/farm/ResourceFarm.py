@@ -18,7 +18,7 @@ from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
 
 class ResourceFarm(AbstractFarmBehavior):
     
-    def __init__(self, timeout):
+    def __init__(self, timeout=None):
         super().__init__(timeout)
         
     def init(self):

@@ -57,7 +57,7 @@ class RetrieveRecipeFromBank(AbstractBehavior):
         self.ids, self.qtys = self.recipesUi.calculateIngredientsToRetrieve(self.recipe)
         self.recipesUi.unload()
         self.once(
-            KernelEvent.INVENTORY_WEIGHT_UPDATE, 
+            KernelEvent.InventoryWeightUpdate, 
             self.onInventoryWeightUpdate, 
             timeout=15,
             retryNbr=5,
@@ -87,7 +87,7 @@ class RetrieveRecipeFromBank(AbstractBehavior):
     def onInventoryWeightUpdate(self, event, weight, max):
         Logger().info(f"Inventory weight percent changed to : {round(100 * weight / max, 1)}%")
         self.once(
-            event_id=KernelEvent.EXCHANGE_CLOSE, 
+            event_id=KernelEvent.ExchangeClose, 
             callback=self.onStorageClose,
             timeout=10,
             ontimeout=lambda: self.finish(self.BANK_CLOSE_TIMEDOUT, "Bank close timedout!"),

@@ -156,4 +156,4 @@ class AbstractBehavior(metaclass=Singleton):
         return KernelEventsManager().on(event_id=event_id, callback=callback, once=True, timeout=timeout, ontimeout=ontimeout, retryNbr=retryNbr, retryAction=retryAction, originator=self)
         
     def send(self, event_id, *args, **kwargs):
-        return KernelEventsManager().send(event_id=event_id, *args, **kwargs)
+        return KernelEventsManager().send(event_id, *args, **kwargs)

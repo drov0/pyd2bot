@@ -69,7 +69,7 @@ class AttackMonsters(AbstractBehavior):
         self.fightShwordListener = KernelEventsManager().onceFightSword(
             self.entityId, cellId, self.onFightWithEntityTaken, originator=self
         )
-        self.mapChangeListener = KernelEventsManager().on(KernelEvent.CURRENT_MAP, self.onCurrentMap, originator=self)
+        self.mapChangeListener = KernelEventsManager().on(KernelEvent.CurrentMap, self.onCurrentMap, originator=self)
         self._start()
 
     def _start(self):
@@ -94,7 +94,7 @@ class AttackMonsters(AbstractBehavior):
             return self.finish(status, error)
         Logger().info(f"[AttackMonsters] Reached monster group cell")
         self.attackMonsterListener = KernelEventsManager().once(
-            event_id=KernelEvent.FIGHT_STARTED,
+            event_id=KernelEvent.FightStarted,
             callback=lambda event: self.finish(True, None), 
             timeout=self.FIGHT_REQ_TIMEOUT, 
             ontimeout=self.finish, 

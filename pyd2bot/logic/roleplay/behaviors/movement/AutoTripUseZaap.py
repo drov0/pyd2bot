@@ -38,7 +38,7 @@ class AutoTripUseZaap(AbstractBehavior):
         self.dstMapId = dstMapId
         self.dstZoneId = dstZoneId
         self.withSaveZaap = withSaveZaap
-        self.on(KernelEvent.TEXT_INFO, self.onServerInfo)
+        self.on(KernelEvent.ServerTextInfo, self.onServerInfo)
         self.dstZaapMapId = Localizer.findCloseZaapMapId(dstMapId)
         if not self.dstZaapMapId:
             return self.finish(self.NOASSOCIATED_ZAAP, f"No associated zaap found for map {dstMapId}")

@@ -43,7 +43,7 @@ class SaveZaap(AbstractBehavior):
     def onZaapSaveResp(self, event_id, destinations: list[TeleportDestinationWrapper], ttype):
         ConnectionsHandler().send(LeaveDialogRequestMessage())
         return KernelEventsManager().on(
-            KernelEvent.DIALOG_LEFT,
+            KernelEvent.DialogLeft,
             lambda _: self.finish(True, None),
             originator=self
         )

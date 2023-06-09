@@ -85,11 +85,11 @@ class UseSkill(AbstractBehavior):
 
         if self.waitForSkillUsed:
             KernelEventsManager().on(
-                KernelEvent.INTERACTIVE_ELEMENT_BEING_USED, 
+                KernelEvent.InteractiveElementBeingUsed, 
                 self.onUsingInteractive, 
                 originator=self
             )
-            KernelEventsManager().on(KernelEvent.INTERACTIVE_ELEMENT_USED, self.onUsedInteractive, originator=self)
+            KernelEventsManager().on(KernelEvent.InteractiveElementUsed, self.onUsedInteractive, originator=self)
         MapMove().start(cell, self.exactDistination, callback=onmoved, parent=self)
 
     def ontimeout(self, listener: Listener):
@@ -140,7 +140,7 @@ class UseSkill(AbstractBehavior):
         if self.waitForSkillUsed:
             self.timeoutsCount = 0
             self.useErrorListener = KernelEventsManager().once(
-                KernelEvent.INTERACTIVE_USE_ERROR,
+                KernelEvent.InteractiveUseError,
                 self.onUseError,
                 timeout=self.REQ_TIMEOUT,
                 ontimeout=self.ontimeout,

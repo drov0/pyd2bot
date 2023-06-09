@@ -88,7 +88,7 @@ class MapMove(AbstractBehavior):
         if len(self.movePath) == 0:
             return self.finish(True, None)
         self.once(
-            KernelEvent.MOVE_REQUEST_REJECTED,
+            KernelEvent.MovementRequestRejected,
             callback=lambda event: self.onMoveRequestReject(MovementFailError.MOVE_REQUEST_REJECTED),
         )
         KernelEventsManager().onceEntityMoved(
@@ -119,7 +119,7 @@ class MapMove(AbstractBehavior):
         if clientMovePath.end.cellId != self.dstCell.cellId:
             Logger().warning(f"Landed on cell {clientMovePath.end.cellId} not dst {self.dstCell.cellId}!")
         self.once(
-            KernelEvent.PLAYER_MOVEMENT_COMPLETED, callback=self.onMovementCompleted
+            KernelEvent.PlayerMovementCompleted, callback=self.onMovementCompleted
         )
 
     def onMovementCompleted(self, event, success):

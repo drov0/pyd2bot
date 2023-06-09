@@ -88,7 +88,7 @@ class Pyd2Bot(DofusClient):
             if instId != self.name:
                 inst.worker.process(PlayerConnectedMessage(self.name))
         KernelEventsManager().on(KernelEvent.KamasUpdate, self.onKamasUpdate)
-        KernelEventsManager().on(KernelEvent.LEVEL_UP, self.onLvlUp)
+        KernelEventsManager().on(KernelEvent.PlayerLeveledUp, self.onLvlUp)
         if not Kernel().mitm:
             self.startSessionMainBehavior()
 
@@ -123,7 +123,7 @@ class Pyd2Bot(DofusClient):
             activity.start(callback=self.switchActivity)
         
     def switchActivity(self, code, err):
-        self.onReconnect(None, f"Fake disconnect and take nap", random.random() * 3)
+        self.onReconnect(None, f"Fake disconnect and take nap", random.random() * 60 * 3)
 
     def addShutDownListener(self, callback):
         self._shutDownListeners.append(callback)

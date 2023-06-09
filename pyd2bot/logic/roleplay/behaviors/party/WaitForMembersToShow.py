@@ -21,7 +21,7 @@ class WaitForMembersToShow(AbstractBehavior):
         self.members = members
         Logger().debug("Waiting for members to show up.")
         BotEventsManager().on(BotEventsManager.PLAYER_DISCONNECTED, self.onMemberDisconnected, originator=self)
-        KernelEventsManager().on(KernelEvent.ACTORSHOWED, self.onActorShowed, originator=self)
+        KernelEventsManager().on(KernelEvent.ActorShowed, self.onActorShowed, originator=self)
 
     def onTeamMemberShowed(self):
         if Kernel().entitiesFrame is None:

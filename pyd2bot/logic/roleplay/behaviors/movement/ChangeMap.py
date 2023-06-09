@@ -218,7 +218,7 @@ class ChangeMap(AbstractBehavior):
         if self.mapChangeListener:
             self.mapChangeListener.delete()
         self.mapChangeListener = self.on(
-            KernelEvent.CURRENT_MAP,
+            KernelEvent.CurrentMap,
             self.onCurrentMap,
             timeout=self.MAPCHANGE_TIMEOUT,
             ontimeout=self.onRequestTimeout, 
@@ -258,7 +258,7 @@ class ChangeMap(AbstractBehavior):
                     return self.finish(self.MAP_ACTION_ALREADY_ONCELL, f"Already on map action cell, and can't move away from it for reason : '{err}'.")
                 return MapMove().start(MapPoint.fromCoords(x, y).cellId, self.exactDestination, callback=onMoved, parent=self)
             KernelEventsManager().on(
-                KernelEvent.CURRENT_MAP, 
+                KernelEvent.CurrentMap, 
                 callback=onMapChangedWhileResolving,
                 timeout=1,
                 ontimeout=onWaitForMCAfterResolve,
@@ -278,7 +278,7 @@ class ChangeMap(AbstractBehavior):
             self.sendMapChangeRequest()
 
     def actionMapChange(self):
-        self.requestRejectedEvent = KernelEvent.MOVE_REQUEST_REJECTED
+        self.requestRejectedEvent = KernelEvent.MovementRequestRejected
         self.movementError = MovementFailError.MOVE_REQUEST_REJECTED
         self.exactDestination = True
         self.mapChangeCellId = self.transition.cell
@@ -286,7 +286,7 @@ class ChangeMap(AbstractBehavior):
         MapMove().start(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell, parent=self)
 
     def scrollMapChange(self):
-        self.requestRejectedEvent = KernelEvent.MOVE_REQUEST_REJECTED
+        self.requestRejectedEvent = KernelEvent.MovementRequestRejected
         self.movementError = MovementFailError.MOVE_REQUEST_REJECTED
         self.exactDestination = True
         try:
@@ -296,7 +296,7 @@ class ChangeMap(AbstractBehavior):
         MapMove().start(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell, parent=self)       
 
     def interactiveMapChange(self):
-        self.requestRejectedEvent = KernelEvent.INTERACTIVE_USE_ERROR
+        self.requestRejectedEvent = KernelEvent.InteractiveUseError
         self.movementError = MovementFailError.INTERACTIVE_USE_ERROR
         self.exactDestination = False
         MapMove().start(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell, parent=self)

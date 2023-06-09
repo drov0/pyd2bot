@@ -78,7 +78,7 @@ class Pyd2botServer:
         client.start()
         KernelEventsManager.WaitThreadRegister("fetchServersThread", 25)
         servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance("fetchServersThread").wait(
-            KernelEvent.SERVERS_LIST, 60
+            KernelEvent.ServersList, 60
         )
         Logger().info(f"List servers: {[s.to_json() for s in servers['used']]}")
         result = [
@@ -114,7 +114,7 @@ class Pyd2botServer:
         client.start()
         KernelEventsManager.WaitThreadRegister(instanceName, 25)
         servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance(instanceName).wait(
-            KernelEvent.SERVERS_LIST, 60
+            KernelEvent.ServersList, 60
         )
         first = True
         for server in servers["used"]:
@@ -124,7 +124,7 @@ class Pyd2botServer:
             else:
                 Kernel.getInstance(instanceName).worker.process(ChangeServerAction.create(server.id))
             charactersList: list[BasicCharacterWrapper] = KernelEventsManager.getInstance(instanceName).wait(
-                KernelEvent.CHARACTERS_LIST, 60
+                KernelEvent.CharactersList, 60
             )
             result += [
                 Character(
@@ -164,7 +164,7 @@ class Pyd2botServer:
                 stop.set()
                 client.shutdown()
                 raise DofusError(0, "Character not found")
-        KernelEventsManager.getInstance(token).once(KernelEvent.CHARACTERS_LIST, onCharactersList)
+        KernelEventsManager.getInstance(token).once(KernelEvent.CharactersList, onCharactersList)
         stop.wait(220)
         client.shutdown()
         return True
@@ -214,8 +214,8 @@ class Pyd2botServer:
         def onCharactersList(event, return_value):
             Logger().info("characters list received")
             CreateNewCharacter().start(breedId, name, sex, callback=onNewCharacterEnded)
-        KernelEventsManager.getInstance(token).once(KernelEvent.CHARACTERS_LIST, onCharactersList)
-        KernelEventsManager.getInstance(token).once(KernelEvent.CRASH, onCrash)
+        KernelEventsManager.getInstance(token).once(KernelEvent.CharactersList, onCharactersList)
+        KernelEventsManager.getInstance(token).once(KernelEvent.ClientCrashed, onCrash)
         Logger().info(f"Initialized account {token}")
         if not stop.wait(60):
             client.shutdown()
@@ -271,7 +271,7 @@ class Pyd2botServer:
             stop.set()
         KernelEventsManager.WaitThreadRegister(token, 25)
         KernelEventsManager.getInstance(token).onceMapProcessed(onMapProcessed)
-        KernelEventsManager.getInstance(token).once(KernelEvent.CRASH, onCrash)
+        KernelEventsManager.getInstance(token).once(KernelEvent.ClientCrashed, onCrash)
         if not stop.wait(30):
             client.shutdown()
             raise DofusError(1003, "Request timed out")
@@ -296,7 +296,7 @@ class Pyd2botServer:
         client.start()
         KernelEventsManager.WaitThreadRegister(token, 25)
         servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance(token).wait(
-            KernelEvent.SERVERS_LIST, 60
+            KernelEvent.ServersList, 60
         )
         Logger().info(f"List servers: {[s.to_json() for s in servers['all']]}")
         result = [

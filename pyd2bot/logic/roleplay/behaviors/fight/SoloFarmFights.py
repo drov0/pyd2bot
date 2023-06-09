@@ -20,7 +20,7 @@ from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 
 class SoloFarmFights(AbstractFarmBehavior):
 
-    def __init__(self, timeout):
+    def __init__(self, timeout=None):
         super().__init__(timeout)
     
     def init(self):
@@ -85,7 +85,7 @@ class SoloFarmFights(AbstractFarmBehavior):
             elif code in [AttackMonsters.ENTITY_VANISHED, AttackMonsters.FIGHT_REQ_TIMEDOUT]:
                 self.doFarm()
             else:
-                return KernelEventsManager().send(KernelEvent.RESTART, f"Error while attacking monsters: {error}")
+                return KernelEventsManager().send(KernelEvent.ClientRestart, f"Error while attacking monsters: {error}")
 
     def collectCurrResource(self):
         AttackMonsters().start(self.currentTarget["id"], callback=self.onFightStarted, parent=self)

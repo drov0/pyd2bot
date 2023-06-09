@@ -36,16 +36,16 @@ class AbstractFarmBehavior(AbstractBehavior):
     currentTarget: Any = None
     availableResources: list[Any] = None
 
-    def __init__(self, timeout):
+    def __init__(self, timeout=None):
         self.timeout = timeout
         super().__init__()
 
     def run(self, *args, **kwargs):
         self.startTime = perf_counter()
         self.init(*args, **kwargs)
-        self.on(KernelEvent.FIGHT_STARTED, self.onFight)
+        self.on(KernelEvent.FightStarted, self.onFight)
         self.inFight = False
-        self.on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange)
+        self.on(KernelEvent.PlayerStateChanged, self.onPlayerStateChange)
         self.roleplayListener = None
         self._currEdge: Edge = None
         self._currTransition = None
@@ -67,7 +67,7 @@ class AbstractFarmBehavior(AbstractBehavior):
                 self.moveToNextStep()
             elif code != ChangeMap.LANDED_ON_WRONG_MAP:
                 Logger().error(f"Error while moving to next step {error}, code {code}.")
-                return self.send(KernelEvent.RESTART, "Error while moving to next step: %s." % error)
+                return self.send(KernelEvent.ClientRestart, "Error while moving to next step: %s." % error)
         self.doFarm()
 
     def moveToNextStep(self):
@@ -81,7 +81,7 @@ class AbstractFarmBehavior(AbstractBehavior):
 
     def onFarmPathMapReached(self, code, error):
         if error:
-            return self.send(KernelEvent.RESTART, f"Go to path first map failed for reason : {error}")
+            return self.send(KernelEvent.ClientRestart, f"Go to path first map failed for reason : {error}")
         self.doFarm()
 
     def onBotOutOfFarmPath(self):
@@ -93,13 +93,13 @@ class AbstractFarmBehavior(AbstractBehavior):
             Logger().info(f"Auto trip to an Area ({dstSubArea._area.name}) out of {srcSubArea._area.name}.")
             def onPosReached(code, error):
                 if error:
-                    return self.send(KernelEvent.RESTART, message=error)
+                    return self.send(KernelEvent.ClientRestart, message=error)
                 AutoTripUseZaap().start(
                     self.path.startVertex.mapId, self.path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self
                 )
             def onGotOutOfAnkarnam(code, error):
                 if error:
-                    return KernelEventsManager().send(KernelEvent.SHUTDOWN, message=error)
+                    return KernelEventsManager().send(KernelEvent.ClientShutdown, message=error)
                 AutoTripUseZaap().start(self.path.startVertex.mapId, self.path.startVertex.zoneId, parent=self.parent, callback=onPosReached)
             return GetOutOfAnkarnam().start(callback=onGotOutOfAnkarnam, parent=self)
         AutoTripUseZaap().start(
@@ -112,7 +112,7 @@ class AbstractFarmBehavior(AbstractBehavior):
 
     def onBotUnloaded(self, code, err):
         if err:
-            return self.send(KernelEvent.RESTART, f"Error while unloading: {err}")
+            return self.send(KernelEvent.ClientRestart, f"Error while unloading: {err}")
         self.availableResources = None
         self.doFarm()
     
@@ -126,16 +126,16 @@ class AbstractFarmBehavior(AbstractBehavior):
             if self.isCollectErrCodeRequireRefresh(code):
                 return RequestMapData().start(parent=self, callback=self.doFarm)
             elif self.isCollectErrRequireRestart(code):
-                return self.send(KernelEvent.RESTART, f"Error while farming resource: {error}")
+                return self.send(KernelEvent.ClientRestart, f"Error while farming resource: {error}")
             elif self.isCollectErrRequireShutdown(code):
-                return self.send(KernelEvent.SHUTDOWN, f"Error while farming resource: {error}")
+                return self.send(KernelEvent.ClientShutdown, f"Error while farming resource: {error}")
         BenchmarkTimer(0.1, self.doFarm).start()
     
     def onFight(self, event=None):
         Logger().warning(f"Player is in fight")
         self.inFight = True
         self.stopChilds()
-        self.roleplayListener = self.once(KernelEvent.ROLEPLAY_STARTED, self.onRoleplay)
+        self.roleplayListener = self.once(KernelEvent.RoleplayStarted, self.onRoleplay)
                 
     def isCollectErrCodeRequireRefresh(self, code: int) -> bool:
         return False
@@ -166,7 +166,7 @@ class AbstractFarmBehavior(AbstractBehavior):
     def doFarm(self, event_id=None, error=None):
         if not self.running.is_set():
             return
-        if perf_counter() - self.startTime > self.timeout:
+        if self.timeout and perf_counter() - self.startTime > self.timeout:
             return self.finish(True, None)
         Logger().info("Do farm called")
         if PlayedCharacterManager().currentMap is None:

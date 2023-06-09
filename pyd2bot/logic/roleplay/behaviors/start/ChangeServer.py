@@ -28,7 +28,7 @@ class ChangeServer(AbstractBehavior):
     def run(self, newServerId) -> bool:
         self.newServerId = newServerId
         Logger().info("[ChangeServer] Started.")
-        self.reloginTokenListener = KernelEventsManager().once(KernelEvent.RELOGIN_TOKEN, self.onReloginToken, originator=self)
+        self.reloginTokenListener = KernelEventsManager().once(KernelEvent.ReloginToken, self.onReloginToken, originator=self)
         self.requestReloginToken()
 
     def onReloginToken(self, valid, token):
@@ -44,7 +44,7 @@ class ChangeServer(AbstractBehavior):
 
     def finish(self, status, error, token=None):        
         if self.reloginTokenListener:
-            KernelEventsManager().remove_listener(KernelEvent.RELOGIN_TOKEN, self.reloginTokenListener)
+            KernelEventsManager().removeListener(KernelEvent.ReloginToken, self.reloginTokenListener)
         super().finish(status, error, token=token)
 
     def requestReloginToken(self):

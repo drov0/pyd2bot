@@ -31,7 +31,7 @@ class AutoRevive(AbstractBehavior):
         self.phenixMapId = Kernel().playedCharacterUpdatesFrame._phenixMapId
         if not PlayedCharacterManager().currentMap:
             return KernelEventsManager().onceMapProcessed(self.start, originator=self)
-        KernelEventsManager().on(KernelEvent.PLAYER_STATE_CHANGED, self.onPlayerStateChange, originator=self)
+        KernelEventsManager().on(KernelEvent.PlayerStateChanged, self.onPlayerStateChange, originator=self)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_PHANTOM:
             AutoTrip().start(self.phenixMapId, 1, callback=self.onPhenixMapReached, parent=self)
         elif PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:

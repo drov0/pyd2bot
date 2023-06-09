@@ -50,14 +50,14 @@ class FarmerStates(Enum):
 
 class FarmFights(AbstractBehavior):
 
-    def __init__(self, timeout):
+    def __init__(self, timeout=None):
         super().__init__(timeout)
         self.state = FarmerStates.IDLE
 
     def onMapChanged(self, code, error):
         if error:
             Logger().error("Error while moving to next step: %s" % error)
-            return KernelEventsManager().send(KernelEvent.RESTART, "Error while moving to next step: %s" % error)
+            return KernelEventsManager().send(KernelEvent.ClientRestart, "Error while moving to next step: %s" % error)
         self.run()
 
     def moveToNextStep(self):
@@ -138,7 +138,7 @@ class FarmFights(AbstractBehavior):
                             return self.moveToNextStep()
                         AttackMonsters().start(monster["id"], callback=onResp, parent=self)
                     else:
-                        return KernelEventsManager().send(KernelEvent.RESTART, f"Error while attacking monsters: {error}")
+                        return KernelEventsManager().send(KernelEvent.ClientRestart, f"Error while attacking monsters: {error}")
             monster = next(availableMonsterFights)
             Logger().info(monster)
             AttackMonsters().start(monster["id"], callback=onResp, parent=self)
@@ -159,12 +159,12 @@ class FarmFights(AbstractBehavior):
 
     def onMembersIdle(self, code, error):
         if error:
-            return KernelEventsManager().send(KernelEvent.RESTART, f"Wait members idle failed for reason : {error}")
+            return KernelEventsManager().send(KernelEvent.ClientRestart, f"Wait members idle failed for reason : {error}")
         self.doFarm()
 
     def onFarmPathMapReached(self, code, error):
         if error:
-            return KernelEventsManager().send(KernelEvent.RESTART, f"Go to path first map failed for reason : {error}")
+            return KernelEventsManager().send(KernelEvent.ClientRestart, f"Go to path first map failed for reason : {error}")
         self.run()
         
     def onBotOutOfFarmPath(self):
@@ -176,13 +176,13 @@ class FarmFights(AbstractBehavior):
             Logger().info(f"Auto trip to an Area ({dstSubArea._area.name}) out of {srcSubArea._area.name}.")
             def onPosReached(code, error):
                 if error:
-                    return KernelEventsManager().send(KernelEvent.SHUTDOWN, message=error)
+                    return KernelEventsManager().send(KernelEvent.ClientShutdown, message=error)
                 AutoTripUseZaap().start(
                     self.path.startVertex.mapId, self.path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self
                 )
             def onGotOutOfAnkarnam(code, error):
                 if error:
-                    return KernelEventsManager().send(KernelEvent.SHUTDOWN, message=error)
+                    return KernelEventsManager().send(KernelEvent.ClientShutdown, message=error)
                 AutoTripUseZaap().start(self.path.startVertex.mapId, self.path.startVertex.zoneId, parent=self, callback=onPosReached)
             return GetOutOfAnkarnam().start(callback=onGotOutOfAnkarnam, parent=self)
         AutoTripUseZaap().start(
@@ -194,7 +194,7 @@ class FarmFights(AbstractBehavior):
             if code == WaitForMembersToShow.MEMBER_DISCONNECTED:
                 Logger().warning(f"Member {errorInfo} disconnected while waiting for them to show up")
             else:
-                return KernelEventsManager().send(KernelEvent.RESTART, f"Error while waiting for members to show up: {errorInfo}")
+                return KernelEventsManager().send(KernelEvent.ClientRestart, f"Error while waiting for members to show up: {errorInfo}")
         self.run()
 
     def doFarm(self, event=None):

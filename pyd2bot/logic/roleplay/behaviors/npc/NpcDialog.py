@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 class NpcDialog(AbstractBehavior):
     NO_MORE_REPLIES = 10235
+    No_PROGRAMMED_REPLY = 10236
     
     def __init__(self) -> None:
         super().__init__()
@@ -67,8 +68,9 @@ class NpcDialog(AbstractBehavior):
                     Logger().debug(f"Reply : {replyText}")
                     
     def onNpcQuestion(self, event, messageId, dialogParams, visibleReplies):
-        if self.currentNpcQuestionReplyIdx == len(self.npcQuestionsReplies):
-            return self.finish(self.NO_MORE_REPLIES, "Received an NPC question but have no more replies programmed")
+        if messageId not in self.npcQuestionsReplies:
+            return self.finish(self.No_PROGRAMMED_REPLY, f"No programmed reply found for question {messageId}")
+        
         Logger().info(f"Received NPC question : {messageId}")
         Logger().info(f"Visible replies : {visibleReplies}")
         self.npc = Npc.getNpcById(self.npcId)
@@ -81,9 +83,9 @@ class NpcDialog(AbstractBehavior):
                     Logger().debug(f"Dialog message : {messagenpc}")
             self.displayReplies(visibleReplies)
         msg = NpcDialogReplyMessage()
-        msg.init(visibleReplies[0])
+        msg.init(self.npcQuestionsReplies[messageId])
         self.currentNpcQuestionReplyIdx += 1
-        self.once(KernelEvent.NPC_QUESTION, self.onNpcQuestion)
+        self.once(KernelEvent.NpcQuestion, self.onNpcQuestion)
         ConnectionsHandler().send(msg)
     
     def onNpcDialogleft(self, event):
@@ -95,6 +97,6 @@ class NpcDialog(AbstractBehavior):
             return self.finish(code, error)
         msg = NpcGenericActionRequestMessage()
         msg.init(self.npcId, self.npcOpenDialogId, self.npcMapId)
-        self.once(KernelEvent.DIALOG_LEFT, self.onNpcDialogleft)
-        self.once(KernelEvent.NPC_QUESTION, self.onNpcQuestion)
+        self.once(KernelEvent.DialogLeft, self.onNpcDialogleft)
+        self.once(KernelEvent.NpcQuestion, self.onNpcQuestion)
         ConnectionsHandler().send(msg) 

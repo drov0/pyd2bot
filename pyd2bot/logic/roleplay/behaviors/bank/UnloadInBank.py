@@ -69,7 +69,7 @@ class UnloadInBank(AbstractBehavior):
         if exchangeType == ExchangeTypeEnum.BANK:
             Logger().info("Bank storage open")
             self.once(
-                event_id=KernelEvent.INVENTORY_WEIGHT_UPDATE, 
+                event_id=KernelEvent.InventoryWeightUpdate, 
                 callback=self.onInventoryWeightUpdate, 
                 timeout=10,
                 retryNbr=5,
@@ -93,7 +93,7 @@ class UnloadInBank(AbstractBehavior):
     def onInventoryWeightUpdate(self, event, weight, max):
         Logger().info(f"Inventory Weight percent changed to : {round(100 * weight / max, 1)}%")
         self.once(
-            event_id=KernelEvent.EXCHANGE_CLOSE, 
+            event_id=KernelEvent.ExchangeClose, 
             callback=self.onStorageClose,
             timeout=10,
             retryNbr=5,
