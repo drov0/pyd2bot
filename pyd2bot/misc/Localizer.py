@@ -90,14 +90,15 @@ class Localizer:
 
     @classmethod
     def findClosestHintMapByGfx(cls, mapId, gfx):
-        startVertex = WorldGraph().getVertex(mapId, 1)
-        candidates = []
-        for hint in Hint.getHints():
-            if hint.gfx == gfx:
-                candidates.extend(WorldGraph().getVertices(hint.mapId).values())
-        if not candidates:
-            return None
-        return AStar().search(WorldGraph(), startVertex, candidates)
+        for startVertex in WorldGraph().getVertices(mapId).values():
+            candidates = []
+            for hint in Hint.getHints():
+                if hint.gfx == gfx:
+                    candidates.extend(WorldGraph().getVertices(hint.mapId).values())
+            if not candidates:
+                return None
+            print(candidates)
+            return AStar().search(WorldGraph(), startVertex, candidates)
 
     @classmethod
     def findCloseZaapMapId(cls, mapId):

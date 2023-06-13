@@ -2,6 +2,7 @@ import threading
 import traceback
 from enum import Enum
 
+from pyd2bot.logic.roleplay.behaviors.BehaviorApi import BehaviorApi
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
@@ -14,7 +15,7 @@ class AbstractBehaviorState(Enum):
     UNKNOWN = 0
     RUNNING = 1
     IDLE = 2
-class AbstractBehavior(metaclass=Singleton):
+class AbstractBehavior(BehaviorApi, metaclass=Singleton):
     ALREADY_RUNNING = 666
     _onEmptyCallbacks = dict[str, list[callable]]()
     
