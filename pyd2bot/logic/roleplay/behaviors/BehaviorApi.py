@@ -30,10 +30,10 @@ class BehaviorApi:
 
         ChangeMap().start(transition, edge, dstMapId, callback=callback, parent=self)
     
-    def mapMove(self, destCell, exactDistination=True, callback=None):
+    def mapMove(self, destCell, exactDistination=True, forMapChange=False, mapChangeDirection=-1, callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
 
-        MapMove().start(destCell, exactDistination, callback=callback, parent=self)
+        MapMove().start(destCell, exactDistination=exactDistination, forMapChange=forMapChange, mapChangeDirection=mapChangeDirection, callback=callback, parent=self)
     
     def requestMapData(self, mapId=None, callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
@@ -64,52 +64,52 @@ class BehaviorApi:
 
         MuleFighter().start(leader, callback=callback, parent=self)
 
-    def SaveZaap(self, callback=None):
+    def saveZaap(self, callback=None):
         from pyd2bot.logic.roleplay.behaviors.teleport.SaveZaap import SaveZaap
 
         SaveZaap().start(callback=callback, parent=self)
 
-    def UseZaap(self, dstMapId, saveZaap=False, callback=None):
+    def useZaap(self, dstMapId, saveZaap=False, callback=None):
         from pyd2bot.logic.roleplay.behaviors.teleport.UseZaap import UseZaap
 
         UseZaap().start(dstMapId, saveZaap, callback=callback, parent=self)
 
-    def UseSkill(self, ie, cell=None, exactDistination=False, waitForSkillUsed=True, elementId=None, skilluid=None, callback=None):
+    def useSkill(self, ie=None, cell=None, exactDistination=False, waitForSkillUsed=True, elementId=None, skilluid=None, callback=None):
         from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 
         UseSkill().start(ie, cell, exactDistination, waitForSkillUsed, elementId, skilluid, callback=callback, parent=self)
 
-    def SoloFarmFights(self, timeout=None, callback=None):
+    def soloFarmFights(self, timeout=None, callback=None):
         from pyd2bot.logic.roleplay.behaviors.fight.SoloFarmFights import \
             SoloFarmFights
 
         SoloFarmFights().start(timeout=timeout, callback=callback, parent=self)
 
-    def ResourceFarm(self, timeout=None, callback=None):
+    def resourceFarm(self, timeout=None, callback=None):
         from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import \
             ResourceFarm
 
         ResourceFarm().start(timeout=timeout, callback=callback, parent=self)
 
-    def PartyLeader(self, callback=None):
+    def partyLeader(self, callback=None):
         from pyd2bot.logic.roleplay.behaviors.party.PartyLeader import \
             PartyLeader
 
         PartyLeader().start(callback=callback, parent=self)
 
-    def WaitForMembersIdle(self, members, callback=None):
+    def waitForMembersIdle(self, members, callback=None):
         from pyd2bot.logic.roleplay.behaviors.party.WaitForMembersIdle import \
             WaitForMembersIdle
 
         WaitForMembersIdle().start(members, callback=callback, parent=self)
 
-    def WaitForMembersToShow(self, members, callback=None):
+    def waitForMembersToShow(self, members, callback=None):
         from pyd2bot.logic.roleplay.behaviors.party.WaitForMembersToShow import \
             WaitForMembersToShow
 
         WaitForMembersToShow().start(members, callback=callback, parent=self)
 
-    def NpcDialog(self, npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies, callback=None):
+    def npcDialog(self, npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies, callback=None):
         from pyd2bot.logic.roleplay.behaviors.npc.NpcDialog import NpcDialog
 
         NpcDialog().start(npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies, callback=callback, parent=self)

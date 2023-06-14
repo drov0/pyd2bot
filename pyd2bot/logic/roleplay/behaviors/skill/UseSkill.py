@@ -1,9 +1,10 @@
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
-from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
+from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
+from pydofus2.com.ankamagames.dofus.datacenter.jobs.Skill import Skill
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
@@ -18,12 +19,15 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.Interactiv
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.skill.InteractiveUseWithParamRequestMessage import \
     InteractiveUseWithParamRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
+    Pathfinding
 
 
 class UseSkill(AbstractBehavior):
     ELEM_TAKEN = 9801
     ELEM_BEING_USED = 9802
     ELEM_UPDATE_TIMEOUT = 66987
+    UNRACHABLE_IE = 669874
     TIMEOUT = 9803
     CANT_USE = 9804
     USE_ERROR = 9805
@@ -37,7 +41,7 @@ class UseSkill(AbstractBehavior):
         self.useErrorListener = None
 
     def run(self,
-        ie: InteractiveElementData,
+        ie: InteractiveElementData=None,
         cell=None,
         exactDistination=False,
         waitForSkillUsed=True,
@@ -47,11 +51,12 @@ class UseSkill(AbstractBehavior):
         if ie is None:
             if elementId:
                 def onIeFound(ie: InteractiveElementData):
-                    self.targetIe = ie
+                    self.targetIe:InteractiveElementData = ie
                     self.skillUID = ie.skillUID
                     self.elementId = ie.element.elementId
                     self.elementPosition = ie.position
                     self.element = ie.element
+                    self.skillId = ie.skillId
                     self.cell = cell
                     self.exactDistination = exactDistination
                     self.waitForSkillUsed = waitForSkillUsed
@@ -59,8 +64,9 @@ class UseSkill(AbstractBehavior):
                 return self.getInteractiveElement(elementId, skilluid, onIeFound)
             else:
                 return self.finish(False, "No interactive element provided")
-        self.targetIe = ie
+        self.targetIe:InteractiveElementData = ie
         self.skillUID = ie.skillUID
+        self.skillId = ie.skillId
         self.elementId = ie.element.elementId
         self.elementPosition = ie.position
         self.element = ie.element
@@ -72,11 +78,15 @@ class UseSkill(AbstractBehavior):
     def useSkill(self) -> None:
         sendInteractiveUseRequest = True
         cell = self.cell
+        skillId = self.targetIe.element.enabledSkills[0].skillId
+        if skillId == 248: # treasure hunt
+            movePath = Pathfinding().findPath(PlayedCharacterManager().entity.position, self.elementPosition)
+            cell = movePath.end.cellId
+            Logger().debug(f"Found path to element at {self.elementPosition.cellId} : {movePath}")
         if not cell:
             cell, sendInteractiveUseRequest = RoleplayInteractivesFrame.getNearestCellToIe(self.element, self.elementPosition)
-            
-        if not sendInteractiveUseRequest:
-            return self.finish(self.CANT_USE, "Can't use this interactive element")
+            if not sendInteractiveUseRequest:
+                return self.finish(self.CANT_USE, "Can't use this interactive element")
 
         def onmoved(code, error):
             if error:
@@ -84,20 +94,13 @@ class UseSkill(AbstractBehavior):
             self.requestActivateSkill()
 
         if self.waitForSkillUsed:
-            KernelEventsManager().on(
-                KernelEvent.InteractiveElementBeingUsed, 
-                self.onUsingInteractive, 
-                originator=self
+            self.on(
+                KernelEvent.IElemBeingUsed, 
+                self.onUsingInteractive,
             )
             KernelEventsManager().on(KernelEvent.InteractiveElementUsed, self.onUsedInteractive, originator=self)
-        MapMove().start(cell, self.exactDistination, callback=onmoved, parent=self)
+        self.mapMove(cell, self.exactDistination, callback=onmoved)
 
-    def ontimeout(self, listener: Listener):
-        self.timeoutsCount += 1
-        if self.timeoutsCount > self.MAX_TIMEOUTS:
-            return self.finish(self.TIMEOUT, "Request timed out")
-        listener.armTimer()
-        self.sendRequestSkill()
 
     def onUsingInteractive(self, event, entityId, usingElementId):
         if self.elementId == usingElementId:
@@ -114,13 +117,15 @@ class UseSkill(AbstractBehavior):
             if entityId != PlayedCharacterManager().id:
                 self.finish(self.ELEM_TAKEN, "Someone else used this element")
             else:
-                KernelEventsManager().once(
-                    KernelEvent.IinteractiveElemUpdate,
-                    self.onInteractiveUpdated,
-                    timeout=7,
-                    ontimeout=self.onElemUpdateWaitTimeout,
-                    originator=self,
-                )
+                if self.elementId in Kernel().interactivesFrame._statedElm:
+                    self.once(
+                        KernelEvent.InteractiveElemUpdate,
+                        self.onInteractiveUpdated,
+                        timeout=7,
+                        ontimeout=self.onElemUpdateWaitTimeout
+                    )
+                else:
+                    self.finish(True, None)
         
     def onInteractiveUpdated(self, event, ieumsg: InteractiveElementUpdatedMessage):
         if ieumsg.interactiveElement.elementId == self.elementId:
@@ -139,12 +144,13 @@ class UseSkill(AbstractBehavior):
     def requestActivateSkill(self) -> None:
         if self.waitForSkillUsed:
             self.timeoutsCount = 0
-            self.useErrorListener = KernelEventsManager().once(
+            self.useErrorListener = self.once(
                 KernelEvent.InteractiveUseError,
                 self.onUseError,
                 timeout=self.REQ_TIMEOUT,
-                ontimeout=self.ontimeout,
-                originator=self,
+                ontimeout=lambda _: self.finish(self.TIMEOUT, "Request timed out"),
+                retryAction=self.sendRequestSkill,
+                retryNbr=self.MAX_TIMEOUTS
             )
             self.currentRequestedElementId = self.elementId
         self.sendRequestSkill()

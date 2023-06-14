@@ -67,7 +67,8 @@ enum SessionType {
     FIGHT = 0,
     FARM = 1,
     SELL = 3,
-    MIXED = 4
+    TREASURE_HUNT = 4,
+    MIXED = 5
 }
 enum UnloadType {
     BANK = 0,

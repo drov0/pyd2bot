@@ -62,20 +62,23 @@ class SessionType(object):
     FIGHT = 0
     FARM = 1
     SELL = 3
-    MIXED = 4
+    TREASURE_HUNT = 4
+    MIXED = 5
 
     _VALUES_TO_NAMES = {
         0: "FIGHT",
         1: "FARM",
         3: "SELL",
-        4: "MIXED",
+        4: "TREASURE_HUNT",
+        5: "MIXED",
     }
 
     _NAMES_TO_VALUES = {
         "FIGHT": 0,
         "FARM": 1,
         "SELL": 3,
-        "MIXED": 4,
+        "TREASURE_HUNT": 4,
+        "MIXED": 5,
     }
 
 

@@ -40,8 +40,10 @@ class MapMove(AbstractBehavior):
     def __init__(self) -> None:
         super().__init__()
 
-    def run(self, destCell, exactDistination=True) -> None:
+    def run(self, destCell, exactDistination=True, forMapChange=False, mapChangeDirection=-1) -> None:
         Logger().info(f"Move from {PlayedCharacterManager().currentCellId} to {destCell} started")
+        self.forMapChange = forMapChange
+        self.mapChangeDirection = mapChangeDirection
         self.exactDestination = exactDistination
         if isinstance(destCell, int):
             self.dstCell = MapPoint.fromCellId(destCell)
@@ -73,7 +75,7 @@ class MapMove(AbstractBehavior):
             return self.finish(self.ALREADY_ONCELL, None)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
             return self.fail(MovementFailError.PLAYER_IS_DEAD)
-        self.movePath = Pathfinding().findPath(playerEntity.position, self.dstCell)
+        self.movePath = Pathfinding().findPath(playerEntity.position, self.dstCell, forMapChange=self.forMapChange, mapChangeDirection=self.mapChangeDirection)
         if self.movePath is None:
             return self.fail(MovementFailError.NO_PATH_FOUND)
         if len(self.movePath) == 0 or (self.exactDestination and self.movePath.end.cellId != self.dstCell.cellId):

@@ -18,6 +18,8 @@ from pyd2bot.logic.roleplay.behaviors.fight.FarmFights import FarmFights
 from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
 from pyd2bot.logic.roleplay.behaviors.fight.SoloFarmFights import \
     SoloFarmFights
+from pyd2bot.logic.roleplay.behaviors.quest.ClassicTreasureHunt import \
+    ClassicTreasureHunt
 from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Session,
                                                         SessionStatus)
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
@@ -106,18 +108,27 @@ class Pyd2Bot(DofusClient):
     
     def onLvlUp(self, event, previousLevel, newLevel):
         self.earnedLevels += (newLevel - previousLevel)
+    
+    def onMainBehaviorFinish(self, code, err):
+        if err:
+            Logger().error(err, exc_info=True)
         
     def startSessionMainBehavior(self):
         if BotConfig().isFarmSession:
             ResourceFarm().start()
+            
         elif BotConfig().isFightSession:
             if BotConfig().isLeader:
                 if BotConfig().followers:
-                    FarmFights().start()
+                    FarmFights().start(callback=self.onMainBehaviorFinish)
                 else:
-                    SoloFarmFights().start()
+                    SoloFarmFights().start(callback=self.onMainBehaviorFinish)
             else:
-                MuleFighter().start()
+                MuleFighter().start(callback=self.onMainBehaviorFinish)
+                
+        elif BotConfig().isTreasureHuntSession:
+            ClassicTreasureHunt().start(callback=self.onMainBehaviorFinish)
+            
         elif BotConfig().isMixed:
             activity = random.choice([ResourceFarm(60 * 5), SoloFarmFights(60 * 3)])
             activity.start(callback=self.switchActivity)

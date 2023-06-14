@@ -24,8 +24,6 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition i
     Transition
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import \
     TransitionTypeEnum
-from pydofus2.com.ankamagames.dofus.network.messages.common.basic.BasicPingMessage import \
-    BasicPingMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.ChangeMapMessage import \
     ChangeMapMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
@@ -82,9 +80,18 @@ class ChangeMap(AbstractBehavior):
 
     @property
     def transitions(self) -> Iterable[Transition]:
+        mapAction_trs = []
+        other_trs = []
         for tr in self.edge.transitions:
             if tr.isValid:
-                yield tr
+                if TransitionTypeEnum(tr.type) == TransitionTypeEnum.MAP_ACTION:
+                    mapAction_trs.append(tr)
+                else:
+                    other_trs.append(tr)
+        for tr in mapAction_trs:
+            yield tr
+        for tr in other_trs:
+            yield tr
 
     def followEdge(self):
         try:
@@ -126,20 +133,17 @@ class ChangeMap(AbstractBehavior):
         Logger().info(f"{self.trType.name} map change to {self.dstMapId}")
         self.mapChangeReqSent = False
         if self.isInteractiveTr():
-            if not self.mapChangeIE:
-                def onTransitionIE(ie: InteractiveElementData):
-                    if not ie:
-                        return self.finish(False, f"InteractiveElement {self.transition.id} not found")
-                    self.mapChangeIE = ie
-                    iePosition, useInteractive = RoleplayInteractivesFrame.getNearestCellToIe(self.mapChangeIE.element, self.mapChangeIE.position)
-                    if not useInteractive:
-                        return self.finish(False, "Cannot use the interactive")
-                    Logger().info(f"Interactive Map change using skill '{ie.skillUID}' on cell '{ie.position.cellId}'.")
-                    self.mapChangeCellId = iePosition.cellId
-                    self.interactiveMapChange()
-                self.getTransitionIe(self.transition, onTransitionIE)
-            else:
-                self.interactiveMapChange()
+            # if not self.mapChangeIE:
+            #     # def onTransitionIE(ie: InteractiveElementData):
+            #     #     if not ie:
+            #     #         return self.finish(False, f"InteractiveElement {self.transition.id} not found")
+            #     #     self.mapChangeIE = ie
+            #     #     Logger().info(f"Interactive Map change using skill '{ie.skillUID}' on cell '{ie.position.cellId}'.")
+            #     #     self.mapChangeCellId = self.mapChangeIE.position.cellId
+            #     self.interactiveMapChange()
+            #     # self.getTransitionIe(self.transition, onTransitionIE)
+            # else:
+            self.interactiveMapChange()
         elif self.isScrollTr():
             if not self.iterScrollCells:
                 self.iterScrollCells = self.getScrollCells()
@@ -293,13 +297,20 @@ class ChangeMap(AbstractBehavior):
             self.mapChangeCellId = next(self.iterScrollCells)
         except StopIteration:
             return self.finish(MovementFailError.NOMORE_SCROLL_CELL, f"Tryied all scroll map change cells but no one changed map")
-        MapMove().start(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell, parent=self)       
+        self.mapMove(self.mapChangeCellId, self.exactDestination, forMapChange=True, mapChangeDirection=self.transition.direction, callback=self.onMoveToMapChangeCell)       
 
+    def onChangeMapIE(self, code, err):
+        if err:
+            return self.finish(code, err)
+        self.setupMapChangeListener()
+        self.setupMapChangeRejectListener()
+        
     def interactiveMapChange(self):
         self.requestRejectedEvent = KernelEvent.InteractiveUseError
         self.movementError = MovementFailError.INTERACTIVE_USE_ERROR
         self.exactDestination = False
-        MapMove().start(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell, parent=self)
+        self.useSkill(elementId=self.transition.id, skilluid=self.transition.skillId, cell=self.transition.cell, callback=self.onChangeMapIE)
+        # self.mapMove(self.mapChangeCellId, self.exactDestination, forMapChange=True, mapChangeDirection=self.transition.direction, callback=self.onMoveToMapChangeCell)   
 
     def isScrollTr(self):
         return self.trType in [TransitionTypeEnum.SCROLL, TransitionTypeEnum.SCROLL_ACTION]
@@ -311,11 +322,7 @@ class ChangeMap(AbstractBehavior):
         return self.trType == TransitionTypeEnum.INTERACTIVE
 
     def sendMapChangeRequest(self):
-        if self.isInteractiveTr():
-            iurmsg = InteractiveUseRequestMessage()
-            iurmsg.init(int(self.mapChangeIE.element.elementId), int(self.mapChangeIE.skillUID))
-            ConnectionsHandler().send(iurmsg)
-        elif self.isScrollTr():
+        if self.isScrollTr():
             cmmsg = ChangeMapMessage()
             cmmsg.init(int(self.transition.transitionMapId), False)
             ConnectionsHandler().send(cmmsg)

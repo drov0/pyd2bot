@@ -77,6 +77,10 @@ class BotConfig(metaclass=Singleton):
         return self.sessionType == SessionType.FARM
 
     @property
+    def isTreasureHuntSession(self) -> bool:
+        return self.sessionType == SessionType.TREASURE_HUNT
+    
+    @property
     def isFightSession(self) -> bool:
         return self.sessionType == SessionType.FIGHT
 
