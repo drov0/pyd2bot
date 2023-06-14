@@ -158,3 +158,6 @@ class AbstractBehavior(BehaviorApi, metaclass=Singleton):
         
     def send(self, event_id, *args, **kwargs):
         return KernelEventsManager().send(event_id, *args, **kwargs)
+    
+    def hasListener(self, event_id):
+        return KernelEventsManager().hasListener(event_id)

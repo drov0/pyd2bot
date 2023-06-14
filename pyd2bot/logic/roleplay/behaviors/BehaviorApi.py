@@ -139,7 +139,7 @@ class BehaviorApi:
         DeleteCharacter().start(characterId, callback=callback, parent=self)
 
     def TreasureHunt(self, callback=None):
-        from pyd2bot.logic.roleplay.behaviors.quest.TreasureHunt import \
+        from pyd2bot.logic.roleplay.behaviors.quest.ClassicTreasureHunt import \
             TreasureHunt
 
         TreasureHunt().start(callback=callback, parent=self)
