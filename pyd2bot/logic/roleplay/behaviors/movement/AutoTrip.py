@@ -64,7 +64,7 @@ class AutoTrip(AbstractBehavior):
             Logger().debug(f"Moving using next edge :")
             Logger().debug(f"\t|- src {nextEdge.src.mapId} -> dst {nextEdge.dst.mapId}")
             for tr in nextEdge.transitions:
-                Logger().debug(f"\t\t|- direction : {tr.direction}, skill : {tr.skillId}, cell : {tr.cell}")
+                Logger().debug(f"\t| => {tr}")
             def onProcessed(code, error):
                 if error:
                     if code in [MovementFailError.CANT_REACH_DEST_CELL, MovementFailError.MAPCHANGE_TIMEOUT, MovementFailError.NOMORE_SCROLL_CELL]:
@@ -74,7 +74,7 @@ class AutoTrip(AbstractBehavior):
                     else:
                         return self.finish(code, error)
                 self.walkToNextStep()
-            ChangeMap().start(edge=nextEdge, callback=onProcessed, parent=self)
+            self.changeMap(edge=nextEdge, callback=onProcessed)
         else:
             self.state = AutoTripState.CALCULATING_PATH
             self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)

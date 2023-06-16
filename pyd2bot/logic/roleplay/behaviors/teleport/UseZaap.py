@@ -53,10 +53,9 @@ class UseZaap(AbstractBehavior):
                 if dst.cost > PlayedCharacterManager().characteristics.kamas:
                     ConnectionsHandler().send(LeaveDialogRequestMessage())
                     err = f"Don't have enough kamas to take zaap, player kamas ({PlayedCharacterManager().characteristics.kamas}), teleport cost ({dst.cost})!"
-                    return KernelEventsManager().on(
+                    return self.on(
                         KernelEvent.DialogLeft,
                         lambda e: self.finish(self.NOT_RICH_ENOUGH, err),
-                        originator=self
                     )
                 KernelEventsManager().onceMapProcessed(
                     callback=self.onDestMapProcessed,

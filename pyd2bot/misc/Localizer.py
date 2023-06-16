@@ -97,13 +97,14 @@ class Localizer:
                     candidates.extend(WorldGraph().getVertices(hint.mapId).values())
             if not candidates:
                 return None
-            print(candidates)
             return AStar().search(WorldGraph(), startVertex, candidates)
 
     @classmethod
     def findCloseZaapMapId(cls, mapId):
+        if not mapId:
+            raise ValueError(f"Invalid mapId value {mapId}")
         subArea = SubArea.getSubAreaByMapId(mapId)
-        if subArea.associatedZaapMapId:
+        if subArea and subArea.associatedZaapMapId:
             return subArea.associatedZaapMapId
         else:
             path = cls.findClosestHintMapByGfx(mapId, cls.ZAAP_GFX)

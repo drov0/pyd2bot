@@ -33,6 +33,8 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionType import \
     ConnectionType
+from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import \
+    DisconnectionReasonEnum
 from pydofus2.com.ankamagames.dofus.kernel.net.PlayerDisconnectedMessage import \
     PlayerDisconnectedMessage
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
@@ -112,6 +114,7 @@ class Pyd2Bot(DofusClient):
     def onMainBehaviorFinish(self, code, err):
         if err:
             Logger().error(err, exc_info=True)
+        self.shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, err)
         
     def startSessionMainBehavior(self):
         if BotConfig().isFarmSession:

@@ -21,6 +21,7 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.skill.Inte
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
     Pathfinding
+from pydofus2.mapTools import MapTools
 
 
 class UseSkill(AbstractBehavior):
@@ -40,8 +41,9 @@ class UseSkill(AbstractBehavior):
         self.ie = None
         self.useErrorListener = None
 
-    def run(self,
-        ie: InteractiveElementData=None,
+    def run(
+        self,
+        ie: InteractiveElementData = None,
         cell=None,
         exactDistination=False,
         waitForSkillUsed=True,
@@ -51,7 +53,7 @@ class UseSkill(AbstractBehavior):
         if ie is None:
             if elementId:
                 def onIeFound(ie: InteractiveElementData):
-                    self.targetIe:InteractiveElementData = ie
+                    self.targetIe: InteractiveElementData = ie
                     self.skillUID = ie.skillUID
                     self.elementId = ie.element.elementId
                     self.elementPosition = ie.position
@@ -60,11 +62,11 @@ class UseSkill(AbstractBehavior):
                     self.cell = cell
                     self.exactDistination = exactDistination
                     self.waitForSkillUsed = waitForSkillUsed
-                    self.useSkill()
+                    self._useSkill()
                 return self.getInteractiveElement(elementId, skilluid, onIeFound)
             else:
                 return self.finish(False, "No interactive element provided")
-        self.targetIe:InteractiveElementData = ie
+        self.targetIe: InteractiveElementData = ie
         self.skillUID = ie.skillUID
         self.skillId = ie.skillId
         self.elementId = ie.element.elementId
@@ -73,34 +75,28 @@ class UseSkill(AbstractBehavior):
         self.cell = cell
         self.exactDistination = exactDistination
         self.waitForSkillUsed = waitForSkillUsed
-        self.useSkill()
+        self._useSkill()
 
-    def useSkill(self) -> None:
-        sendInteractiveUseRequest = True
+    def _useSkill(self) -> None:
         cell = self.cell
         skillId = self.targetIe.element.enabledSkills[0].skillId
-        if skillId == 248: # treasure hunt
-            movePath = Pathfinding().findPath(PlayedCharacterManager().entity.position, self.elementPosition)
+        skill = Skill.getSkillById(skillId)
+        playerPos = PlayedCharacterManager().entity.position
+        Logger().debug(f"Using {skill.name}, range ({skill.range}), id {skill.id}")
+        if not cell:
+            movePath = Pathfinding().findPath(playerPos, self.elementPosition)
             cell = movePath.end.cellId
             Logger().debug(f"Found path to element at {self.elementPosition.cellId} : {movePath}")
-        if not cell:
-            cell, sendInteractiveUseRequest = RoleplayInteractivesFrame.getNearestCellToIe(self.element, self.elementPosition)
-            if not sendInteractiveUseRequest:
-                return self.finish(self.CANT_USE, "Can't use this interactive element")
-
+            if self.elementPosition.distanceToCell(movePath.end) > skill.range:
+                return self.finish(False, "Unable to find cell close enough to use element")
         def onmoved(code, error):
             if error:
                 return self.finish(code, error)
             self.requestActivateSkill()
-
         if self.waitForSkillUsed:
-            self.on(
-                KernelEvent.IElemBeingUsed, 
-                self.onUsingInteractive,
-            )
-            KernelEventsManager().on(KernelEvent.InteractiveElementUsed, self.onUsedInteractive, originator=self)
-        self.mapMove(cell, self.exactDistination, callback=onmoved)
-
+            self.on(KernelEvent.IElemBeingUsed, self.onUsingInteractive,)
+            self.on(KernelEvent.InteractiveElementUsed, self.onUsedInteractive)
+        self.mapMove(destCell=cell, exactDistination=False, callback=onmoved)
 
     def onUsingInteractive(self, event, entityId, usingElementId):
         if self.elementId == usingElementId:
@@ -111,22 +107,24 @@ class UseSkill(AbstractBehavior):
 
     def onUsedInteractive(self, event, entityId, usedElementId):
         if self.elementId == usedElementId:
-            self.useErrorListener.delete()
-            if MapMove().isRunning():
-                MapMove().stop()
             if entityId != PlayedCharacterManager().id:
-                self.finish(self.ELEM_TAKEN, "Someone else used this element")
-            else:
+                if self.elementId in Kernel().interactivesFrame._statedElm:
+                    if MapMove().isRunning():
+                        MapMove().stop()
+                    self.finish(self.ELEM_TAKEN, "Someone else used this element")
+            else:            
+                if self.useErrorListener:
+                    self.useErrorListener.delete()
                 if self.elementId in Kernel().interactivesFrame._statedElm:
                     self.once(
                         KernelEvent.InteractiveElemUpdate,
                         self.onInteractiveUpdated,
                         timeout=7,
-                        ontimeout=self.onElemUpdateWaitTimeout
+                        ontimeout=self.onElemUpdateWaitTimeout,
                     )
                 else:
                     self.finish(True, None)
-        
+
     def onInteractiveUpdated(self, event, ieumsg: InteractiveElementUpdatedMessage):
         if ieumsg.interactiveElement.elementId == self.elementId:
             for skill in ieumsg.interactiveElement.disabledSkills:
@@ -150,7 +148,7 @@ class UseSkill(AbstractBehavior):
                 timeout=self.REQ_TIMEOUT,
                 ontimeout=lambda _: self.finish(self.TIMEOUT, "Request timed out"),
                 retryAction=self.sendRequestSkill,
-                retryNbr=self.MAX_TIMEOUTS
+                retryNbr=self.MAX_TIMEOUTS,
             )
             self.currentRequestedElementId = self.elementId
         self.sendRequestSkill()

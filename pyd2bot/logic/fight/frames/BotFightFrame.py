@@ -4,6 +4,8 @@ from time import perf_counter
 from types import FunctionType
 from typing import TYPE_CHECKING, Tuple
 
+from prettytable import PrettyTable
+
 from pyd2bot.logic.fight.messages.MuleSwitchedToCombatContext import \
     MuleSwitchedToCombatContext
 from pyd2bot.logic.managers.BotConfig import BotConfig
@@ -38,6 +40,8 @@ from pydofus2.com.ankamagames.dofus.logic.game.fight.managers.BuffManager import
     BuffManager
 from pydofus2.com.ankamagames.dofus.logic.game.fight.managers.CurrentPlayedFighterManager import \
     CurrentPlayedFighterManager
+from pydofus2.com.ankamagames.dofus.logic.game.fight.managers.FightersStateManager import \
+    FightersStateManager
 from pydofus2.com.ankamagames.dofus.logic.game.fight.miscs.FightReachableCellsMaker import \
     FightReachableCellsMaker
 from pydofus2.com.ankamagames.dofus.logic.game.fight.miscs.TackleUtil import \
@@ -340,9 +344,10 @@ class BotFightFrame(Frame):
         self.addTurnAction(self.turnEnd, [])
         self.nextTurnAction("Invisible mob blocking way")
 
-    def getTargetableEntities(self, spellw: SpellWrapper, targetSum=False) -> list[Target]:
+    def getTargetableEntities(self, spellw: SpellWrapper, targetSum=False, boneId=None) -> list[Target]:
+        summaryTable = PrettyTable()
         result = list[Target]()
-        infosTable = []
+        infosTable = list[dict]()
         if not Kernel().fightEntitiesFrame or not Kernel().battleFrame:
             Logger().error("EntitiesFrame or BattleFrame is not found")
             return []
@@ -363,6 +368,7 @@ class BotFightFrame(Frame):
                     monster = Monster.getMonsterById(entity.creatureGenericId)
                     name = monster.name
                     level = entity.creatureLevel
+                status = FightersStateManager().getStatus(self.fighterInfos.contextualId)
                 entry = {
                     "name": name,
                     "level": level,
@@ -375,7 +381,9 @@ class BotFightFrame(Frame):
                     "id": entity.contextualId,
                     "reason": reason,
                     "hitpoints": f"{hp}",
-                    "isMonster": ismonster
+                    "isMonster": ismonster,
+                    "state": status.getActiveStatuses(),
+                    "boneId": entity.look.bonesId
                 }
                 infosTable.append(entry)
                 if (
@@ -385,15 +393,13 @@ class BotFightFrame(Frame):
                     and (targetSum or not entry["summoned"])
                     and entry["canhit"]
                     and entry["cell"] != -1
+                    and (boneId is None or entity.look.bonesId == boneId)
                 ):
                     result.append(Target(entity, self.fighterInfos.disposition.cellId))
-        headers = ["name", "id", "cell", "level", "hitpoints", "hidden", "summoned", "canhit", "reason"]
-        format_row = f"{{:<20}} {{:<10}} {{:<10}} {{:<10}} {{:<10}} {{:<10}} {{:<10}} {{:<10}} {{:<30}}"
-        row_delimiter = "-" * 120
-        Logger().info(format_row.format(*headers))
-        Logger().info(row_delimiter)
+        summaryTable.field_names = ["name", "id", "boneId", "level", "hitpoints", "hidden", "summoned", "state", "canhit", "reason"]
         for e in infosTable:
-            Logger().info(format_row.format(*[e[h] for h in headers]))
+            summaryTable.add_row([e[k] for k in summaryTable.field_names])
+        Logger().info(str(summaryTable))
         return result
 
     def playTurn(self):
@@ -408,13 +414,16 @@ class BotFightFrame(Frame):
             self.addTurnAction(self.turnEnd, [])
             self.nextTurnAction("play turn no targets")
             return
-        targets = self.getTargetableEntities(self.spellw, targetSum=False)
-        if not targets:
-            targets = self.getTargetableEntities(self.spellw, targetSum=True)
+        if BotConfig().isTreasureHuntSession:
+            targets = self.getTargetableEntities(self.spellw, targetSum=True, boneId=2672)
+        else:
+            targets = self.getTargetableEntities(self.spellw, targetSum=False)
             if not targets:
-                self.addTurnAction(self.turnEnd, [])
-                self.nextTurnAction("play turn no targets")
-                return
+                targets = self.getTargetableEntities(self.spellw, targetSum=True)
+                if not targets:
+                    self.addTurnAction(self.turnEnd, [])
+                    self.nextTurnAction("play turn no targets")
+                    return
         Logger().info(f"MP: {self.movementPoints}, AP: {self.actionPoints}, HP: {self.hitpoints}.")
         Logger().info(f"Current attack spell : {self.spellw.spell.name}, range: {self.getActualSpellRange(self.spellw)}.")
         Logger().info(f"Found targets : {[str(tgt) for tgt in targets]}.")

@@ -35,19 +35,22 @@ class AutoTripUseZaap(AbstractBehavior):
         super().__init__()
 
     def run(self, dstMapId, dstZoneId=1, withSaveZaap=False):
+        if not dstMapId:
+            raise ValueError(f"Invalid MapId value {dstMapId}!")
         self.dstMapId = dstMapId
         self.dstZoneId = dstZoneId
         self.withSaveZaap = withSaveZaap
         self.on(KernelEvent.ServerTextInfo, self.onServerInfo)
         self.dstZaapMapId = Localizer.findCloseZaapMapId(dstMapId)
         if not self.dstZaapMapId:
-            return self.finish(self.NOASSOCIATED_ZAAP, f"No associated zaap found for map {dstMapId}")
+            Logger().warning(f"No associated zaap found for map {dstMapId}")
+            return self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
         self.havreSacMapListener = None
         if not PlayedCharacterManager().isZaapKnown(self.dstZaapMapId):
             Logger().debug(
                 f"Dest zaap at map {self.dstZaapMapId} is not known, known zaps list is {PlayedCharacterManager()._knownZaapMapIds} -> will travel to register it."
             )
-            return AutoTrip().start(self.dstZaapMapId, self.dstZoneId, callback=self.onDstZaapTrip, parent=self)
+            return self.autoTrip(self.dstZaapMapId, self.dstZoneId, callback=self.onDstZaapTrip)
         self.dstVertex = WorldGraph().getVertex(self.dstMapId, self.dstZoneId)
         self.dstZaapVertex, self.dstZaapDist = self.findDistFrom(self.dstVertex, self.dstZaapMapId)
         Logger().debug(f"Dest Zaap is at '{self.dstZaapDist}' steps from dest Map.")
@@ -69,11 +72,9 @@ class AutoTripUseZaap(AbstractBehavior):
         else:
             Logger().debug(f"Dest Map is at '{self.distFromTarget}' steps.")
         if self.distFromTarget <= self.srcZaapDist + self.dstZaapDist:
-            AutoTrip().start(self.dstVertex.mapId, self.dstVertex.zoneId, callback=self.finish, parent=self)
+            self.autoTrip(self.dstVertex.mapId, self.dstVertex.zoneId, callback=self.finish)
         elif PlayerManager().isBasicAccount():
-            AutoTrip().start(
-                self.srcZaapVertex.mapId, self.srcZaapVertex.zoneId, callback=self.onSrcZaapTrip, parent=self
-            )
+            self.autoTrip(self.srcZaapVertex.mapId, self.srcZaapVertex.zoneId, callback=self.onSrcZaapTrip)
         else:
             self.enterHavreSac(self.onSrcZaapTrip)
 
@@ -91,14 +92,14 @@ class AutoTripUseZaap(AbstractBehavior):
             if not self.srcZaapVertex:
                 self.srcZaapMapId = Localizer.findCloseZaapMapId(PlayedCharacterManager().currentMap.mapId)
                 if not self.srcZaapMapId:
-                    return self.finish(self.NOASSOCIATED_ZAAP, f"No associated Zaap found for map '{self.srcZaapMapId}'.")
+                    return self.finish(
+                        self.NOASSOCIATED_ZAAP, f"No associated Zaap found for map '{self.srcZaapMapId}'."
+                    )
                 self.srcZaapVertex, self.srcZaapDist = self.findDistFrom(
                     PlayedCharacterManager().currVertex, self.srcZaapMapId
                 )
                 Logger().debug(f"Src Zaap is at '{self.srcZaapDist}' steps from current Map.")
-            AutoTrip().start(
-                self.srcZaapVertex.mapId, self.srcZaapVertex.zoneId, callback=self.onSrcZaapTrip, parent=self
-            )
+            self.autoTrip(self.srcZaapVertex.mapId, self.srcZaapVertex.zoneId, callback=self.onSrcZaapTrip)
         elif textId == 592304:  # le bot est occupé
             self.finish(self.BOT_BUSY, "Bot is busy so cant use zaap and walking might raise unexpected errors.")
 
@@ -106,18 +107,16 @@ class AutoTripUseZaap(AbstractBehavior):
         if err:
             if code == UseZaap.NOT_RICH_ENOUGH:
                 Logger().warning(err)
-                if PlayerManager().isBasicAccount():
-                    return self.onDstZaapTrip(code, err)
-                elif PlayerManager().isMapInHavenbag(PlayedCharacterManager().currentMap.mapId):
+                if PlayerManager().isMapInHavenbag(PlayedCharacterManager().currentMap.mapId):
                     return self.enterHavreSac(
-                        lambda: AutoTrip().start(
-                            self.dstMapId, self.dstZoneId, callback=self.onDstZaapTrip, parent=self
-                        )
+                        lambda: self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.onDstZaapTrip)
                     )
+                else:
+                    return self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.onDstZaapTrip)
             else:
                 return self.finish(code, err)
         else:
-            AutoTrip().start(self.dstMapId, self.dstZoneId, callback=self.finish, parent=self)
+            self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
 
     def onSrcZaapTrip(self, code=1, err=None):
         if err:

@@ -78,8 +78,10 @@ class MapMove(AbstractBehavior):
         self.movePath = Pathfinding().findPath(playerEntity.position, self.dstCell, forMapChange=self.forMapChange, mapChangeDirection=self.mapChangeDirection)
         if self.movePath is None:
             return self.fail(MovementFailError.NO_PATH_FOUND)
-        if len(self.movePath) == 0 or (self.exactDestination and self.movePath.end.cellId != self.dstCell.cellId):
+        if self.exactDestination and self.movePath.end.cellId != self.dstCell.cellId:
             return self.fail(MovementFailError.CANT_REACH_DEST_CELL)
+        if len(self.movePath) == 0:
+            return self.finish(True, None)
         self.countMoveFail = 0
         self.requestMovement()
 
