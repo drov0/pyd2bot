@@ -4,6 +4,7 @@ from time import sleep
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.quest.FindHintNpc import FindHintNpc
+from pyd2bot.logic.roleplay.behaviors.quest.UseTeleportItem import UseTeleportItem
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
@@ -12,7 +13,8 @@ from pydofus2.com.ankamagames.dofus.datacenter.quest.treasureHunt.PointOfInteres
     PointOfInterest
 from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import \
     MapPosition
-from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import ItemWrapper
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
+    ItemWrapper
 from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntStepWrapper import \
     TreasureHuntStepWrapper
 from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntWrapper import \
@@ -79,16 +81,19 @@ class ClassicTreasureHunt(AbstractBehavior):
         if self.infos is not None:
             return self.solveNextStep()
         self.goToHuntAtm()
-        
+    
     def goToHuntAtm(self):
         Logger().debug(f"AutoTravelling to treasure hunt distributor")
-        if int(Kernel().zaapFrame.spawnMapId) == int(self.ZAAP_HUNT_MAP):
-            for iw in InventoryManager().inventory.getView("storageConsumables").content:
-                if iw.objectGID == self.RAPPEL_POTION_GUID:
-                    Kernel().inventoryManagementFrame.useItem(iw)
-                    return self.onceMapProcessed(
-                        lambda: self.autoTrip(self.TAKE_QUEST_MAPID, 1, callback=self.onTakeQuestMapReached)
-                    )
+        if PlayedCharacterManager().currentMap.mapId != self.ZAAP_HUNT_MAP:
+            if int(Kernel().zaapFrame.spawnMapId) == int(self.ZAAP_HUNT_MAP):
+                for iw in InventoryManager().inventory.getView("storageConsumables").content:
+                    if iw.objectGID == self.RAPPEL_POTION_GUID or "rappel" in iw.name.lower():
+                        def onTelportToTakeQuestZaap(code, err):
+                            if code == UseTeleportItem.CANT_USE_ITEM_IN_MAP:
+                                self.autotripUseZaap(self.TAKE_QUEST_MAPID, withSaveZaap=True, maxCost=350, callback=self.onTakeQuestMapReached)
+                            else:
+                                self.autoTrip(self.TAKE_QUEST_MAPID, 1, callback=self.onTakeQuestMapReached)      
+                        return UseTeleportItem().start(iw, onTelportToTakeQuestZaap) 
         self.autotripUseZaap(self.TAKE_QUEST_MAPID, withSaveZaap=True, maxCost=350, callback=self.onTakeQuestMapReached)
 
     def onObjectAdded(self, event, iw: ItemWrapper):
@@ -183,10 +188,11 @@ class ClassicTreasureHunt(AbstractBehavior):
             self.startMapId = self.infos.stepList[idx - 1].mapId
         Logger().debug(f"Infos:\n{self.infos}")
         Logger().debug(f"AutoTravelling to treasure hunt step {idx}, start map {self.startMapId}")
-        if self.currentStep is not None and self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_HINT:
-            self.autotripUseZaap(self.startMapId, maxCost=200, callback=self.onStartMapReached)
-        else:
-            self.onStartMapReached(True, None)
+        if self.currentStep is not None:
+            if self.currentStep.type != TreasureHuntStepTypeEnum.DIRECTION_TO_POI:
+                self.autotripUseZaap(self.startMapId, maxCost=200, callback=self.onStartMapReached)
+            else:
+                self.onStartMapReached(True, None)
 
     def onNextHintMapReached(self, code, err):
         if err:

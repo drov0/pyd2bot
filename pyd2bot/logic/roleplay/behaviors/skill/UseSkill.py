@@ -4,6 +4,7 @@ from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
+from pydofus2.com.ankamagames.dofus.datacenter.interactives.Interactive import Interactive
 from pydofus2.com.ankamagames.dofus.datacenter.jobs.Skill import Skill
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
@@ -82,7 +83,7 @@ class UseSkill(AbstractBehavior):
         skillId = self.targetIe.element.enabledSkills[0].skillId
         skill = Skill.getSkillById(skillId)
         playerPos = PlayedCharacterManager().entity.position
-        Logger().debug(f"Using {skill.name}, range ({skill.range}), id {skill.id}")
+        Logger().debug(f"Using {skill.name}, range {skill.range}, id {skill.id}")
         if not cell:
             movePath = Pathfinding().findPath(playerPos, self.elementPosition)
             cell = movePath.end.cellId

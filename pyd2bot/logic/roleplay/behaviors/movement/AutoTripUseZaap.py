@@ -5,7 +5,8 @@ from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.teleport.UseZaap import UseZaap
 from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
+from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import \
+    MapPosition
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import \
@@ -119,6 +120,8 @@ class AutoTripUseZaap(AbstractBehavior):
 
     def onSrcZaapTrip(self, code=1, err=None):
         if err:
+            if code == AutoTrip.NO_PATH_FOUND:
+                return self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
             return self.finish(code, err)
         if not PlayedCharacterManager().currentMap:
             return self.onceMapProcessed(lambda: self.onSrcZaapTrip(code, err))

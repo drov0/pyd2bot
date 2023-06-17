@@ -70,6 +70,6 @@ class UseZaap(AbstractBehavior):
         self.finish(True, None)
     
     def onDestMapProcessed(self, event_id=None):
-        if self.saveZaap and Kernel().zaapFrame._spawnMapId != PlayedCharacterManager().currentMap.mapId:
+        if self.saveZaap and Kernel().zaapFrame.spawnMapId != PlayedCharacterManager().currentMap.mapId:
             return SaveZaap().start(callback=self.onZapSaveEnd, parent=self)
         return self.finish(True, None)

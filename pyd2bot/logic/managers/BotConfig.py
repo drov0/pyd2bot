@@ -20,7 +20,11 @@ class BotConfig(metaclass=Singleton):
     SELLER_LOCK = threading.Lock()
 
     defaultBreedConfig = {
-        10: {"primarySpellId": 13516, "primaryStat": 10},  # sadida  # ronce  #  force
+        10: {# sadida  
+            "primarySpellId": 13516,  # larme
+            "secondarySpellId": 13528, # ronce 
+            "primaryStat": 10 # force
+            },  
         4: {"primarySpellId": 12902, "primaryStat": 10},  # sram  # Truanderie  # force
     }
 
@@ -51,15 +55,13 @@ class BotConfig(metaclass=Singleton):
             if BotConfig.SELLER_LOCK.locked():
                 BotConfig.SELLER_LOCK.release()
             BotConfig.SELLER_VACANT.set()
-            
-
-    def getPrimarySpellId(self, breedId: int) -> int:
-        return self.defaultBreedConfig[breedId]["primarySpellId"]
     
-    @property
-    def primarySpellId(self) -> int:
-        return self.defaultBreedConfig[self.character.breedId]["primarySpellId"]
+    def getPrimarySpellId(self, breedId) -> int:
+        return self.defaultBreedConfig[breedId]["primarySpellId"]
 
+    def getSecondarySpellId(self, breedId) -> int:
+        return self.defaultBreedConfig[breedId]["secondarySpellId"]
+    
     @property
     def primaryStatId(self) -> int:
         return self.defaultBreedConfig[self.character.breedId]["primaryStat"]

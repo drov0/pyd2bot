@@ -151,10 +151,10 @@ class AbstractBehavior(BehaviorApi, metaclass=Singleton):
             child.stop()
     
     def on(self, event_id, callback, timeout=None, ontimeout=None, retryNbr=None, retryAction=None):
-        return KernelEventsManager().on(event_id=event_id, callback=callback, once=False, timeout=timeout, ontimeout=ontimeout, retryNbr=retryNbr, retryAction=retryAction, originator=self)
+        return KernelEventsManager().on(event_id=event_id, callback=callback, timeout=timeout, ontimeout=ontimeout, retryNbr=retryNbr, retryAction=retryAction, once=False, originator=self)
     
     def once(self, event_id, callback, timeout=None, ontimeout=None, retryNbr=None, retryAction=None):
-        return KernelEventsManager().on(event_id=event_id, callback=callback, once=True, timeout=timeout, ontimeout=ontimeout, retryNbr=retryNbr, retryAction=retryAction, originator=self)
+        return KernelEventsManager().on(event_id=event_id, callback=callback, timeout=timeout, ontimeout=ontimeout, retryNbr=retryNbr, retryAction=retryAction, once=True, originator=self)
         
     def onceMapProcessed(self, callback, args=[], mapId=None, timeout=None, onTimeout=None):
         KernelEventsManager().onceMapProcessed(

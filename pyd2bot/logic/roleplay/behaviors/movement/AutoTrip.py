@@ -68,7 +68,7 @@ class AutoTrip(AbstractBehavior):
                 Logger().debug(f"\t| => {tr}")
             def onProcessed(code, error):
                 if error:
-                    if code in [MovementFailError.CANT_REACH_DEST_CELL, MovementFailError.MAPCHANGE_TIMEOUT, MovementFailError.NOMORE_SCROLL_CELL]:
+                    if code in [MovementFailError.CANT_REACH_DEST_CELL, MovementFailError.MAPCHANGE_TIMEOUT, MovementFailError.NOMORE_SCROLL_CELL, MovementFailError.INVALID_TRANSITION]:
                         Logger().warning(f"Can't reach next step in found path for reason : {code.name}")
                         AStar().addForbidenEdge(nextEdge)
                         return self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)

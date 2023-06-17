@@ -29,12 +29,11 @@ class SaveZaap(AbstractBehavior):
         self.zaapIe = Kernel().interactivesFrame.getZaapIe()
         if not self.zaapIe:
             return self.finish(self.ZAAP_IE_NOTFOUND, "Zaap ie not found in current Map")
-        KernelEventsManager().once(
+        self.once(
             event_id=KernelEvent.TeleportDestinationList,
             callback=self.onTeleportDestinationList,
-            originator=self
         )
-        UseSkill().start(ie=self.zaapIe, waitForSkillUsed=False, callback=self.onZaapSkillUsed, parent=self)
+        self.useSkill (ie=self.zaapIe, waitForSkillUsed=False, callback=self.onZaapSkillUsed)
         
     def onZaapSkillUsed(self, code, err):
         if err:
@@ -42,17 +41,15 @@ class SaveZaap(AbstractBehavior):
 
     def onZaapSaveResp(self, event_id, destinations: list[TeleportDestinationWrapper], ttype):
         ConnectionsHandler().send(LeaveDialogRequestMessage())
-        return KernelEventsManager().on(
+        return self.on(
             KernelEvent.DialogLeft,
             lambda _: self.finish(True, None),
-            originator=self
         )
         
     def onTeleportDestinationList(self, event_id, destinations: list[TeleportDestinationWrapper], ttype):
         Logger().debug(f"Zaap teleport destinations received.")
         Kernel().zaapFrame.zaapRespawnSaveRequest()
-        return KernelEventsManager().once(
-            event_id=KernelEvent.TeleportDestinationList,
-            callback=self.onZaapSaveResp,
-            originator=self
+        return self.once(
+            KernelEvent.TeleportDestinationList,
+            self.onZaapSaveResp,
         )

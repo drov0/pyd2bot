@@ -26,16 +26,15 @@ class FindHintNpc(AbstractBehavior):
         if npcId == self.npcId:
             Logger().debug(f"Hint npc found!!")
             return self.finish(True, None)
-        else:
-            return self.finish(False, "Somethig weird happend, found a tresureHuntNpcInfo different than the expected one")
-    
+
     def onNewMap(self, code, err):
         if err:
             return self.finish(code, err)
-        if not Kernel().entitiesFrame._hasTreasureHuntInfo:
-            currV = PlayedCharacterManager().currVertex
-            for edge in WorldGraph().getOutgoingEdgesFromVertex(currV):
-                for transition in edge.transitions:
-                    if transition.direction != -1 and transition.direction == self.direction:
-                        return self.changeMap(transition=transition, dstMapId=edge.dst.mapId, callback=self.onNewMap)
+        if Kernel().entitiesFrame.treasureHuntNpc and Kernel().entitiesFrame.treasureHuntNpc.npcId == self.npcId:
+            return
+        currV = PlayedCharacterManager().currVertex
+        for edge in WorldGraph().getOutgoingEdgesFromVertex(currV):
+            for transition in edge.transitions:
+                if transition.direction != -1 and transition.direction == self.direction:
+                    return self.changeMap(transition=transition, dstMapId=edge.dst.mapId, callback=self.onNewMap)
         return self.finish(self.UNABLE_TO_FIND_HINT, f"Couldn't find NPC hint in the given direction")

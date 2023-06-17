@@ -215,6 +215,10 @@ class BotFightFrame(Frame):
         return BotConfig().getPrimarySpellId(self.currentPlayer.breedId)
 
     @property
+    def secondarySpellId(self) -> int:
+        return BotConfig().getSecondarySpellId(self.currentPlayer.breedId)
+    
+    @property
     def playerManager(self) -> "PlayedCharacterManager":
         if not self.currentPlayer:
             Logger().warning("Asking for player manager for None current player")
@@ -380,7 +384,7 @@ class BotFightFrame(Frame):
                     "cell": entity.disposition.cellId,
                     "id": entity.contextualId,
                     "reason": reason,
-                    "hitpoints": f"{hp}",
+                    "hitpoints": hp,
                     "isMonster": ismonster,
                     "state": status.getActiveStatuses(),
                     "boneId": entity.look.bonesId
@@ -402,9 +406,16 @@ class BotFightFrame(Frame):
         Logger().info(str(summaryTable))
         return result
 
+    def remainsEnemies(self):
+        for entity in Kernel().fightEntitiesFrame.entities.values():
+            if entity.spawnInfo.teamId != self.fighterInfos.spawnInfo.teamId:
+                return True
+            
     def playTurn(self):
         if not self.currentPlayer:
             Logger().warning(f"Play turn called withour defined currentPlayer")
+        if not self.remainsEnemies():
+            return
         self._currentPath = None
         self._currentTarget = None
         Logger().info(f"Turn playing : {self.currentPlayer.name} ({self.currentPlayer.id}).")
@@ -415,58 +426,59 @@ class BotFightFrame(Frame):
             self.nextTurnAction("play turn no targets")
             return
         if BotConfig().isTreasureHuntSession:
-            targets = self.getTargetableEntities(self.spellw, targetSum=True, boneId=2672)
-            if not targets:
-                targets = self.getTargetableEntities(self.spellw, targetSum=True, boneId=91)
+            targetsFiters = [(self.spellw, True, 2672), (self.spellw, True, 91)]
         else:
-            targets = self.getTargetableEntities(self.spellw, targetSum=False)
+            targetsFiters = [(self.spellw, False, None), (self.spellw, True, None)]
+        for args in targetsFiters:
+            targets = self.getTargetableEntities(*args)
             if not targets:
-                targets = self.getTargetableEntities(self.spellw, targetSum=True)
-                if not targets:
+                continue
+            Logger().info(f"MP: {self.movementPoints}, AP: {self.actionPoints}, HP: {self.hitpoints}.")
+            Logger().info(f"Current attack spell : {self.spellw.spell.name}, range: {self.getActualSpellRange(self.spellw)}.")
+            Logger().info(f"Found targets : {[str(tgt) for tgt in targets]}.")
+            target, path = self.findPathToTarget(self.spellw, targets)
+            if path is not None:
+                Logger().info(f"Found path {path} to target {target}.")
+                self._currentTarget = target
+                mpCount = 0
+                mpLost = 0
+                apLost = 0
+                movementPoints = self.movementPoints
+                actionPoints = self.actionPoints
+                canHitTarget = target is not None
+                if len(path) > 1:
+                    lastCellId = path[0]
+                    for cellId in path[1:]:
+                        tackle = TackleUtil.getTackle(self.fighterInfos, MapPoint.fromCellId(lastCellId))
+                        mpLost += int((self.movementPoints - mpCount) * (1 - tackle) + 0.5)
+                        apLost += int(actionPoints * (1 - tackle) + 0.5)
+                        if apLost < 0:
+                            apLost = 0
+                        if mpLost < 0:
+                            mpLost = 0
+                        movementPoints = self.movementPoints - mpLost
+                        actionPoints = self.actionPoints - apLost
+                        if mpCount < movementPoints:
+                            mpCount += 1
+                        else:
+                            break
+                        lastCellId = cellId
+                    canHitTarget = target and actionPoints >= self.spellw["apCost"] and mpCount >= len(path) - 1
+                    self._currentPath = path[:mpCount + 1]
+                    if len(self._currentPath) > 1:
+                        self.addTurnAction(self.askMove, [self._currentPath])
+                if canHitTarget:
+                    self.addTurnAction(self.castSpell, [self.spellId, target.pos.cellId])
+                else:
                     self.addTurnAction(self.turnEnd, [])
-                    self.nextTurnAction("play turn no targets")
-                    return
-        Logger().info(f"MP: {self.movementPoints}, AP: {self.actionPoints}, HP: {self.hitpoints}.")
-        Logger().info(f"Current attack spell : {self.spellw.spell.name}, range: {self.getActualSpellRange(self.spellw)}.")
-        Logger().info(f"Found targets : {[str(tgt) for tgt in targets]}.")
-        target, path = self.findPathToTarget(self.spellw, targets)
-        if path is not None:
-            Logger().info(f"Found path {path} to target {target}.")
-            self._currentTarget = target
-            mpCount = 0
-            mpLost = 0
-            apLost = 0
-            movementPoints = self.movementPoints
-            actionPoints = self.actionPoints
-            canHitTarget = target is not None
-            if len(path) > 1:
-                lastCellId = path[0]
-                for cellId in path[1:]:
-                    tackle = TackleUtil.getTackle(self.fighterInfos, MapPoint.fromCellId(lastCellId))
-                    mpLost += int((self.movementPoints - mpCount) * (1 - tackle) + 0.5)
-                    apLost += int(actionPoints * (1 - tackle) + 0.5)
-                    if apLost < 0:
-                        apLost = 0
-                    if mpLost < 0:
-                        mpLost = 0
-                    movementPoints = self.movementPoints - mpLost
-                    actionPoints = self.actionPoints - apLost
-                    if mpCount < movementPoints:
-                        mpCount += 1
-                    else:
-                        break
-                    lastCellId = cellId
-                canHitTarget = target and actionPoints >= self.spellw["apCost"] and mpCount >= len(path) - 1
-                self._currentPath = path[:mpCount + 1]
-                if len(self._currentPath) > 1:
-                    self.addTurnAction(self.askMove, [self._currentPath])
-            if canHitTarget:
-                self.addTurnAction(self.castSpell, [self.spellId, target.pos.cellId])
+                break
+        else:
+            if not self.remainsEnemies():
+                return
+            if BotConfig().isTreasureHuntSession:
+                raise Exception("Not path to target found")
             else:
                 self.addTurnAction(self.turnEnd, [])
-        else:
-            Logger().info("No path found.")
-            self.addTurnAction(self.turnEnd, [])
         self.nextTurnAction("play turn")
 
     def getActualSpellRange(self, spellw: SpellWrapper) -> int:
