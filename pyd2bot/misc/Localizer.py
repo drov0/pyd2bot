@@ -1,9 +1,12 @@
 import json
+import math
 import os
 
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
 from pydofus2.com.ankamagames.dofus.datacenter.world.Hint import Hint
+from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import \
+    MapPosition
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
@@ -100,15 +103,21 @@ class Localizer:
             return AStar().search(WorldGraph(), startVertex, candidates)
 
     @classmethod
-    def findCloseZaapMapId(cls, mapId):
+    def findCloseZaapMapId(cls, mapId, maxCost=float("inf")):
         if not mapId:
             raise ValueError(f"Invalid mapId value {mapId}")
-        subArea = SubArea.getSubAreaByMapId(mapId)
-        if subArea and subArea.associatedZaapMapId:
-            return subArea.associatedZaapMapId
-        else:
-            path = cls.findClosestHintMapByGfx(mapId, cls.ZAAP_GFX)
-            if path:
-                return path[-1].dst.mapId
-            else:
+        cmp = MapPosition.getMapPositionById(mapId)
+        for startVertex in WorldGraph().getVertices(mapId).values():
+            candidates = []
+            for hint in Hint.getHints():
+                if hint.gfx == cls.ZAAP_GFX:
+                    dmp = MapPosition.getMapPositionById(mapId)
+                    cost = 10 * int(math.sqrt((dmp.posX - cmp.posX)**2 + (dmp.posY - cmp.posY)**2))
+                    if cost <= maxCost:
+                        candidates.extend(WorldGraph().getVertices(hint.mapId).values())
+            if not candidates:
                 return None
+            path = AStar().search(WorldGraph(), startVertex, candidates)
+            if len(path) == 0:
+                return mapId
+            return path[-1].dst.mapId

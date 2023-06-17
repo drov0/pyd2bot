@@ -1,4 +1,13 @@
+import math
 from typing import TYPE_CHECKING
+
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
+from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import \
+    MapPosition
+from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
 
 if TYPE_CHECKING:
     from pyd2bot.thriftServer.pyd2botService.ttypes import Character
@@ -13,15 +22,35 @@ class BehaviorApi:
     def __init__(self) -> None:
         pass
         
-    def autotripUseZaap(self, dstMapId, dstZoneId=1, withSaveZaap=False, callback=None):
+    def autotripUseZaap(self, dstMapId, dstZoneId=1, withSaveZaap=False, maxCost=float("inf"), callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import \
             AutoTripUseZaap
-
-        AutoTripUseZaap().start(dstMapId, dstZoneId, withSaveZaap, callback=callback, parent=self)
+        currMp = PlayedCharacterManager().currMapPos
+        dstMp = MapPosition.getMapPositionById(dstMapId)
+        dist = math.sqrt((currMp.posX - dstMp.posX)**2 + (currMp.posY - dstMp.posY)**2)
+        if dist > 12:
+            AutoTripUseZaap().start(dstMapId, dstZoneId, withSaveZaap, maxCost=maxCost, callback=callback, parent=self)
+        else:
+            self.autoTrip(dstMapId=dstMapId, dstZoneId=dstZoneId, callback=callback)
     
     def autoTrip(self, dstMapId, dstZoneId, path: list["Edge"]=None, callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
 
+        if SubArea.getSubAreaByMapId(dstMapId).areaId == 1023:
+            # handle Ancienne Albuera destination
+            replies = {
+                51804: 69540,
+                51805: 69541
+            }        
+            def onNpcDialogEnd(code, err):
+                if err:
+                    return callback(code, err)
+                KernelEventsManager().onceMapProcessed(
+                    callback=lambda: AutoTrip().start(dstMapId, dstZoneId, path, callback=callback, parent=self),
+                    mapId=223482635,
+                    originator=self
+                )
+            self.npcDialog(88213267.0, -20001, 3, replies, onNpcDialogEnd)
         AutoTrip().start(dstMapId, dstZoneId, path, callback=callback, parent=self)
     
     def changeMap(self, transition: "Transition"=None, edge: "Edge"=None, dstMapId=None, callback=None):

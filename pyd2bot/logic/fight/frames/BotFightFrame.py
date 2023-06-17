@@ -416,6 +416,8 @@ class BotFightFrame(Frame):
             return
         if BotConfig().isTreasureHuntSession:
             targets = self.getTargetableEntities(self.spellw, targetSum=True, boneId=2672)
+            if not targets:
+                targets = self.getTargetableEntities(self.spellw, targetSum=True, boneId=91)
         else:
             targets = self.getTargetableEntities(self.spellw, targetSum=False)
             if not targets:

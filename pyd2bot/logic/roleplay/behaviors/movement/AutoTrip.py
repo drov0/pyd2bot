@@ -24,6 +24,7 @@ class AutoTripState(Enum):
     FOLLOWING_EDGE = 2
 
 class AutoTrip(AbstractBehavior):
+    NO_PATH_FOUND = 2202203
     
     def __init__(self):
         super().__init__()
@@ -96,7 +97,7 @@ class AutoTrip(AbstractBehavior):
             linkedZone = 1
         src = PlayedCharacterManager().currVertex
         if src is None:
-            return KernelEventsManager().onceMapProcessed(self.findPath, [dst, linkedZone, callback], originator=self)
+            return self.onceMapProcessed(self.findPath, [dst, linkedZone, callback])
         Logger().info(
             f"[WoldPathFinder] Start searching path from {src} to destMapId {dst}"
         )
@@ -105,8 +106,7 @@ class AutoTrip(AbstractBehavior):
         while True:        
             dstV = WorldGraph().getVertex(dst, linkedZone)            
             if dstV is None:
-                Logger().warning(f"[WoldPathFinder] No vertex found for map {dst} and zone {linkedZone}!")
-                return callback(None, "Unable to find path to dest map")
+                return callback(self.NO_PATH_FOUND, "Unable to find path to dest map")
             start = perf_counter()
             path = AStar().search(WorldGraph(), src, dstV)
             if path:

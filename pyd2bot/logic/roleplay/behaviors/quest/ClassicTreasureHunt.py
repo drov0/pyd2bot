@@ -1,5 +1,6 @@
 import json
 import os
+from time import sleep
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.quest.FindHintNpc import FindHintNpc
@@ -11,11 +12,14 @@ from pydofus2.com.ankamagames.dofus.datacenter.quest.treasureHunt.PointOfInteres
     PointOfInterest
 from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import \
     MapPosition
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import ItemWrapper
 from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntStepWrapper import \
     TreasureHuntStepWrapper
 from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntWrapper import \
     TreasureHuntWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import \
+    InventoryManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
@@ -45,10 +49,12 @@ DIRECTION_COORD = {
 class ClassicTreasureHunt(AbstractBehavior):
     UNABLE_TO_FIND_HINT = 475556
     UNSUPPORTED_THUNT_TYPE = 475557
-
     TAKE_QUEST_MAPID = 128452097
     TREASURE_HUNT_ATM_IEID = 484993
     TREASURE_HUNT_ATM_SKILLUID = 152643320
+    RAPPEL_POTION_GUID = 548
+    ZAAP_HUNT_MAP = 142087694
+    
     with open(HINTS_FILE, "r") as fp:
         hint_db = json.load(fp)
 
@@ -68,12 +74,30 @@ class ClassicTreasureHunt(AbstractBehavior):
     def run(self):
         self.on(KernelEvent.TreasureHuntUpdate, self.onTreasureHuntUpdate)
         self.on(KernelEvent.TreasureHuntFinished, self.onTreasureHuntFinished)
+        self.on(KernelEvent.ObjectAdded, self.onObjectAdded)
         self.infos = Kernel().questFrame.getTreasureHunt(TreasureHuntTypeEnum.TREASURE_HUNT_CLASSIC)
         if self.infos is not None:
             return self.solveNextStep()
+        self.goToHuntAtm()
+        
+    def goToHuntAtm(self):
         Logger().debug(f"AutoTravelling to treasure hunt distributor")
-        self.autotripUseZaap(self.TAKE_QUEST_MAPID, callback=self.onTakeQuestMapReached)
+        if int(Kernel().zaapFrame.spawnMapId) == int(self.ZAAP_HUNT_MAP):
+            for iw in InventoryManager().inventory.getView("storageConsumables").content:
+                if iw.objectGID == self.RAPPEL_POTION_GUID:
+                    Kernel().inventoryManagementFrame.useItem(iw)
+                    return self.onceMapProcessed(
+                        lambda: self.autoTrip(self.TAKE_QUEST_MAPID, 1, callback=self.onTakeQuestMapReached)
+                    )
+        self.autotripUseZaap(self.TAKE_QUEST_MAPID, withSaveZaap=True, maxCost=350, callback=self.onTakeQuestMapReached)
 
+    def onObjectAdded(self, event, iw: ItemWrapper):
+        Logger().info(f"{iw.name}, gid {iw.objectGID}, uid {iw.objectUID}, {iw.description}")
+        if iw.objectGID in [15260, 15248] or "coffre" in iw.name.lower():
+            Logger().debug(f"{iw.name} {iw.objectUID}, {iw.objectGID}")
+            Kernel().inventoryManagementFrame.useItem(iw)
+            sleep(1)
+            
     def onTreasureHuntFinished(self, event, questType):
         if not Kernel().roleplayContextFrame:
             return KernelEventsManager().onceFramePushed(
@@ -81,7 +105,7 @@ class ClassicTreasureHunt(AbstractBehavior):
             )
         if not PlayedCharacterManager().currVertex:
             return KernelEventsManager().onceMapProcessed(lambda: self.onTreasureHuntFinished(event, questType))
-        self.autotripUseZaap(self.TAKE_QUEST_MAPID, callback=self.onTakeQuestMapReached)
+        self.goToHuntAtm()
 
     def onTakeQuestMapReached(self, code, err):
         if err:
@@ -122,7 +146,7 @@ class ClassicTreasureHunt(AbstractBehavior):
         return poiId in mapHints
 
     def getNextHintMap(self):
-        mapId = self.currentMap
+        mapId = self.startMapId
         for i in range(10):
             mapId = self.nextMapInDirection(mapId, self.currentStep.direction)
             if not mapId:
@@ -159,7 +183,10 @@ class ClassicTreasureHunt(AbstractBehavior):
             self.startMapId = self.infos.stepList[idx - 1].mapId
         Logger().debug(f"Infos:\n{self.infos}")
         Logger().debug(f"AutoTravelling to treasure hunt step {idx}, start map {self.startMapId}")
-        self.autotripUseZaap(self.startMapId, callback=self.onStartMapReached)
+        if self.currentStep is not None and self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_HINT:
+            self.autotripUseZaap(self.startMapId, maxCost=200, callback=self.onStartMapReached)
+        else:
+            self.onStartMapReached(True, None)
 
     def onNextHintMapReached(self, code, err):
         if err:
@@ -181,9 +208,7 @@ class ClassicTreasureHunt(AbstractBehavior):
         elif self.currentStep.type == TreasureHuntStepTypeEnum.FIGHT:
             Kernel().questFrame.treasureHuntDigRequest(self.infos.questType)
         elif self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_POI:
-            Logger().debug(
-                f"Current step : direction {self.currentStep}"
-            )
+            Logger().debug(f"Current step : direction {self.currentStep}")
             nextMapId = self.getNextHintMap()
             if not nextMapId:
                 mp = MapPosition.getMapPositionById(self.currentMap)
@@ -191,10 +216,10 @@ class ClassicTreasureHunt(AbstractBehavior):
                     self.UNABLE_TO_FIND_HINT,
                     f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.currentMap}:({mp.posX}, {mp.posY})!",
                 )
-            self.autotripUseZaap(nextMapId, callback=self.onNextHintMapReached)
+            self.autotripUseZaap(nextMapId, maxCost=200, callback=self.onNextHintMapReached)
         elif self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_HINT:
-            FindHintNpc().start(self.currentStep.count, self.currentStep.direction, parent=self, callback=self.onNextHintMapReached)
+            FindHintNpc().start(
+                self.currentStep.count, self.currentStep.direction, parent=self, callback=self.onNextHintMapReached
+            )
         else:
             return self.finish(self.UNSUPPORTED_THUNT_TYPE, f"Unsupported hunt step type {self.currentStep.type}")
-
-        
