@@ -31,14 +31,14 @@ class BankInfos:
         self.npcActionId = npcActionId
         self.npcId = npcId
         self.npcMapId = npcMapId
-        self.openBankReplyId = openBankReplyId
+        self.questionsReplies = { 48366: openBankReplyId }
 
     def to_json(self):
         return {
             "npcActionId": self.npcActionId,
             "npcId": self.npcId,
             "npcMapId": self.npcMapId,
-            "openBankReplyId": self.openBankReplyId,
+            "questionsReplies": self.questionsReplies,
         }
 
 
@@ -56,32 +56,6 @@ class Localizer:
         
     @classmethod
     def getBankInfos(cls) -> BankInfos:
-        # subareaId = MapDisplayManager().currentDataMap.subareaId
-        # subarea = SubArea.getSubAreaById(subareaId)
-        # areaId = subarea._area.id
-        # minDist = float("inf")
-        # srcV = PlayedCharacterManager().currVertex
-        # closestBankId = None
-        # for bankId in cls.AREAINFOS[str(areaId)]["bank"]:
-        #     bank = cls.BANKS[bankId]
-        #     if bank["npcMapId"] == PlayedCharacterManager().currentMap.mapId:
-        #         closestBankId = bankId
-        #         break
-        #     rpZ = 1
-        #     while True:
-        #         dstV = WorldGraph().getVertex(bank["npcMapId"], rpZ)
-        #         if not dstV:
-        #             break
-        #         path = AStar().search(WorldGraph(), srcV, dstV)
-        #         if path is not None:
-        #             dist = len(path)
-        #             if dist < minDist:
-        #                 minDist = dist
-        #                 closestBankId = bankId
-        #             break
-        #         rpZ += 1
-        # if closestBankId is None:
-        #     raise Exception(f"Could not find closest bank to areaId {areaId}")
         return BankInfos(**cls.BANKS["Astrub"])
 
     @classmethod

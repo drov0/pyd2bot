@@ -45,13 +45,12 @@ class UnloadInBank(AbstractBehavior):
         self._startMapId = PlayedCharacterManager().currentMap.mapId
         self._startRpZone = PlayedCharacterManager().currentZoneRp
         self.state = BankUnloadStates.WALKING_TO_BANK
-        NpcDialog().start(
+        self.npcDialog(
             self.infos.npcMapId, 
             self.infos.npcId, 
             self.infos.npcActionId, 
-            [self.infos.openBankReplyId], 
+            self.infos.questionsReplies, 
             callback=self.onBankManDialogEnded,
-            parent=self
         )
     
     def onBankManDialogEnded(self, code, error):
