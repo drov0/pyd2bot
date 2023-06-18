@@ -1,6 +1,8 @@
 from time import perf_counter
 from typing import Any, Tuple
 
+from prettytable import PrettyTable
+
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.bank.UnloadInBank import UnloadInBank
 from pyd2bot.logic.roleplay.behaviors.misc.AutoRevive import AutoRevive
@@ -197,13 +199,7 @@ class AbstractFarmBehavior(AbstractBehavior):
 
     def getAvailableResourcesTable(self, availableResources) -> str:
         headers = self.getResourcesTableHeaders()
-        data = [[e[h] for h in headers] for e in availableResources]
-        col_widths = [max(len(str(row[i])) for row in data + [headers]) for i in range(len(headers))]
-        format_string = "  ".join(["{{:<{}}}".format(width) for width in col_widths])
-        tablestr = "\n" + format_string.format(*headers) + "\n"
-        tablestr += '-' * (sum(col_widths) + (len(col_widths) - 1) * 2) + "\n"  # Add extra spaces for column separators
-        for row in data:
-            color = '\033[0;31m' if not row[-1] else '\033[0;32m'
-            cancelColor = '\033[0m'
-            tablestr += color + format_string.format(*row) + cancelColor + "\n"
-        return tablestr
+        summaryTable = PrettyTable(headers)
+        for e in availableResources:
+            summaryTable.add_row([e[k] for k in summaryTable.field_names])
+        return summaryTable

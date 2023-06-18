@@ -349,7 +349,6 @@ class BotFightFrame(Frame):
         self.nextTurnAction("Invisible mob blocking way")
 
     def getTargetableEntities(self, spellw: SpellWrapper, targetSum=False, boneId=None) -> list[Target]:
-        summaryTable = PrettyTable()
         result = list[Target]()
         infosTable = list[dict]()
         if not Kernel().fightEntitiesFrame or not Kernel().battleFrame:
@@ -400,7 +399,7 @@ class BotFightFrame(Frame):
                     and (boneId is None or entity.look.bonesId == boneId)
                 ):
                     result.append(Target(entity, self.fighterInfos.disposition.cellId))
-        summaryTable.field_names = ["name", "id", "boneId", "level", "hitpoints", "hidden", "summoned", "state", "canhit", "reason"]
+        summaryTable = PrettyTable(["name", "id", "boneId", "level", "hitpoints", "hidden", "summoned", "state", "canhit", "reason"])
         for e in infosTable:
             summaryTable.add_row([e[k] for k in summaryTable.field_names])
         Logger().info(str(summaryTable))

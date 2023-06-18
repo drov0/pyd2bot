@@ -20,6 +20,7 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+from pydofus2.mapTools import MapTools
 
 
 class AutoTripUseZaap(AbstractBehavior):
@@ -53,27 +54,22 @@ class AutoTripUseZaap(AbstractBehavior):
             return self.autoTrip(self.dstZaapMapId, self.dstZoneId, callback=self.onDstZaapTrip)
         self.dstVertex = WorldGraph().getVertex(self.dstMapId, self.dstZoneId)
         self.dstZaapVertex, self.dstZaapDist = self.findDistFrom(self.dstVertex, self.dstZaapMapId)
-        Logger().debug(f"Dest Zaap is at '{self.dstZaapDist}' steps from dest Map.")
-        if PlayerManager().isBasicAccount():
-            self.srcZaapMapId = Localizer.findCloseZaapMapId(PlayedCharacterManager().currentMap.mapId, maxCost)
+        manhDistFromCurrMapAndDstZaap = MapTools.distanceBetweenTwoMaps(PlayedCharacterManager().currentMap.mapId, self.dstZaapMapId)
+        if PlayerManager().isBasicAccount() or manhDistFromCurrMapAndDstZaap > 20:
+            self.srcZaapMapId = Localizer.findCloseZaapMapId(PlayedCharacterManager().currentMap.mapId, maxCost, self.dstZaapMapId)
             if not self.srcZaapMapId:
                 return self.finish(self.NOASSOCIATED_ZAAP, f"No associated Zaap found for map '{self.srcZaapMapId}'.")
             self.srcZaapVertex, self.srcZaapDist = self.findDistFrom(
                 PlayedCharacterManager().currVertex, self.srcZaapMapId
             )
-            Logger().debug(f"Src Zaap is at '{self.srcZaapDist}' steps from current Map.")
         else:
             self.srcZaapDist = 0
         self.dstVertex, self.distFromTarget = self.findDistFrom(
             PlayedCharacterManager().currVertex, dstMapId, maxLen=self.srcZaapDist + self.dstZaapDist
         )
-        if self.distFromTarget == float("inf"):
-            Logger().debug("Its more worth to take zaaps than to walk to dest map")
-        else:
-            Logger().debug(f"Dest Map is at '{self.distFromTarget}' steps.")
         if self.distFromTarget <= self.srcZaapDist + self.dstZaapDist:
             self.autoTrip(self.dstVertex.mapId, self.dstVertex.zoneId, callback=self.finish)
-        elif PlayerManager().isBasicAccount():
+        elif PlayerManager().isBasicAccount() and manhDistFromCurrMapAndDstZaap <= 20:
             self.autoTrip(self.srcZaapVertex.mapId, self.srcZaapVertex.zoneId, callback=self.onSrcZaapTrip)
         else:
             self.enterHavreSac(self.onSrcZaapTrip)
@@ -89,7 +85,7 @@ class AutoTripUseZaap(AbstractBehavior):
             if self.havreSacMapListener:
                 self.havreSacMapListener.delete()
             if not self.srcZaapVertex:
-                self.srcZaapMapId = Localizer.findCloseZaapMapId(PlayedCharacterManager().currentMap.mapId, self.maxCost)
+                self.srcZaapMapId = Localizer.findCloseZaapMapId(PlayedCharacterManager().currentMap.mapId, self.maxCost, self.dstZaapMapId)
                 if not self.srcZaapMapId:
                     return self.finish(
                         self.NOASSOCIATED_ZAAP, f"No associated Zaap found for map '{self.srcZaapMapId}'."

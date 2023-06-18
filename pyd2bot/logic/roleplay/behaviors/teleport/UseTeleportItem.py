@@ -15,6 +15,7 @@ class UseTeleportItem(AbstractBehavior):
         self.onceMapProcessed(
             lambda: self.finish(True, None)
         )
+        self.on(KernelEvent.ServerTextInfo, self.onServerInfo)
         Kernel().inventoryManagementFrame.useItem(iw)
         self.onNewMap(True, None)
         

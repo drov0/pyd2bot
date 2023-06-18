@@ -73,6 +73,7 @@ class AutoTrip(AbstractBehavior):
                         AStar().addForbidenEdge(nextEdge)
                         return self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)
                     else:
+                        Logger().debug(f"Error while auto travelling : {error}")
                         return self.finish(code, error)
                 self.walkToNextStep()
             self.changeMap(edge=nextEdge, callback=onProcessed)
@@ -84,6 +85,7 @@ class AutoTrip(AbstractBehavior):
         if error:
             return self.finish(path, error)
         if len(path) == 0:
+            Logger().debug(f"Empty path found")
             return self.finish(True, None)
         for e in path:
             Logger().debug(f"\t|- src {e.src.mapId} -> dst {e.dst.mapId}")

@@ -24,11 +24,11 @@ class ResourceFarm(AbstractFarmBehavior):
     def init(self):
         self.jobFilter = BotConfig().jobFilter
         self.path = BotConfig().path
-        KernelEventsManager().send(KernelEvent.ObjectAdded, self.onObjectAdded)
+        self.send(KernelEvent.ObjectAdded, self.onObjectAdded)
 
     def onObjectAdded(self, event, iw:ItemWrapper):
         Logger().debug(f"Received item : {iw.name} x {iw.quantity}")
-        if iw.usable:
+        if "sac de " in iw.name.lower():
             return Kernel().inventoryManagementFrame.useItem(iw.objectUID, iw.quantity, False, iw)
         
     def isCollectErrRequireRestart(self, code: int) -> bool:
@@ -41,7 +41,7 @@ class ResourceFarm(AbstractFarmBehavior):
         return False
     
     def collectCurrResource(self):
-        UseSkill().start(ie=self.currentTarget["interactiveElement"], cell=self.currentTarget["nearestCell"], parent=self, callback=self.onCollectEnd)
+        self.useSkill(ie=self.currentTarget["interactiveElement"], cell=self.currentTarget["nearestCell"], callback=self.onCollectEnd)
 
     def getResourcesTableHeaders(self) -> list[str]:
         return ["jobName", "resourceName", "distance", "enabled", "reachable", "canFarm"]
@@ -82,7 +82,7 @@ class ResourceFarm(AbstractFarmBehavior):
             r["canFarm"] = canFarm
             availableResources.append(r)
         if availableResources:
-            Logger().debug(self.getAvailableResourcesTable(availableResources))
+            Logger().debug(f"Available resources :\n{self.getAvailableResourcesTable(availableResources)}")
             availableResources.sort(key=lambda r : r['distance'])
             for r in availableResources:
                 if r['canFarm'] :

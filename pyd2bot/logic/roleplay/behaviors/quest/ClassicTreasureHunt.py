@@ -41,6 +41,7 @@ from pydofus2.com.ankamagames.jerakine.data.I18n import I18n
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import \
     DirectionsEnum
+from pydofus2.mapTools import MapTools
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 HINTS_FILE = os.path.join(CURR_DIR, "hints.json")
@@ -98,19 +99,25 @@ class ClassicTreasureHunt(AbstractBehavior):
             pass
         elif result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_SAME_MAP:
             pass
-            
+    def onTelportToDistributorNearestZaap(self, code, err):
+        if code == UseTeleportItem.CANT_USE_ITEM_IN_MAP:
+            self.autotripUseZaap(self.TAKE_QUEST_MAPID, withSaveZaap=True, maxCost=350, callback=self.onTakeQuestMapReached)
+        else:
+            self.autoTrip(self.TAKE_QUEST_MAPID, 1, callback=self.onTakeQuestMapReached) 
+    
     def goToHuntAtm(self):
-        Logger().debug(f"AutoTravelling to treasure hunt distributor")
-        if PlayedCharacterManager().currentMap.mapId != self.ZAAP_HUNT_MAP:
+        Logger().debug(f"AutoTravelling to treasure hunt ATM")
+        if MapTools.distanceBetweenTwoMaps(PlayedCharacterManager().currentMap.mapId, self.ZAAP_HUNT_MAP) > 12:
             if int(Kernel().zaapFrame.spawnMapId) == int(self.ZAAP_HUNT_MAP):
+                iw = ItemWrapper._cacheGId.get(self.RAPPEL_POTION_GUID)
+                if iw:
+                    return UseTeleportItem().start(iw, callback=self.onTelportToDistributorNearestZaap, parent=self) 
                 for iw in InventoryManager().inventory.getView("storageConsumables").content:
-                    if iw.objectGID == self.RAPPEL_POTION_GUID or "rappel" in iw.name.lower():
-                        def onTelportToTakeQuestZaap(code, err):
-                            if code == UseTeleportItem.CANT_USE_ITEM_IN_MAP:
-                                self.autotripUseZaap(self.TAKE_QUEST_MAPID, withSaveZaap=True, maxCost=350, callback=self.onTakeQuestMapReached)
-                            else:
-                                self.autoTrip(self.TAKE_QUEST_MAPID, 1, callback=self.onTakeQuestMapReached)      
-                        return UseTeleportItem().start(iw, callback=onTelportToTakeQuestZaap, parent=self) 
+                    if iw.objectGID == self.RAPPEL_POTION_GUID or "rappel" in iw.name.lower():     
+                        return UseTeleportItem().start(iw, callback=self.onTelportToDistributorNearestZaap, parent=self) 
+                Logger().debug(f"No rappel potions found in consumable view")
+            else:
+                Logger().debug(f"Don't have info about saved zaap or its not the TH-ATM zaap")
         self.autotripUseZaap(self.TAKE_QUEST_MAPID, withSaveZaap=True, maxCost=350, callback=self.onTakeQuestMapReached)
 
     def onObjectAdded(self, event, iw: ItemWrapper):
