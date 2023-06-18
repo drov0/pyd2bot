@@ -45,13 +45,6 @@ from pydofus2.mapTools import MapTools
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 HINTS_FILE = os.path.join(CURR_DIR, "hints.json")
-DIRECTION_COORD = {
-    DirectionsEnum.UP: (0, -1),
-    DirectionsEnum.DOWN: (0, 1),
-    DirectionsEnum.RIGHT: (1, 0),
-    DirectionsEnum.LEFT: (-1, 0),
-}
-
 
 class ClassicTreasureHunt(AbstractBehavior):
     UNABLE_TO_FIND_HINT = 475556

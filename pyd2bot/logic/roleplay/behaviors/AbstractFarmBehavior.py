@@ -51,6 +51,7 @@ class AbstractFarmBehavior(AbstractBehavior):
         self.roleplayListener = None
         self._currEdge: Edge = None
         self._currTransition = None
+        self._totalRewardOfCurrMap = 0
         self.doFarm()
 
     def init(self, *args, **kwargs):
@@ -70,13 +71,14 @@ class AbstractFarmBehavior(AbstractBehavior):
             elif code != ChangeMap.LANDED_ON_WRONG_MAP:
                 Logger().error(f"Error while moving to next step {error}, code {code}.")
                 return self.send(KernelEvent.ClientRestart, "Error while moving to next step: %s." % error)
+        self._totalRewardOfCurrMap = 0
         self.doFarm()
 
     def moveToNextStep(self):
         if not self.running.is_set():
             return
         try:
-            self._currTransition, self._currEdge = next(self.path)
+            self._currTransition, self._currEdge = self.path.getNext(self._totalRewardOfCurrMap)
         except NoTransitionFound as e:
             return self.onBotOutOfFarmPath()
         self.changeMap(transition=self._currTransition, dstMapId=self._currEdge.dst.mapId, callback=self.onMapChanged)

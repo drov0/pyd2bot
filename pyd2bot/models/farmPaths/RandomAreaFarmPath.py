@@ -1,7 +1,7 @@
 import collections
 import random
 import time
-from typing import Iterator, Tuple
+from typing import Iterator, List, Tuple
 
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.thriftServer.pyd2botService.ttypes import Path
@@ -35,6 +35,7 @@ class RandomAreaFarmPath(AbstractFarmPath):
         startVertex: Vertex,
         onlyDirections: bool = True,
         exploration_prob: float = 0.7,
+        epsilon_decay: float = 0.995,
     ) -> None:
         self.name = name
         self.startVertex = startVertex
@@ -51,16 +52,17 @@ class RandomAreaFarmPath(AbstractFarmPath):
         self._visited = collections.defaultdict(int) 
         self.onlyDirections = onlyDirections
         self._transitionBlacklist = list[int]()
+        
         self.exploration_prob = exploration_prob
+        self.epsilon_decay = epsilon_decay
     
     def blackListTransition(self, tr: Transition, edge: Edge):
         self._verticies = None
         self._transitionBlacklist.append(tr)
-        
-    def __next__(self) -> Tuple[Transition, Edge]:
+    
+    def getOutgoingTransitions(self) -> List[Tuple[Transition, Edge]]:
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(self.currentVertex)
         transitions = list[Tuple[Edge, Transition]]()
-
         for edge in outgoingEdges:
             if edge.dst.mapId in self.mapIds and AStar.hasValidTransition(edge):
                 for tr in edge.transitions:
@@ -68,18 +70,28 @@ class RandomAreaFarmPath(AbstractFarmPath):
                         continue
                     if self.onlyDirections and TransitionTypeEnum(tr.type) not in [TransitionTypeEnum.INTERACTIVE]:
                         transitions.append((edge, tr))
-
+        return transitions
+    
+    def getNext(self, reward=1) -> Tuple[Transition, Edge]:
+        transitions = self.getOutgoingTransitions()
         if not transitions:
             raise NoTransitionFound("Couldn't find next transition in path from current vertex.")
+
+        # Update the reward for the current vertex based on the resources collected
+        self._visited[self._currentVertex] += reward
 
         if random.random() < self.exploration_prob:
             # With probability exploration_prob, take a random transition
             edge, tr = random.choice(transitions)
         else:
-            # With probability 1 - exploration_prob, take the least visited transition
-            edge, tr = min(transitions, key=lambda trans: self._visited[trans[0].dst])
+            # With probability 1 - exploration_prob, take the most rewarding transition
+            edge, tr = max(transitions, key=lambda trans: self._visited.get(trans[0].dst, 0))
 
-        self._visited[edge.dst] += 1
+        self._visited[edge.dst] += reward
+
+        # Decay the exploration probability
+        self.exploration_prob *= self.epsilon_decay
+
         return tr, edge
 
     def currNeighbors(self) -> Iterator[Vertex]:

@@ -24,12 +24,17 @@ class ResourceFarm(AbstractFarmBehavior):
     def init(self):
         self.jobFilter = BotConfig().jobFilter
         self.path = BotConfig().path
-        self.send(KernelEvent.ObjectAdded, self.onObjectAdded)
+        self.on(KernelEvent.ObjectAdded, self.onObjectAdded)
+        self.on(KernelEvent.ObtainedItem, self.onObtainedItem)
 
+    def onObtainedItem(self, event, guid, qty):
+        averageKamasWon = Kernel().averagePricesFrame.getItemAveragePrice(guid) * qty
+        self._totalRewardOfCurrMap += averageKamasWon
+        Logger().debug(f"Average kamas won: {averageKamasWon}")
+        
     def onObjectAdded(self, event, iw:ItemWrapper):
-        Logger().debug(f"Received item : {iw.name} x {iw.quantity}")
         if "sac de " in iw.name.lower():
-            return Kernel().inventoryManagementFrame.useItem(iw.objectUID, iw.quantity, False, iw)
+            return Kernel().inventoryManagementFrame.useItem(iw.objectGID, iw.quantity, False, iw)
         
     def isCollectErrRequireRestart(self, code: int) -> bool:
         return code not in [UseSkill.ELEM_BEING_USED, UseSkill.ELEM_TAKEN, UseSkill.CANT_USE, UseSkill.USE_ERROR]
