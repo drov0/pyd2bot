@@ -1,5 +1,6 @@
 import math
 from typing import TYPE_CHECKING
+from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
@@ -8,6 +9,7 @@ from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import \
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 if TYPE_CHECKING:
     from pyd2bot.thriftServer.pyd2botService.ttypes import Character
@@ -35,9 +37,22 @@ class BehaviorApi:
     
     def autoTrip(self, dstMapId, dstZoneId, path: list["Edge"]=None, callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
+        from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import GetOutOfAnkarnam
 
-        if SubArea.getSubAreaByMapId(dstMapId).areaId == 1023:
-            # handle Ancienne Albuera destination
+        srcSubArea = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
+        srcAreaId = srcSubArea.areaId
+        dstSubArea = SubArea.getSubAreaByMapId(dstMapId)
+        dstAreaId = dstSubArea.areaId
+        if dstAreaId != GetOutOfAnkarnam.ankarnamAreaId and srcAreaId == GetOutOfAnkarnam.ankarnamAreaId:
+            Logger().info(f"Auto trip to an Area ({dstSubArea._area.name}) out of {srcSubArea._area.name}.")
+            def onGotOutOfAnkarnam(code, err):
+                if err:
+                    return callback(code, err)
+                AutoTrip().start(dstMapId, dstZoneId, path, callback=callback, parent=self)
+            return self.getOutOfAnkarnam(onGotOutOfAnkarnam)
+        
+        if dstAreaId == 1023:
+            # handle OLD_ALBUERA destination
             replies = {
                 51804: 69540,
                 51805: 69541
@@ -45,10 +60,9 @@ class BehaviorApi:
             def onNpcDialogEnd(code, err):
                 if err:
                     return callback(code, err)
-                KernelEventsManager().onceMapProcessed(
+                self.onceMapProcessed(
                     callback=lambda: AutoTrip().start(dstMapId, dstZoneId, path, callback=callback, parent=self),
                     mapId=223482635,
-                    originator=self
                 )
             self.npcDialog(88213267.0, -20001, 3, replies, onNpcDialogEnd)
         AutoTrip().start(dstMapId, dstZoneId, path, callback=callback, parent=self)
@@ -143,7 +157,7 @@ class BehaviorApi:
 
         NpcDialog().start(npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies, callback=callback, parent=self)
 
-    def GetOutOfAnkarnam(self, callback=None):
+    def getOutOfAnkarnam(self, callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import \
             GetOutOfAnkarnam
 
@@ -195,3 +209,25 @@ class BehaviorApi:
             UnloadInBank
 
         UnloadInBank().start(return_to_start, bankInfos, callback=callback, parent=self)
+
+    def on(self, event_id, callback, timeout=None, ontimeout=None, retryNbr=None, retryAction=None):
+        return KernelEventsManager().on(event_id=event_id, callback=callback, timeout=timeout, ontimeout=ontimeout, retryNbr=retryNbr, retryAction=retryAction, once=False, originator=self)
+    
+    def once(self, event_id, callback, timeout=None, ontimeout=None, retryNbr=None, retryAction=None):
+        return KernelEventsManager().on(event_id=event_id, callback=callback, timeout=timeout, ontimeout=ontimeout, retryNbr=retryNbr, retryAction=retryAction, once=True, originator=self)
+        
+    def onceMapProcessed(self, callback, args=[], mapId=None, timeout=None, onTimeout=None):
+        KernelEventsManager().onceMapProcessed(
+            callback=callback,
+            args=args,
+            mapId=mapId,
+            timeout=timeout,
+            ontimeout=onTimeout,
+            originator=self
+        )
+        
+    def send(self, event_id, *args, **kwargs):
+        return KernelEventsManager().send(event_id, *args, **kwargs)
+    
+    def hasListener(self, event_id):
+        return KernelEventsManager().hasListener(event_id)

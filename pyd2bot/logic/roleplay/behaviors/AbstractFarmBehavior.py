@@ -63,7 +63,7 @@ class AbstractFarmBehavior(AbstractBehavior):
         if error:            
             if code == MovementFailError.PLAYER_IS_DEAD:
                 Logger().warning(f"Player is dead.")
-                return AutoRevive().start(callback=self.onRevived, parent=self)
+                return self.autoRevive(self.onRevived)
             elif code == MovementFailError.CANT_REACH_DEST_CELL:
                 self.path.blackListTransition(self._currTransition, self._currEdge)
                 self.moveToNextStep()
@@ -79,7 +79,7 @@ class AbstractFarmBehavior(AbstractBehavior):
             self._currTransition, self._currEdge = next(self.path)
         except NoTransitionFound as e:
             return self.onBotOutOfFarmPath()
-        ChangeMap().start(transition=self._currTransition, dstMapId=self._currEdge.dst.mapId, callback=self.onMapChanged, parent=self)
+        self.changeMap(transition=self._currTransition, dstMapId=self._currEdge.dst.mapId, callback=self.onMapChanged)
 
     def onFarmPathMapReached(self, code, error):
         if error:
@@ -87,29 +87,12 @@ class AbstractFarmBehavior(AbstractBehavior):
         self.doFarm()
 
     def onBotOutOfFarmPath(self):
-        srcSubArea = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
-        srcAreaId = srcSubArea._area.id
-        dstSubArea = SubArea.getSubAreaByMapId(self.path.startVertex.mapId)
-        dstAreaId = dstSubArea._area.id
-        if dstAreaId != GetOutOfAnkarnam.ankarnamAreaId and srcAreaId == GetOutOfAnkarnam.ankarnamAreaId:
-            Logger().info(f"Auto trip to an Area ({dstSubArea._area.name}) out of {srcSubArea._area.name}.")
-            def onPosReached(code, error):
-                if error:
-                    return self.send(KernelEvent.ClientRestart, message=error)
-                AutoTripUseZaap().start(
-                    self.path.startVertex.mapId, self.path.startVertex.zoneId, callback=self.onFarmPathMapReached, parent=self
-                )
-            def onGotOutOfAnkarnam(code, error):
-                if error:
-                    return KernelEventsManager().send(KernelEvent.ClientShutdown, message=error)
-                AutoTripUseZaap().start(self.path.startVertex.mapId, self.path.startVertex.zoneId, parent=self.parent, callback=onPosReached)
-            return GetOutOfAnkarnam().start(callback=onGotOutOfAnkarnam, parent=self)
-        AutoTripUseZaap().start(
+
+        self.autotripUseZaap(
             self.path.startVertex.mapId, 
             self.path.startVertex.zoneId,
             withSaveZaap=True,
             callback=self.onFarmPathMapReached, 
-            parent=self
         )
 
     def onBotUnloaded(self, code, err):

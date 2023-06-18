@@ -34,6 +34,7 @@ class RandomAreaFarmPath(AbstractFarmPath):
         name: str,
         startVertex: Vertex,
         onlyDirections: bool = True,
+        exploration_prob: float = 0.7,
     ) -> None:
         self.name = name
         self.startVertex = startVertex
@@ -45,15 +46,12 @@ class RandomAreaFarmPath(AbstractFarmPath):
                 self.subAreas.append(sa)
                 for mapId in sa.mapIds:
                     self.mapIds.add(mapId)
+        self._verticies = None
         self._currentVertex = None
-        self._verticies = list[Vertex]()
+        self._visited = collections.defaultdict(int) 
         self.onlyDirections = onlyDirections
-        self._recentVisited = list[Tuple['Vertex', float]]()
         self._transitionBlacklist = list[int]()
-
-    def recentVisitedVerticies(self):
-        self._recentVisited = [(_, t) for (_, t) in self._recentVisited if (time.time() - t) < 60 * 5]
-        return [v for v, _ in self._recentVisited]
+        self.exploration_prob = exploration_prob
     
     def blackListTransition(self, tr: Transition, edge: Edge):
         self._verticies = None
@@ -62,24 +60,26 @@ class RandomAreaFarmPath(AbstractFarmPath):
     def __next__(self) -> Tuple[Transition, Edge]:
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(self.currentVertex)
         transitions = list[Tuple[Edge, Transition]]()
-        Logger().debug(f"blacklist : {self._transitionBlacklist}")
+
         for edge in outgoingEdges:
-            Logger().debug((edge, AStar.hasValidTransition(edge), edge.dst.mapId in self.mapIds))
-            if edge.dst.mapId in self.mapIds:
-                if AStar.hasValidTransition(edge):
-                    for tr in edge.transitions:
-                        if tr in self._transitionBlacklist:
-                            continue
-                        if self.onlyDirections and TransitionTypeEnum(tr.type) not in [TransitionTypeEnum.INTERACTIVE]:
-                            transitions.append((edge, tr))
-        notrecent = [(edge, tr) for edge, tr in transitions if edge.dst not in self.recentVisitedVerticies()]
-        if notrecent:
-            edge, tr = random.choice(notrecent)
-        else:
-            if len(transitions) == 0:
-                raise NoTransitionFound("Couldnt find next transition in path from current vertex.")
+            if edge.dst.mapId in self.mapIds and AStar.hasValidTransition(edge):
+                for tr in edge.transitions:
+                    if tr in self._transitionBlacklist:
+                        continue
+                    if self.onlyDirections and TransitionTypeEnum(tr.type) not in [TransitionTypeEnum.INTERACTIVE]:
+                        transitions.append((edge, tr))
+
+        if not transitions:
+            raise NoTransitionFound("Couldn't find next transition in path from current vertex.")
+
+        if random.random() < self.exploration_prob:
+            # With probability exploration_prob, take a random transition
             edge, tr = random.choice(transitions)
-        self._recentVisited.append((self.currentVertex, time.time()))
+        else:
+            # With probability 1 - exploration_prob, take the least visited transition
+            edge, tr = min(transitions, key=lambda trans: self._visited[trans[0].dst])
+
+        self._visited[edge.dst] += 1
         return tr, edge
 
     def currNeighbors(self) -> Iterator[Vertex]:
