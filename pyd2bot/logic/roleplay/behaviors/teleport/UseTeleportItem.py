@@ -4,6 +4,7 @@ from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import 
     ItemWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 
+
 class UseTeleportItem(AbstractBehavior):
     CANT_USE_ITEM_IN_MAP = 478886
 
@@ -14,7 +15,6 @@ class UseTeleportItem(AbstractBehavior):
         self.onceMapProcessed(
             lambda: self.finish(True, None)
         )
-        self.on(KernelEvent.TreasureHintInformation, self.onTreasureHintInfos)
         Kernel().inventoryManagementFrame.useItem(iw)
         self.onNewMap(True, None)
         

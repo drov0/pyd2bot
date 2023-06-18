@@ -4,7 +4,8 @@ from time import sleep
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.quest.FindHintNpc import FindHintNpc
-from pyd2bot.logic.roleplay.behaviors.quest.UseTeleportItem import UseTeleportItem
+from pyd2bot.logic.roleplay.behaviors.teleport.UseTeleportItem import \
+    UseTeleportItem
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
@@ -26,6 +27,7 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterMa
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
+from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntFlagRequestEnum import TreasureHuntFlagRequestEnum
 from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntFlagStateEnum import \
     TreasureHuntFlagStateEnum
 from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntRequestEnum import \
@@ -34,6 +36,7 @@ from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntTypeEnum import \
     TreasureHuntTypeEnum
 from pydofus2.com.ankamagames.dofus.types.enums.TreasureHuntStepTypeEnum import \
     TreasureHuntStepTypeEnum
+from pydofus2.com.ankamagames.jerakine.data.I18n import I18n
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import \
     DirectionsEnum
@@ -74,14 +77,27 @@ class ClassicTreasureHunt(AbstractBehavior):
         return None
 
     def run(self):
-        self.on(KernelEvent.TreasureHuntUpdate, self.onTreasureHuntUpdate)
-        self.on(KernelEvent.TreasureHuntFinished, self.onTreasureHuntFinished)
+        self.on(KernelEvent.TreasureHuntUpdate, self.onUpdate)
+        self.on(KernelEvent.TreasureHuntFinished, self.onFinished)
         self.on(KernelEvent.ObjectAdded, self.onObjectAdded)
+        self.on(KernelEvent.TreasureHuntFlagRequestAnswer, self.onFlagRequestAnswer)
         self.infos = Kernel().questFrame.getTreasureHunt(TreasureHuntTypeEnum.TREASURE_HUNT_CLASSIC)
         if self.infos is not None:
             return self.solveNextStep()
         self.goToHuntAtm()
     
+    def onFlagRequestAnswer(self, event, result, err):
+        if result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_OK:
+            pass
+        elif result in [TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_ERROR_UNDEFINED, 
+                                TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG, 
+                                TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_TOO_MANY, 
+                                TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_ERROR_IMPOSSIBLE, 
+                                TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG_INDEX]:
+            pass
+        elif result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_SAME_MAP:
+            pass
+            
     def goToHuntAtm(self):
         Logger().debug(f"AutoTravelling to treasure hunt distributor")
         if PlayedCharacterManager().currentMap.mapId != self.ZAAP_HUNT_MAP:
@@ -93,23 +109,23 @@ class ClassicTreasureHunt(AbstractBehavior):
                                 self.autotripUseZaap(self.TAKE_QUEST_MAPID, withSaveZaap=True, maxCost=350, callback=self.onTakeQuestMapReached)
                             else:
                                 self.autoTrip(self.TAKE_QUEST_MAPID, 1, callback=self.onTakeQuestMapReached)      
-                        return UseTeleportItem().start(iw, onTelportToTakeQuestZaap) 
+                        return UseTeleportItem().start(iw, callback=onTelportToTakeQuestZaap, parent=self) 
         self.autotripUseZaap(self.TAKE_QUEST_MAPID, withSaveZaap=True, maxCost=350, callback=self.onTakeQuestMapReached)
 
     def onObjectAdded(self, event, iw: ItemWrapper):
         Logger().info(f"{iw.name}, gid {iw.objectGID}, uid {iw.objectUID}, {iw.description}")
-        if iw.objectGID in [15260, 15248] or "coffre" in iw.name.lower():
+        if iw.objectGID in [15260, 15248, 15261] or "coffre" in iw.name.lower():
             Logger().debug(f"{iw.name} {iw.objectUID}, {iw.objectGID}")
             Kernel().inventoryManagementFrame.useItem(iw)
             sleep(1)
             
-    def onTreasureHuntFinished(self, event, questType):
+    def onFinished(self, event, questType):
         if not Kernel().roleplayContextFrame:
             return KernelEventsManager().onceFramePushed(
-                "RoleplayContextFrame", lambda: self.onTreasureHuntFinished(event, questType)
+                "RoleplayContextFrame", lambda: self.onFinished(event, questType)
             )
         if not PlayedCharacterManager().currVertex:
-            return KernelEventsManager().onceMapProcessed(lambda: self.onTreasureHuntFinished(event, questType))
+            return KernelEventsManager().onceMapProcessed(lambda: self.onFinished(event, questType))
         self.goToHuntAtm()
 
     def onTakeQuestMapReached(self, code, err):
@@ -131,7 +147,7 @@ class ClassicTreasureHunt(AbstractBehavior):
         if answerType == TreasureHuntRequestEnum.TREASURE_HUNT_OK:
             Logger().debug(f"Treasure hunt accepted")
             if not self.hasListener(KernelEvent.TreasureHuntUpdate):
-                self.on(KernelEvent.TreasureHuntUpdate, self.onTreasureHuntUpdate)
+                self.on(KernelEvent.TreasureHuntUpdate, self.onUpdate)
         else:
             self.finish(answerType, err)
 
@@ -199,7 +215,7 @@ class ClassicTreasureHunt(AbstractBehavior):
             return self.finish(code, err)
         Kernel().questFrame.treasureHuntFlagRequest(self.infos.questType, self.currentStep.index)
 
-    def onTreasureHuntUpdate(self, event, questType: int):
+    def onUpdate(self, event, questType: int):
         if questType == TreasureHuntTypeEnum.TREASURE_HUNT_CLASSIC:
             self.infos = Kernel().questFrame.getTreasureHunt(questType)
             self.solveNextStep()
@@ -218,10 +234,8 @@ class ClassicTreasureHunt(AbstractBehavior):
             nextMapId = self.getNextHintMap()
             if not nextMapId:
                 mp = MapPosition.getMapPositionById(self.currentMap)
-                return self.finish(
-                    self.UNABLE_TO_FIND_HINT,
-                    f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.currentMap}:({mp.posX}, {mp.posY})!",
-                )
+                Logger().warning(f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.currentMap}:({mp.posX}, {mp.posY})!")
+                return Kernel().questFrame.treasureHuntDigRequest(self.infos.questType)
             self.autotripUseZaap(nextMapId, maxCost=200, callback=self.onNextHintMapReached)
         elif self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_HINT:
             FindHintNpc().start(
