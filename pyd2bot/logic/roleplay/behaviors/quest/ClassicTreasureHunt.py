@@ -27,7 +27,8 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterMa
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
-from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntFlagRequestEnum import TreasureHuntFlagRequestEnum
+from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntFlagRequestEnum import \
+    TreasureHuntFlagRequestEnum
 from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntFlagStateEnum import \
     TreasureHuntFlagStateEnum
 from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntRequestEnum import \
@@ -171,7 +172,7 @@ class ClassicTreasureHunt(AbstractBehavior):
         for i in range(10):
             mapId = self.nextMapInDirection(mapId, self.currentStep.direction)
             if not mapId:
-                raise Exception("No map found in the given direction !!")
+                return None
             Logger().debug(f"iter {i + 1}: nextMapId {mapId}.")
 
             if self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_POI and self.isPoiInMap(
@@ -212,6 +213,9 @@ class ClassicTreasureHunt(AbstractBehavior):
 
     def onNextHintMapReached(self, code, err):
         if err:
+            if code == FindHintNpc.UNABLE_TO_FIND_HINT:
+                Logger().warning(err)
+                return Kernel().questFrame.treasureHuntDigRequest(self.infos.questType)
             return self.finish(code, err)
         Kernel().questFrame.treasureHuntFlagRequest(self.infos.questType, self.currentStep.index)
 
