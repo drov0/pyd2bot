@@ -1,7 +1,7 @@
 import collections
 import random
 import time
-from typing import Iterator, List, Tuple
+from typing import Iterator, List, Set, Tuple
 
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.thriftServer.pyd2botService.ttypes import Path
@@ -20,10 +20,6 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
     Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
-from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
-    Pathfinding
-from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 
 
 class NoTransitionFound(Exception):
@@ -34,103 +30,79 @@ class RandomAreaFarmPath(AbstractFarmPath):
         name: str,
         startVertex: Vertex,
         onlyDirections: bool = True,
-        exploration_prob: float = 0.7,
-        epsilon_decay: float = 0.995,
     ) -> None:
         self.name = name
         self.startVertex = startVertex
         self.area = SubArea.getSubAreaByMapId(startVertex.mapId).area
-        self.subAreas = list[SubArea]()
-        self.mapIds = set[int]()
-        for sa in SubArea.getAllSubArea():
-            if sa.areaId == self.area.id:
-                self.subAreas.append(sa)
-                for mapId in sa.mapIds:
-                    self.mapIds.add(mapId)
-        self._verticies = None
-        self._currentVertex = None
-        self._visited = collections.defaultdict(int) 
+        self.subAreas = self.getAllSubAreas()
+        self.mapIds = self.getAllMapsIds()
+        self.verticies = self.getAllReachableVerticies()
+        self.visited = collections.defaultdict(int) 
         self.onlyDirections = onlyDirections
         self._transitionBlacklist = list[int]()
-        
-        self.exploration_prob = exploration_prob
-        self.epsilon_decay = epsilon_decay
-    
-    def blackListTransition(self, tr: Transition, edge: Edge):
-        self._verticies = None
-        self._transitionBlacklist.append(tr)
-    
-    def getOutgoingTransitions(self) -> List[Tuple[Transition, Edge]]:
-        outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(self.currentVertex)
-        transitions = list[Tuple[Edge, Transition]]()
-        for edge in outgoingEdges:
-            if edge.dst.mapId in self.mapIds and AStar.hasValidTransition(edge):
-                for tr in edge.transitions:
-                    if tr in self._transitionBlacklist:
-                        continue
-                    if self.onlyDirections and TransitionTypeEnum(tr.type) not in [TransitionTypeEnum.INTERACTIVE]:
-                        transitions.append((edge, tr))
-        return transitions
     
     def getNext(self, reward=1) -> Tuple[Transition, Edge]:
+        currVertes = self.currentVertex
+        if not currVertes:
+            raise NoTransitionFound("Couldn't find current vertex.")
         transitions = self.getOutgoingTransitions()
         if not transitions:
             raise NoTransitionFound("Couldn't find next transition in path from current vertex.")
-
-        # Update the reward for the current vertex based on the resources collected
-        self._visited[self._currentVertex] += reward
-
-        if random.random() < self.exploration_prob:
-            # With probability exploration_prob, take a random transition
-            edge, tr = random.choice(transitions)
-        else:
-            # With probability 1 - exploration_prob, take the most rewarding transition
-            edge, tr = max(transitions, key=lambda trans: self._visited.get(trans[0].dst, 0))
-
-        self._visited[edge.dst] += reward
-
-        # Decay the exploration probability
-        self.exploration_prob *= self.epsilon_decay
-
-        return tr, edge
-
-    def currNeighbors(self) -> Iterator[Vertex]:
-        return self.neighbors(self.currentVertex)
-
-    def neighbors(self, vertex: Vertex) -> Iterator[Vertex]:
+        # TODO: here integrate Q-Learning approach
+    
+    def outGoingEdges(self, vertex: Vertex) -> Iterator[Edge]:
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
         for edge in outgoingEdges:
-            if edge.dst.mapId in self.mapIds:
-                found = False
+            if edge.dst.mapId in self.mapIds and AStar.hasValidTransition(edge):
+                possibleTransitions = []
                 for tr in edge.transitions:
-                    if tr.id in self._transitionBlacklist:
-                        continue
-                    if self.onlyDirections and TransitionTypeEnum(tr.type) not in [TransitionTypeEnum.INTERACTIVE]:
-                        found = True
-                        break
-                if found:
-                    yield edge.dst
-
-    @property
-    def verticies(self):
-        if self._verticies:
-            return self._verticies
+                    if tr not in self._transitionBlacklist and (not self.onlyDirections or TransitionTypeEnum(tr.type) not in [TransitionTypeEnum.INTERACTIVE]):
+                        possibleTransitions.append(tr)
+                if possibleTransitions:
+                    yield edge, possibleTransitions
+                    
+    def getOutgoingTransitions(self) -> List[Tuple[Edge, Transition]]:
+        transitions = list()
+        for edge, ptrs in self.outGoingEdges(self.currentVertex):
+            for tr in ptrs:
+                transitions.append((edge, tr))
+        return transitions
+    
+    def getAllReachableVerticies(self) -> Set[Vertex]:
         queue = collections.deque([self.startVertex])
-        self._verticies = set([self.startVertex])
+        verticies = set([self.startVertex])
         while queue:
             curr = queue.popleft()
-            for v in self.neighbors(curr):
-                if v not in self._verticies:
-                    queue.append(v)
-                    self._verticies.add(v)
-        return self._verticies
-
+            for e in self.outGoingEdges(curr):
+                if e.dst not in verticies:
+                    queue.append(e.dst)
+                    verticies.add(e.dst)
+        return verticies
+        
     def __iter__(self) -> Iterator[Vertex]:
         for it in self.verticies:
             yield it
 
     def __in__(self, vertex: Vertex) -> bool:
         return vertex in self.verticies
+    
+    def blackListTransition(self, tr: Transition, edge: Edge):
+        self._transitionBlacklist.append(tr)
+        self.verticies = self.getAllReachableVerticies()
+    
+    def getAllSubAreas(self):
+        subAreas = []
+        for sa in SubArea.getAllSubArea():
+            if sa.areaId == self.area.id:
+                subAreas.append(sa)
+        return subAreas
+    
+    def getAllMapsIds(self) -> Set[int]:
+        mapIds = set[int]()
+        for sa in self.subAreas:
+            for mapId in sa.mapIds:
+                mapIds.add(mapId)
+        return mapIds
 
     def to_json(self) -> dict:
         return {

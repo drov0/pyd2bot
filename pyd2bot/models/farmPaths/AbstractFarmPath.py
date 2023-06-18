@@ -36,7 +36,7 @@ class AbstractFarmPath:
     def currNeighbors(self) -> Iterator[Vertex]:
         raise NotImplementedError()
 
-    def neighbors(self, vertex: Vertex) -> Iterator[Vertex]:
+    def outGoingEdges(self, vertex: Vertex) -> Iterator[Vertex]:
         raise NotImplementedError()
 
     def to_json(self):

@@ -77,7 +77,7 @@ class Localizer:
             return AStar().search(WorldGraph(), startVertex, candidates)
 
     @classmethod
-    def findCloseZaapMapId(cls, mapId, maxCost=float("inf"), dstZaapMapId=None):
+    def findCloseZaapMapId(cls, mapId, maxCost=float("inf"), dstZaapMapId=None, excludeMaps=[]):
         if not mapId:
             raise ValueError(f"Invalid mapId value {mapId}")
         if dstZaapMapId:
@@ -85,6 +85,8 @@ class Localizer:
         for startVertex in WorldGraph().getVertices(mapId).values():
             candidates = []
             for hint in Hint.getHints():
+                if hint.mapId in excludeMaps:
+                    continue
                 if hint.gfx == cls.ZAAP_GFX:
                     if dstZaapMapId:
                         cmp = MapPosition.getMapPositionById(hint.mapId)

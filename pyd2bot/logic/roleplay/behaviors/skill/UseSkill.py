@@ -4,7 +4,8 @@ from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
-from pydofus2.com.ankamagames.dofus.datacenter.interactives.Interactive import Interactive
+from pydofus2.com.ankamagames.dofus.datacenter.interactives.Interactive import \
+    Interactive
 from pydofus2.com.ankamagames.dofus.datacenter.jobs.Skill import Skill
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
@@ -29,7 +30,7 @@ class UseSkill(AbstractBehavior):
     ELEM_TAKEN = 9801
     ELEM_BEING_USED = 9802
     ELEM_UPDATE_TIMEOUT = 66987
-    UNRACHABLE_IE = 669874
+    UNREACHABLE_IE = 669874
     TIMEOUT = 9803
     CANT_USE = 9804
     USE_ERROR = 9805
@@ -89,7 +90,7 @@ class UseSkill(AbstractBehavior):
             cell = movePath.end.cellId
             Logger().debug(f"Found path to element at {self.elementPosition.cellId} : {movePath}")
             if self.elementPosition.distanceToCell(movePath.end) > skill.range:
-                return self.finish(False, "Unable to find cell close enough to use element")
+                return self.finish(self.UNREACHABLE_IE, "Unable to find cell close enough to use element", iePosition=self.elementPosition)
         def onmoved(code, error):
             if error:
                 return self.finish(code, error)

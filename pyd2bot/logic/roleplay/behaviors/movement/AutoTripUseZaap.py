@@ -2,8 +2,11 @@ from typing import Tuple
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pyd2bot.logic.roleplay.behaviors.teleport.UseZaap import UseZaap
 from pyd2bot.misc.Localizer import Localizer
+from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
+    MapDisplayManager
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import \
     MapPosition
@@ -20,6 +23,7 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pydofus2.mapTools import MapTools
 
 
@@ -34,7 +38,11 @@ class AutoTripUseZaap(AbstractBehavior):
         self.srcZaapVertex = None
         super().__init__()
 
-    def run(self, dstMapId, dstZoneId=1, withSaveZaap=False, maxCost=float("inf")):
+    @property
+    def currMapId(self):
+        return PlayedCharacterManager().currentMap.mapId
+    
+    def run(self, dstMapId, dstZoneId, dstZaapMapId, withSaveZaap=False, maxCost=float("inf")):
         if not dstMapId:
             raise ValueError(f"Invalid MapId value {dstMapId}!")
         self.maxCost = maxCost
@@ -42,68 +50,59 @@ class AutoTripUseZaap(AbstractBehavior):
         self.dstZoneId = dstZoneId
         self.withSaveZaap = withSaveZaap
         self.on(KernelEvent.ServerTextInfo, self.onServerInfo)
-        self.dstZaapMapId = Localizer.findCloseZaapMapId(dstMapId, maxCost)
-        if not self.dstZaapMapId:
-            Logger().warning(f"No associated zaap found for map {dstMapId}")
-            return self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
-        self.havreSacMapListener = None
-        if not PlayedCharacterManager().isZaapKnown(self.dstZaapMapId):
-            Logger().debug(
-                f"Dest zaap at map {self.dstZaapMapId} is not known -> will travel to register it."
-            )
-            return self.autoTrip(self.dstZaapMapId, self.dstZoneId, callback=self.onDstZaapTrip)
+        self.dstZaapMapId = dstZaapMapId
         self.dstVertex = WorldGraph().getVertex(self.dstMapId, self.dstZoneId)
         self.dstZaapVertex, self.dstZaapDist = self.findDistFrom(self.dstVertex, self.dstZaapMapId)
-        manhDistFromCurrMapAndDstZaap = MapTools.distanceBetweenTwoMaps(PlayedCharacterManager().currentMap.mapId, self.dstZaapMapId)
-        if PlayerManager().isBasicAccount() or manhDistFromCurrMapAndDstZaap > 20:
-            self.srcZaapMapId = Localizer.findCloseZaapMapId(PlayedCharacterManager().currentMap.mapId, maxCost, self.dstZaapMapId)
-            if not self.srcZaapMapId:
-                return self.finish(self.NOASSOCIATED_ZAAP, f"No associated Zaap found for map '{self.srcZaapMapId}'.")
-            self.srcZaapVertex, self.srcZaapDist = self.findDistFrom(
-                PlayedCharacterManager().currVertex, self.srcZaapMapId
-            )
+        teleportCostFromCurrToDstMap = 10 * MapTools.distL2Maps(self.currMapId, self.dstZaapMapId)
+        Logger().debug(f"Teleport cost to dst from curr pos is : {teleportCostFromCurrToDstMap:.2f}.")
+        if PlayerManager().isBasicAccount() or teleportCostFromCurrToDstMap > maxCost:
+            if not self.findSrcZaap():
+                return self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
         else:
             self.srcZaapDist = 0
-        self.dstVertex, self.distFromTarget = self.findDistFrom(
-            PlayedCharacterManager().currVertex, dstMapId, maxLen=self.srcZaapDist + self.dstZaapDist
-        )
+        self.dstVertex, self.distFromTarget = self.findDistFrom(PlayedCharacterManager().currVertex, dstMapId)
+        Logger().debug(f"Walking dist = {self.distFromTarget}, walking to src zap + walking to dst from dst Zaap = {self.srcZaapDist + self.dstZaapDist}")
         if self.distFromTarget <= self.srcZaapDist + self.dstZaapDist:
             self.autoTrip(self.dstVertex.mapId, self.dstVertex.zoneId, callback=self.finish)
-        elif PlayerManager().isBasicAccount() and manhDistFromCurrMapAndDstZaap <= 20:
+        elif PlayerManager().isBasicAccount() or teleportCostFromCurrToDstMap > maxCost:
+            Logger().debug(f"Auto travelling to src zaap vertex")
             self.autoTrip(self.srcZaapVertex.mapId, self.srcZaapVertex.zoneId, callback=self.onSrcZaapTrip)
         else:
-            self.enterHavreSac(self.onSrcZaapTrip)
+            self.enterHavenBag(self.onSrcZaapTrip)
 
-    def enterHavreSac(self, callback):
-        self.havreSacMapListener = self.onceMapProcessed(
-            callback=callback,
+    def findSrcZaap(self):
+        self.srcZaapMapId = Localizer.findCloseZaapMapId(self.currMapId, self.maxCost, self.dstZaapMapId)
+        if not self.srcZaapMapId:
+            Logger().warning(f"No associated zaap found for map {self.dstMapId}")
+            return False
+        self.srcZaapVertex, self.srcZaapDist = self.findDistFrom(
+            PlayedCharacterManager().currVertex, self.srcZaapMapId
         )
+        Logger().debug(f"Found src zaap at {self.srcZaapDist} maps from current pos.")
+        return True
+    
+    def enterHavenBag(self, callback):
+        self.havenBagListener = self.onceMapProcessed(callback)
         return Kernel().roleplayContextFrame.havenbagEnter()
 
     def onServerInfo(self, event, msgId, msgType, textId, msgContent, params):
-        if textId == 589088:  # Can't join havresac from current Map
-            if self.havreSacMapListener:
-                self.havreSacMapListener.delete()
+        if textId == 589088: # Can't join haven bag from current Map
+            if self.havenBagListener:
+                self.havenBagListener.delete()
             if not self.srcZaapVertex:
-                self.srcZaapMapId = Localizer.findCloseZaapMapId(PlayedCharacterManager().currentMap.mapId, self.maxCost, self.dstZaapMapId)
-                if not self.srcZaapMapId:
-                    return self.finish(
-                        self.NOASSOCIATED_ZAAP, f"No associated Zaap found for map '{self.srcZaapMapId}'."
-                    )
-                self.srcZaapVertex, self.srcZaapDist = self.findDistFrom(
-                    PlayedCharacterManager().currVertex, self.srcZaapMapId
-                )
-                Logger().debug(f"Src Zaap is at '{self.srcZaapDist}' steps from current Map.")
+                if not self.findSrcZaap():
+                    return self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
+            Logger().debug(f"Can't use haven bag so will travel to source zaap on feet.")
             self.autoTrip(self.srcZaapVertex.mapId, self.srcZaapVertex.zoneId, callback=self.onSrcZaapTrip)
-        elif textId == 592304:  # le bot est occupé
-            self.finish(self.BOT_BUSY, "Bot is busy so cant use zaap and walking might raise unexpected errors.")
+        elif textId == 592304: # Player is busy
+            self.finish(self.BOT_BUSY, "Player is busy so cant use zaap and walking might raise unexpected errors.")
 
-    def onDstZaapTrip(self, code, err):
+    def onDstZaapTrip(self, code, err, **kwargs):
         if err:
             if code == UseZaap.NOT_RICH_ENOUGH:
                 Logger().warning(err)
-                if PlayerManager().isMapInHavenbag(PlayedCharacterManager().currentMap.mapId):
-                    return self.enterHavreSac(
+                if PlayerManager().isMapInHavenbag(self.currMapId):
+                    return self.enterHavenBag(
                         lambda: self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
                     )
                 else:
@@ -111,18 +110,28 @@ class AutoTripUseZaap(AbstractBehavior):
             elif code == AutoTrip.NO_PATH_FOUND:
                 Logger().warning("No path found to dest zaap will travel to dest map on feet")
                 return self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
+            elif code == UseSkill.UNREACHABLE_IE:
+                iePos: MapPoint = kwargs.get("iePosition")
+                cellData = MapDisplayManager().dataMap.cells[iePos.cellId]
+                if not PlayedCharacterManager().currentZoneRp != cellData.linkedZoneRP:
+                    return self.autoTrip(self.srcZaapMapId, cellData.linkedZoneRP, callback=self.onSrcZaapTrip)
+                return self.finish(code, err)
+            else:
+                return self.finish(code, err)
         else:
             self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
 
     def onSrcZaapTrip(self, code=1, err=None):
         if err:
             if code == AutoTrip.NO_PATH_FOUND:
+                Logger().error(f"No path found to source zaap!")
                 return self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
             return self.finish(code, err)
-        if not PlayedCharacterManager().currentMap:
+        if not self.currMapId:
             return self.onceMapProcessed(lambda: self.onSrcZaapTrip(code, err))
-        if self.dstZaapVertex.mapId == PlayedCharacterManager().currentMap.mapId:
-            self.onDstZaapTrip(True, None)
+        Logger().debug(f"Source zaap map reached! => Will use zaap to destination.")
+        if self.dstZaapVertex.mapId == self.currMapId:
+            self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
         else:
             self.useZaap(self.dstZaapVertex.mapId, callback=self.onDstZaapTrip, saveZaap=self.withSaveZaap)
 

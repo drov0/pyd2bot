@@ -34,7 +34,7 @@ from pydofus2.mapTools import MapTools
 
 
 class ChangeMap(AbstractBehavior):
-    MAPCHANGE_TIMEOUT = 7
+    MAPCHANGE_TIMEOUT = 20
     REQUEST_MAPDATA_TIMEOUT = 15
     MAX_FAIL_COUNT = 10
     MAX_TIMEOUT_COUNT = 0
@@ -283,7 +283,6 @@ class ChangeMap(AbstractBehavior):
             return self.handleOnsameCellForMapActionCell()
         Logger().info("Reached map change cell")
         if not self.isMapActionTr():
-            self.setupMapChangeListener()
             self.setupMapChangeRejectListener()
             self.sendMapChangeRequest()
 
@@ -293,7 +292,7 @@ class ChangeMap(AbstractBehavior):
         self.exactDestination = True
         self.mapChangeCellId = self.transition.cell
         self.setupMapChangeListener()
-        MapMove().start(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell, parent=self)
+        self.mapMove(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell)
 
     def scrollMapChange(self):
         self.requestRejectedEvent = KernelEvent.MovementRequestRejected
@@ -303,19 +302,20 @@ class ChangeMap(AbstractBehavior):
             self.mapChangeCellId = next(self.iterScrollCells)
         except StopIteration:
             return self.finish(MovementFailError.NOMORE_SCROLL_CELL, f"Tryied all scroll map change cells but no one changed map")
+        self.setupMapChangeListener()
         self.mapMove(self.mapChangeCellId, self.exactDestination, forMapChange=True, mapChangeDirection=self.transition.direction, callback=self.onMoveToMapChangeCell)       
 
     def onChangeMapIE(self, code, err):
         if err:
             return self.finish(code, err)
         Logger().debug("Map change IE used")
-        self.setupMapChangeListener()
         self.setupMapChangeRejectListener()
         
     def interactiveMapChange(self):
         self.requestRejectedEvent = KernelEvent.InteractiveUseError
         self.movementError = MovementFailError.INTERACTIVE_USE_ERROR
         self.exactDestination = False
+        self.setupMapChangeListener()
         self.useSkill(elementId=self.transition.id, skilluid=self.transition.skillId, cell=self.transition.cell, callback=self.onChangeMapIE)
 
     def isScrollTr(self):

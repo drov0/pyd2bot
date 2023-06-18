@@ -72,9 +72,9 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         return tr, edge
 
     def currNeighbors(self) -> Iterator[Vertex]:
-        return self.neighbors(self.currentVertex)
+        return self.outGoingEdges(self.currentVertex)
 
-    def neighbors(self, vertex: Vertex) -> Iterator[Vertex]:
+    def outGoingEdges(self, vertex: Vertex) -> Iterator[Vertex]:
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
         for edge in outgoingEdges:
             if edge.dst.mapId in self.subArea.mapIds:
@@ -94,7 +94,7 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         self._verticies = set([self.startVertex])
         while queue:
             curr = queue.popleft()
-            for v in self.neighbors(curr):
+            for v in self.outGoingEdges(curr):
                 if v not in self._verticies:
                     queue.append(v)
                     self._verticies.add(v)

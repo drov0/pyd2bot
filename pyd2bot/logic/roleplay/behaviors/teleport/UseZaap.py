@@ -17,30 +17,31 @@ from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
 class UseZaap(AbstractBehavior):
-    ZAAP_NOTFOUND = 255555
+    ZAAP_NOTFOUND = 255898
+    DST_ZAAP_NOT_KNOWN = 265574
     NOT_RICH_ENOUGH = 788888
+    
     
     def __init__(self) -> None:
         super().__init__()
 
-    def run(self, dstMapId, saveZaap=False) -> bool:
+    def run(self, dstMapId, bsaveZaap=False) -> bool:
+        Logger().debug(f"Use zaap to dest {dstMapId} called")
         self.dstMapId = dstMapId
-        self.saveZaap = saveZaap
+        self.bsaveZaap = bsaveZaap
+        if not PlayedCharacterManager().isZaapKnown(dstMapId):
+            return self.finish(self.DST_ZAAP_NOT_KNOWN, "Destination zaap is not a known zaap!")
         if Kernel().interactivesFrame:
             self.openCurrMapZaapDialog()
         else:
-            KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", self.openCurrMapZaapDialog, originator=self)
+            self.onceFramePushed("RoleplayInteractivesFrame", self.openCurrMapZaapDialog)
 
     def openCurrMapZaapDialog(self):
         self.zaapIe = Kernel().interactivesFrame.getZaapIe()
         if not self.zaapIe:
             return self.finish(self.ZAAP_NOTFOUND, "Zaap ie not found in current Map")
-        KernelEventsManager().once(
-            event_id=KernelEvent.TeleportDestinationList,
-            callback=self.onTeleportDestinationList,
-            originator=self
-        )
-        UseSkill().start(self.zaapIe, waitForSkillUsed=False, callback=self.onZaapSkillUsed, parent=self)
+        self.once(KernelEvent.TeleportDestinationList, self.onTeleportDestinationList)
+        self.useSkill(ie=self.zaapIe, waitForSkillUsed=False, callback=self.onZaapSkillUsed)
         
     def onZaapSkillUsed(self, code, err):
         if err:
@@ -57,12 +58,10 @@ class UseZaap(AbstractBehavior):
                         KernelEvent.DialogLeft,
                         lambda e: self.finish(self.NOT_RICH_ENOUGH, err),
                     )
-                KernelEventsManager().onceMapProcessed(
-                    callback=self.onDestMapProcessed,
-                    originator=self,
-                )
+                self.onceMapProcessed(self.onDestMapProcessed)
                 return Kernel().zaapFrame.teleportRequest(dst.cost, ttype, dst.destinationType, dst.mapId)
-        Logger().error(f"Didnt find dest zaap {dst.mapId} in teleport destinations : {[d.mapId for d in destinations]}")
+        else:
+            self.finish(self.DST_ZAAP_NOT_KNOWN, f"Didnt find dest zaap {dst.mapId} in teleport destinations!", teleportDestinations=[d.mapId for d in destinations])
 
     def onZapSaveEnd(self, code, err):
         if err:
@@ -70,6 +69,6 @@ class UseZaap(AbstractBehavior):
         self.finish(True, None)
     
     def onDestMapProcessed(self, event_id=None):
-        if self.saveZaap and Kernel().zaapFrame.spawnMapId != PlayedCharacterManager().currentMap.mapId:
-            return SaveZaap().start(callback=self.onZapSaveEnd, parent=self)
+        if self.bsaveZaap and Kernel().zaapFrame.spawnMapId != PlayedCharacterManager().currentMap.mapId:
+            return self.saveZaap(self.onZapSaveEnd)
         return self.finish(True, None)
