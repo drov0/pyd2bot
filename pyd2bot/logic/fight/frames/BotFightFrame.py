@@ -406,6 +406,8 @@ class BotFightFrame(Frame):
         return result
 
     def remainsEnemies(self):
+        if not self.fighterInfos:
+            return None
         for entity in Kernel().fightEntitiesFrame.entities.values():
             if entity.spawnInfo.teamId != self.fighterInfos.spawnInfo.teamId:
                 return True

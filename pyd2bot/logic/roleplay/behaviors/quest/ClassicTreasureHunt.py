@@ -45,7 +45,7 @@ from pydofus2.mapTools import MapTools
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 HINTS_FILE = os.path.join(CURR_DIR, "hints.json")
-
+WRONG_ANSWERS_FILE = os.path.join(CURR_DIR, "wrongAnswers.json")
 
 class ClassicTreasureHunt(AbstractBehavior):
     UNABLE_TO_FIND_HINT = 475556
@@ -58,6 +58,10 @@ class ClassicTreasureHunt(AbstractBehavior):
 
     with open(HINTS_FILE, "r") as fp:
         hint_db = json.load(fp)
+    
+    with open(WRONG_ANSWERS_FILE, "r") as fp:
+        json_content = json.load(fp)
+        wrongAnswers: set = set([tuple(_) for _ in json_content["recordedWrongAnswers"]])
 
     @classmethod
     def saveHints(cls):
@@ -70,7 +74,7 @@ class ClassicTreasureHunt(AbstractBehavior):
         self.currentStep: TreasureHuntStepWrapper = None
         self.maxCost = 800
         self.guessMode = False
-        self.lastWrongMaps = []
+        self.guessedAnswers = []
 
     def getCurrentStepIndex(self):
         i = 1
@@ -85,21 +89,30 @@ class ClassicTreasureHunt(AbstractBehavior):
         self.on(KernelEvent.TreasureHuntFinished, self.onFinished)
         self.on(KernelEvent.ObjectAdded, self.onObjectAdded)
         self.on(KernelEvent.TreasureHuntFlagRequestAnswer, self.onFlagRequestAnswer)
+        self.on(KernelEvent.TreasureHuntDigAnswer, self.onDigAnswer)
         self.infos = Kernel().questFrame.getTreasureHunt(TreasureHuntTypeEnum.TREASURE_HUNT_CLASSIC)
         if self.infos is not None:
             return self.solveNextStep()
         self.goToHuntAtm()
 
+    def onDigAnswer(self, event, questType, result, text):
+        pass
+    
     def onFlagRequestAnswer(self, event, result, err):
         if result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_OK:
-            if self.guessMode:
-                self.memorizeHint()
-            self.lastWrongMaps = []
-            self.guessMode = False
+            pass
         elif result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG:
+            answer = (self.startMapId, self.currentStep.poiLabel, self.currentMapId)
             self.removePoiFromMap(self.currentMapId, self.currentStep.poiLabel)
-            self.lastWrongMaps.append(self.currentMapId)
+            if answer in self.guessedAnswers:
+                self.guessedAnswers.remove(answer)
+            self.wrongAnswers.add(answer)
+            with open(WRONG_ANSWERS_FILE, "w") as fp:
+                json.dump({
+                    "recordedWrongAnswers": list(self.wrongAnswers)
+                }, fp)
             self.guessMode = True
+            self.solveNextStep(True)
         elif result in [
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_ERROR_UNDEFINED,
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_TOO_MANY,
@@ -154,6 +167,12 @@ class ClassicTreasureHunt(AbstractBehavior):
             )
         if not PlayedCharacterManager().currVertex:
             return KernelEventsManager().onceMapProcessed(lambda: self.onFinished(event, questType))
+        if self.guessedAnswers:
+            for startMapId, poiId, answerMapId in self.guessedAnswers:
+                Logger().debug(f"Will memorise guessed answers : {self.guessedAnswers}")
+                self.memorizeHint(answerMapId, poiId)
+            self.guessedAnswers.clear()
+            self.guessMode = False
         self.goToHuntAtm()
 
     def onTakeQuestMapReached(self, code, err):
@@ -182,15 +201,16 @@ class ClassicTreasureHunt(AbstractBehavior):
     def currentMapId(self):
         return PlayedCharacterManager().currentMap.mapId
     
-    def memorizeHint(self):
-        mp = MapPosition.getMapPositionById(self.currentMapId)
-        if str(mp.worldMap) not in self.hint_db:
-            self.hint_db[str(mp.worldMap)] = {}
-        worldHints = self.hint_db[str(mp.worldMap)]
+    @classmethod
+    def memorizeHint(cls, mapId, poiId):
+        mp = MapPosition.getMapPositionById(mapId)
+        if str(mp.worldMap) not in cls.hint_db:
+            cls.hint_db[str(mp.worldMap)] = {}
+        worldHints = cls.hint_db[str(mp.worldMap)]
         if str(mp.id) not in worldHints:
-            self.hint_db[str(mp.worldMap)][str(mp.id)] = []
-        self.hint_db[str(mp.worldMap)][str(mp.id)].append(self.currentStep.poiLabel)
-        self.saveHints()
+            cls.hint_db[str(mp.worldMap)][str(mp.id)] = []
+        cls.hint_db[str(mp.worldMap)][str(mp.id)].append(poiId)
+        cls.saveHints()
 
     @classmethod
     def removePoiFromMap(cls, mapId, poiId):
@@ -231,7 +251,7 @@ class ClassicTreasureHunt(AbstractBehavior):
                     )
                     return mapId
                 elif self.guessMode:
-                    if mapId not in self.lastWrongMaps:
+                    if (self.startMapId, self.currentStep.poiLabel, mapId) not in self.wrongAnswers:
                         return mapId
         return None
 
@@ -273,9 +293,12 @@ class ClassicTreasureHunt(AbstractBehavior):
                 Logger().warning(err)
                 return self.digTreasure()
             return self.finish(code, err)
+        if self.guessMode:
+            self.guessedAnswers.append((self.startMapId, self.currentStep.poiLabel, self.currentMapId))
         self.puFlag()
 
     def onUpdate(self, event, questType: int):
+        self.guessMode = False
         if questType == TreasureHuntTypeEnum.TREASURE_HUNT_CLASSIC:
             self.infos = Kernel().questFrame.getTreasureHunt(questType)
             self.solveNextStep()
@@ -294,7 +317,9 @@ class ClassicTreasureHunt(AbstractBehavior):
             nextMapId = self.getNextHintMap()
             if not nextMapId:
                 mp = MapPosition.getMapPositionById(self.startMapId)
-                raise Exception(f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.startMapId}:({mp.posX}, {mp.posY})!")
+                Logger().error(f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.startMapId}:({mp.posX}, {mp.posY})!")
+                self.guessMode = True
+                nextMapId = self.getNextHintMap()
             self.autotripUseZaap(nextMapId, maxCost=self.maxCost, callback=self.onNextHintMapReached)
         elif self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_HINT:
             FindHintNpc().start(
