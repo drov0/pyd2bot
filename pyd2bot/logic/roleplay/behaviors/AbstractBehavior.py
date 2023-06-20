@@ -36,7 +36,7 @@ class AbstractBehavior(BehaviorApi, metaclass=Singleton):
         if self.parent:
             self.parent.children.append(self)
         if self.running.is_set():
-            error = f"{type(self).__name__} already running."
+            error = f"{type(self).__name__} already running by parent {self.parent}."
             if self.callback:
                 self.callback(self.ALREADY_RUNNING, error)
             else:
