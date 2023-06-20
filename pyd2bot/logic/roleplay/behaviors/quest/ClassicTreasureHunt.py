@@ -162,11 +162,9 @@ class ClassicTreasureHunt(AbstractBehavior):
 
     def onFinished(self, event, questType):
         if not Kernel().roleplayContextFrame:
-            return KernelEventsManager().onceFramePushed(
-                "RoleplayContextFrame", lambda: self.onFinished(event, questType)
-            )
+            return self.onceFramePushed("RoleplayContextFrame", lambda: self.onFinished(event, questType))
         if not PlayedCharacterManager().currVertex:
-            return KernelEventsManager().onceMapProcessed(lambda: self.onFinished(event, questType))
+            return self.onceMapProcessed(lambda: self.onFinished(event, questType))
         if self.guessedAnswers:
             for startMapId, poiId, answerMapId in self.guessedAnswers:
                 Logger().debug(f"Will memorise guessed answers : {self.guessedAnswers}")

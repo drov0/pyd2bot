@@ -21,7 +21,7 @@ class AbstractFarmPath:
         pass
 
     @property
-    def currentVertex(self) -> Transition:
+    def currentVertex(self) -> Vertex:
         return PlayedCharacterManager().currVertex
 
     def __next__(self) -> Transition:
@@ -36,7 +36,7 @@ class AbstractFarmPath:
     def currNeighbors(self) -> Iterator[Vertex]:
         raise NotImplementedError()
 
-    def outGoingEdges(self, vertex: Vertex) -> Iterator[Vertex]:
+    def outgoingEdges(self, vertex: Vertex) -> list[Vertex]:
         raise NotImplementedError()
 
     def to_json(self):

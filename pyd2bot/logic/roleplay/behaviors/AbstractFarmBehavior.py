@@ -1,132 +1,133 @@
+
+import os
 from time import perf_counter
 from typing import Any, Tuple
 
 from prettytable import PrettyTable
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.bank.UnloadInBank import UnloadInBank
-from pyd2bot.logic.roleplay.behaviors.misc.AutoRevive import AutoRevive
-from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import \
-    AutoTripUseZaap
+from pyd2bot.logic.roleplay.behaviors.farm.CollectableResource import \
+    CollectableResource
 from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
-from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import \
-    GetOutOfAnkarnam
-from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
-    RequestMapData
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.models.farmPaths.RandomAreaFarmPath import NoTransitionFound
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
+from pydofus2.com.ankamagames.dofus.datacenter.jobs.Job import Job
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
+    ItemWrapper
+from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import \
-    InteractiveElementData
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
     MovementFailError
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
-    Edge
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
-    BenchmarkTimer
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
+    Vertex
+from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import \
+    JobExperience
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class AbstractFarmBehavior(AbstractBehavior):
-    
+
     path: AbstractFarmPath
     currentTarget: Any = None
     availableResources: list[Any] = None
-
     def __init__(self, timeout=None):
         self.timeout = timeout
+        self.currentVertex: Vertex = None
         super().__init__()
 
     def run(self, *args, **kwargs):
-        self.startTime = perf_counter()
-        self.init(*args, **kwargs)
         self.on(KernelEvent.FightStarted, self.onFight)
-        self.inFight = False
         self.on(KernelEvent.PlayerStateChanged, self.onPlayerStateChange)
-        self.roleplayListener = None
-        self._currEdge: Edge = None
-        self._currTransition = None
-        self._totalRewardOfCurrMap = 0
-        self.doFarm()
-
+        self.on(KernelEvent.JobExperienceUpdate, self.onJobExperience)
+        self.on(KernelEvent.InventoryWeightUpdate, self.onInventoryWeightUpdate)        
+        self.on(KernelEvent.ObtainedItem, self.onObtainedItem)
+        self.on(KernelEvent.ObjectAdded, self.onObjectAdded)
+        self.inFight = False
+        self.init(*args, **kwargs)
+        self.main()
+    
+    def onObjectAdded(self, event, iw: ItemWrapper):
+        pass
+    
+    def updateEps(self):
+        self.epsilon = min(self.epsilon * self.epsilonDecayRate, self.epsilonMin)
+    
+    def onReturnToLastvertex(self, code, err):
+        if err:
+            return self.finish(code, err)
+        self.main()
+    
     def init(self, *args, **kwargs):
         raise NotImplementedError()
-    
+
     def onPlayerStateChange(self, event, state, phenixMapId):
         pass
 
-    def onMapChanged(self, code, error):
-        if error:            
+    def onJobExperience(self, event, oldJobXp, jobExperience: JobExperience):
+        pass
+        
+    def onObtainedItem(self, event, iw: ItemWrapper, qty):
+        pass
+    
+    def onInventoryWeightUpdate(self, event):
+        pass
+    
+    def onNextVertex(self, code, error):
+        if error:
             if code == MovementFailError.PLAYER_IS_DEAD:
                 Logger().warning(f"Player is dead.")
                 return self.autoRevive(self.onRevived)
-            elif code == MovementFailError.CANT_REACH_DEST_CELL:
-                self.path.blackListTransition(self._currTransition, self._currEdge)
-                self.moveToNextStep()
             elif code != ChangeMap.LANDED_ON_WRONG_MAP:
-                Logger().error(f"Error while moving to next step {error}, code {code}.")
                 return self.send(KernelEvent.ClientRestart, "Error while moving to next step: %s." % error)
-        self._totalRewardOfCurrMap = 0
-        self.doFarm()
+        self.forbidenActions = set()
+        self.main()
 
     def moveToNextStep(self):
         if not self.running.is_set():
             return
         try:
-            self._currTransition, self._currEdge = self.path.getNext(self._totalRewardOfCurrMap)
+            self._currEdge = next(self.path)
         except NoTransitionFound as e:
             return self.onBotOutOfFarmPath()
-        self.changeMap(transition=self._currTransition, dstMapId=self._currEdge.dst.mapId, callback=self.onMapChanged)
+        self.changeMap(edge=self._currEdge, dstMapId=self._currEdge.dst.mapId, callback=self.onNextVertex)
 
     def onFarmPathMapReached(self, code, error):
         if error:
             return self.send(KernelEvent.ClientRestart, f"Go to path first map failed for reason : {error}")
-        self.doFarm()
+        self.main()
 
     def onBotOutOfFarmPath(self):
 
         self.autotripUseZaap(
-            self.path.startVertex.mapId, 
+            self.path.startVertex.mapId,
             self.path.startVertex.zoneId,
             withSaveZaap=True,
-            callback=self.onFarmPathMapReached, 
+            callback=self.onFarmPathMapReached,
         )
 
     def onBotUnloaded(self, code, err):
         if err:
             return self.send(KernelEvent.ClientRestart, f"Error while unloading: {err}")
         self.availableResources = None
-        self.doFarm()
-    
-    def onCollectEnd(self, code, error):
-        if not self.running.is_set():
-            return
-        if error:
-            Logger().warning(error)
-            if code == MovementFailError.CANT_REACH_DEST_CELL:
-                return self.doFarm()
-            if self.isCollectErrCodeRequireRefresh(code):
-                return RequestMapData().start(parent=self, callback=self.doFarm)
-            elif self.isCollectErrRequireRestart(code):
-                return self.send(KernelEvent.ClientRestart, f"Error while farming resource: {error}")
-            elif self.isCollectErrRequireShutdown(code):
-                return self.send(KernelEvent.ClientShutdown, f"Error while farming resource: {error}")
-        BenchmarkTimer(0.1, self.doFarm).start()
-    
+        self.main()
+
+    def onResourceCollectEnd(self, code, error):
+        raise NotImplementedError()
+
     def onFight(self, event=None):
         Logger().warning(f"Player is in fight")
         self.inFight = True
         self.stopChilds()
-        self.roleplayListener = self.once(KernelEvent.RoleplayStarted, self.onRoleplay)
-                
+        self.once(KernelEvent.RoleplayStarted, self.onRoleplayAfterFight)
+
     def isCollectErrCodeRequireRefresh(self, code: int) -> bool:
         return False
-    
+
     def isCollectErrRequireRestart(self, code: int) -> bool:
         return False
 
@@ -143,48 +144,58 @@ class AbstractFarmBehavior(AbstractBehavior):
         if error:
             raise Exception(f"[BotWorkflow] Error while autoreviving player: {error}")
         self.availableResources = None
-        self.doFarm()
+        self.autotripUseZaap(self.currentVertex.mapId, self.currentVertex.zoneId, True, callback=self.main)
 
-    def onRoleplay(self, event=None):
+    def ongotBackToLastMap(self, code, err):
+        if err:
+            return self.finish(code, err)
+        self.main()
+
+    def onRoleplayAfterFight(self, event=None):
         self.inFight = False
         self.availableResources = None
-        KernelEventsManager().onceMapProcessed(self.doFarm, originator=self)
+        self.autotripUseZaap(self.currentVertex.mapId, self.currentVertex.zoneId, callback=self.ongotBackToLastMap)
 
-    def doFarm(self, event_id=None, error=None):
+    def main(self, event=None, error=None):
         if not self.running.is_set():
             return
         if self.timeout and perf_counter() - self.startTime > self.timeout:
             return self.finish(True, None)
-        Logger().info("Do farm called")
         if PlayedCharacterManager().currentMap is None:
-            return KernelEventsManager().onceMapProcessed(callback=self.doFarm, originator=self)
+            return self.onceMapProcessed(callback=self.main)
         if self.inFight:
             return
         if PlayedCharacterManager().isDead():
             Logger().warning(f"Player is dead.")
-            return AutoRevive().start(callback=self.onRevived, parent=self)
+            return self.autoRevive(callback=self.onRevived)
         if PlayedCharacterManager().isPodsFull():
             Logger().warning(f"Inventory is almost full will trigger auto unload ...")
-            return UnloadInBank().start(callback=self.onBotUnloaded)
+            return self.UnloadInBank(callback=self.onBotUnloaded)
         if PlayedCharacterManager().currVertex not in self.path:
             return self.onBotOutOfFarmPath()
-        Logger().info("Searching resources to collect ...")
-        if self.availableResources is None:
-            self.availableResources = self.iterResourceToCollect()
-        try:
-            self.currentTarget = next(self.availableResources)
-        except StopIteration:
-            Logger().info("Nothing to farm")
-            self.availableResources = None
-            return self.moveToNextStep()
-        self.collectCurrResource()
-
-    def iterResourceToCollect(self) -> Tuple[InteractiveElementData, int]:
+        self.makeAction()
+    
+    def makeAction(self):
+        pass
+        
+    def getAvailableResources(self):
         raise NotImplementedError()
-
-    def getAvailableResourcesTable(self, availableResources) -> str:
-        headers = self.getResourcesTableHeaders()
+            
+    def getAvailableResources(self) -> list[CollectableResource]:
+        collectables = Kernel().interactivesFrame.collectables.values()
+        collectableResources = [CollectableResource(it) for it in collectables]
+        headers = ["jobName", "resourceName", "enabled", "reachable", "canFarm"]
         summaryTable = PrettyTable(headers)
-        for e in availableResources:
-            summaryTable.add_row([e[k] for k in summaryTable.field_names])
-        return summaryTable
+        for e in collectableResources:
+            summaryTable.add_row(
+                [
+                    e.resource.skill.parentJob.name,
+                    e.resource.skill.gatheredRessource.name,
+                    e.resource.enabled,
+                    e.reachable,
+                    e.canFarm,
+                ]
+            )
+        if collectableResources:
+            Logger().debug(f"Available resources :\n{summaryTable}")
+        return collectableResources

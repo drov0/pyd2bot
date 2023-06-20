@@ -44,7 +44,7 @@ class NpcDialog(AbstractBehavior):
         self._textParams["f"] = True;
         self._textParams["n"] = True;
         self._textParams["g"] = False;
-        AutoTripUseZaap().start(self.npcMapId, 1, callback=self.onNPCMapReached, parent=self)
+        self.autotripUseZaap(self.npcMapId, dstZoneId=1, callback=self.onNPCMapReached)
         
     def getTextWithParams(textId:int, params:list, replace:str = "%") -> str:
         msgContent:str = I18n.getText(textId)

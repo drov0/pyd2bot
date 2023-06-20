@@ -19,11 +19,12 @@ class BehaviorApi:
         pass
 
     def autotripUseZaap(
-        self, dstMapId, dstZoneId=1, withSaveZaap=False, maxCost=float("inf"), excludeMaps=[], callback=None
+        self, dstMapId, dstZoneId=1, withSaveZaap=False, maxCost=None, excludeMaps=[], callback=None
     ):
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
-
+        if not maxCost:
+            maxCost = PlayedCharacterManager().characteristics.kamas
         currMp = PlayedCharacterManager().currMapPos
         dstMp = MapPosition.getMapPositionById(dstMapId)
         dist = math.sqrt((currMp.posX - dstMp.posX) ** 2 + (currMp.posY - dstMp.posY) ** 2)

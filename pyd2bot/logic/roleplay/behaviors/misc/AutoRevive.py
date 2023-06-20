@@ -30,16 +30,18 @@ class AutoRevive(AbstractBehavior):
     def run(self) -> bool:
         self.phenixMapId = Kernel().playedCharacterUpdatesFrame._phenixMapId
         if not PlayedCharacterManager().currentMap:
-            return KernelEventsManager().onceMapProcessed(self.start, originator=self)
-        KernelEventsManager().on(KernelEvent.PlayerStateChanged, self.onPlayerStateChange, originator=self)
+            return self.onceMapProcessed(self.start)
+        self.on(KernelEvent.PlayerStateChanged, self.onPlayerStateChange)
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_PHANTOM:
-            AutoTrip().start(self.phenixMapId, 1, callback=self.onPhenixMapReached, parent=self)
+            Logger().debug(f"Autotravelling to phenix map {self.phenixMapId}")
+            self.autoTrip(dstMapId=self.phenixMapId, dstZoneId=1, callback=self.onPhenixMapReached)
         elif PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
-            KernelEventsManager().onceMapProcessed(self.onCimetaryMapLoaded, originator=self)
+            self.onceMapProcessed(self.onCimetaryMapLoaded)
             self.releaseSoulRequest()
 
     def onPlayerStateChange(self, event, playerState: PlayerLifeStatusEnum, phenixMapId):
         self.phenixMapId = phenixMapId
+        Logger().debug(f"Phoenix mapId : {phenixMapId}")
         if playerState == PlayerLifeStatusEnum.STATUS_PHANTOM:
             Logger().info(f"Player saoul released wating for cimetary map to load.")
         elif playerState == PlayerLifeStatusEnum.STATUS_ALIVE_AND_KICKING:
@@ -50,18 +52,20 @@ class AutoRevive(AbstractBehavior):
         Logger().debug(f"Cimetary map loaded.")
         if self.requestTimer:
             self.requestTimer.cancel()
-        AutoTrip().start(self.phenixMapId, 1, callback=self.onPhenixMapReached, parent=self)
+        self.autoTrip(dstMapId=self.phenixMapId, dstZoneId=1, callback=self.onPhenixMapReached)
 
     def onPhenixMapReached(self, code, error):
         if error:
             return self.finish(code, error)
         if Kernel().interactivesFrame:
-            reviveSkill = Kernel().interactivesFrame.getReviveIe()
-            def onPhenixSkillUsed(code, error):
+            reviveIE = Kernel().interactivesFrame.getReviveIe()
+            def onPhenixSkillUsed(code, error, iePosition=None):
+                if error:
+                    return self.finish(code, error)
                 Logger().info("Phenix revive skill used")
-            UseSkill().start(reviveSkill, waitForSkillUsed=False, callback=onPhenixSkillUsed, parent=self)
+            self.useSkill(ie=reviveIE, callback=onPhenixSkillUsed)
         else:
-            KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", self.onPhenixMapReached, originator=self)
+            self.onceFramePushed("RoleplayInteractivesFrame", self.onPhenixMapReached)
 
     def releaseSoulRequest(self):
         def ontimeout():

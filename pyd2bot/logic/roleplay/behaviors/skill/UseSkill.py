@@ -30,6 +30,7 @@ class UseSkill(AbstractBehavior):
     ELEM_TAKEN = 9801
     ELEM_BEING_USED = 9802
     ELEM_UPDATE_TIMEOUT = 66987
+    NO_ENABLED_SKILLS = 668889
     UNREACHABLE_IE = 669874
     TIMEOUT = 9803
     CANT_USE = 9804
@@ -53,7 +54,7 @@ class UseSkill(AbstractBehavior):
         skilluid=None,
     ):
         if ie is None:
-            if elementId:
+            if elementId and skilluid:
                 def onIeFound(ie: InteractiveElementData):
                     self.targetIe: InteractiveElementData = ie
                     self.skillUID = ie.skillUID
@@ -81,24 +82,29 @@ class UseSkill(AbstractBehavior):
 
     def _useSkill(self) -> None:
         cell = self.cell
-        skillId = self.targetIe.element.enabledSkills[0].skillId
-        skill = Skill.getSkillById(skillId)
-        playerPos = PlayedCharacterManager().entity.position
-        Logger().debug(f"Using {skill.name}, range {skill.range}, id {skill.id}")
-        if not cell:
-            movePath = Pathfinding().findPath(playerPos, self.elementPosition)
-            cell = movePath.end.cellId
-            Logger().debug(f"Found path to element at {self.elementPosition.cellId} : {movePath}")
-            if self.elementPosition.distanceToCell(movePath.end) > skill.range:
-                return self.finish(self.UNREACHABLE_IE, "Unable to find cell close enough to use element", iePosition=self.elementPosition)
-        def onmoved(code, error):
-            if error:
-                return self.finish(code, error)
-            self.requestActivateSkill()
-        if self.waitForSkillUsed:
-            self.on(KernelEvent.IElemBeingUsed, self.onUsingInteractive,)
-            self.on(KernelEvent.InteractiveElementUsed, self.onUsedInteractive)
-        self.mapMove(destCell=cell, exactDistination=False, callback=onmoved)
+        if self.targetIe.element.enabledSkills:
+            skillId = self.targetIe.element.enabledSkills[0].skillId
+            skill = Skill.getSkillById(skillId)
+            playerPos = PlayedCharacterManager().entity.position
+            Logger().debug(f"Using {skill.name}, range {skill.range}, id {skill.id}")
+            if skill.id == 211:
+                mp, _ = Kernel().interactivesFrame.getNearestCellToIe(self.element, self.elementPosition)
+                cell = mp.cellId
+            if not cell:
+                movePath = Pathfinding().findPath(playerPos, self.elementPosition)
+                cell = movePath.end.cellId
+                if self.elementPosition.distanceToCell(movePath.end) > skill.range:
+                    return self.finish(self.UNREACHABLE_IE, "Unable to find cell close enough to use element", iePosition=self.elementPosition)
+            def onmoved(code, error):
+                if error:
+                    return self.finish(code, error)
+                self.requestActivateSkill()
+            if self.waitForSkillUsed:
+                self.on(KernelEvent.IElemBeingUsed, self.onUsingInteractive,)
+                self.on(KernelEvent.InteractiveElementUsed, self.onUsedInteractive)
+            self.mapMove(destCell=cell, exactDistination=False, callback=onmoved)
+        else:
+            self.finish(self.NO_ENABLED_SKILLS, f"Interactive element has no enabled skills!")
 
     def onUsingInteractive(self, event, entityId, usingElementId):
         if self.elementId == usingElementId:

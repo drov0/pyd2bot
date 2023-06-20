@@ -98,6 +98,8 @@ class Localizer:
             if not candidates:
                 return None
             path = AStar().search(WorldGraph(), startVertex, candidates)
+            if not path:
+                return None
             if len(path) == 0:
                 return mapId
             return path[-1].dst.mapId

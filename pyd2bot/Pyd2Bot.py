@@ -13,6 +13,7 @@ from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.bank.RetrieveRecipeFromBank import \
     RetrieveRecipeFromBank
+from pyd2bot.logic.roleplay.behaviors.farm.QResourceFarm import QResourceFarm
 from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import ResourceFarm
 from pyd2bot.logic.roleplay.behaviors.fight.FarmFights import FarmFights
 from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
@@ -85,7 +86,7 @@ class Pyd2Bot(DofusClient):
         AbstractBehavior.clearAllChilds()
         return super().onReconnect(event, message, afterTime)
     
-    def onInGame(self, event, msg):
+    def onInGame(self):
         if self._role == CharacterRoleEnum.SELLER:
             BotConfig.SELLER_VACANT.set()
         for instId, inst in Kernel.getInstances():
@@ -118,7 +119,7 @@ class Pyd2Bot(DofusClient):
         
     def startSessionMainBehavior(self):
         if BotConfig().isFarmSession:
-            ResourceFarm().start()
+            QResourceFarm().start()
             
         elif BotConfig().isFightSession:
             if BotConfig().isLeader:

@@ -477,7 +477,7 @@ class BotFightFrame(Frame):
             if not self.remainsEnemies():
                 return
             if BotConfig().isTreasureHuntSession:
-                raise Exception("Not path to target found")
+                raise Exception("No path to target found")
             else:
                 self.addTurnAction(self.turnEnd, [])
         self.nextTurnAction("play turn")

@@ -30,7 +30,7 @@ class SoloFarmFights(AbstractFarmBehavior):
     def getResourcesTableHeaders(self) -> list[str]:
         return ["mainMonsterName", "id", "cell", "distance"]
 
-    def iterResourceToCollect(self):
+    def availableResources(self):
         if not Kernel().entitiesFrame._monstersIds:
             return []
         availableMonsterFights = []
@@ -81,9 +81,9 @@ class SoloFarmFights(AbstractFarmBehavior):
             Logger().warning(error)
             if code == AttackMonsters.MAP_CHANGED:
                 self.availableResources = None
-                self.doFarm()
+                self.main()
             elif code in [AttackMonsters.ENTITY_VANISHED, AttackMonsters.FIGHT_REQ_TIMEDOUT]:
-                self.doFarm()
+                self.main()
             else:
                 return KernelEventsManager().send(KernelEvent.ClientRestart, f"Error while attacking monsters: {error}")
 

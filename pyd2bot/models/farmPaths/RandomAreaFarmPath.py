@@ -1,7 +1,14 @@
 import collections
+import datetime
+import os
+import pickle
 import random
+import threading
 import time
 from typing import Iterator, List, Set, Tuple
+
+import numpy as np
+from matplotlib import pyplot as plt
 
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.thriftServer.pyd2botService.ttypes import Path
@@ -20,60 +27,45 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
     Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
 class NoTransitionFound(Exception):
     pass
 class RandomAreaFarmPath(AbstractFarmPath):
+    
     def __init__(
         self,
         name: str,
-        startVertex: Vertex,
-        onlyDirections: bool = True,
+        startVertex: Vertex
     ) -> None:
+        super().__init__()
         self.name = name
         self.startVertex = startVertex
         self.area = SubArea.getSubAreaByMapId(startVertex.mapId).area
         self.subAreas = self.getAllSubAreas()
         self.mapIds = self.getAllMapsIds()
-        self.verticies = self.getAllReachableVerticies()
-        self.visited = collections.defaultdict(int) 
-        self.onlyDirections = onlyDirections
-        self._transitionBlacklist = list[int]()
-    
-    def getNext(self, reward=1) -> Tuple[Transition, Edge]:
-        currVertes = self.currentVertex
-        if not currVertes:
-            raise NoTransitionFound("Couldn't find current vertex.")
-        transitions = self.getOutgoingTransitions()
-        if not transitions:
-            raise NoTransitionFound("Couldn't find next transition in path from current vertex.")
-        # TODO: here integrate Q-Learning approach
-    
-    def outGoingEdges(self, vertex: Vertex) -> Iterator[Edge]:
+        self.verticies = self.reachableVerticies()
+        self.visited = set()
+
+    @property
+    def pourcentExplored(self):
+        return 100 * len(self.visited) / len(self.verticies)
+
+    def outgoingEdges(self, vertex=None) -> Iterator[Edge]:
+        if vertex is None:
+            vertex = self.currentVertex
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
         for edge in outgoingEdges:
             if edge.dst.mapId in self.mapIds and AStar.hasValidTransition(edge):
-                possibleTransitions = []
-                for tr in edge.transitions:
-                    if tr not in self._transitionBlacklist and (not self.onlyDirections or TransitionTypeEnum(tr.type) not in [TransitionTypeEnum.INTERACTIVE]):
-                        possibleTransitions.append(tr)
-                if possibleTransitions:
-                    yield edge, possibleTransitions
-                    
-    def getOutgoingTransitions(self) -> List[Tuple[Edge, Transition]]:
-        transitions = list()
-        for edge, ptrs in self.outGoingEdges(self.currentVertex):
-            for tr in ptrs:
-                transitions.append((edge, tr))
-        return transitions
+                yield edge
     
-    def getAllReachableVerticies(self) -> Set[Vertex]:
+    def reachableVerticies(self) -> Set[Vertex]:
         queue = collections.deque([self.startVertex])
         verticies = set([self.startVertex])
         while queue:
             curr = queue.popleft()
-            for e in self.outGoingEdges(curr):
+            for e in self.outgoingEdges(curr):
                 if e.dst not in verticies:
                     queue.append(e.dst)
                     verticies.add(e.dst)
@@ -85,10 +77,6 @@ class RandomAreaFarmPath(AbstractFarmPath):
 
     def __in__(self, vertex: Vertex) -> bool:
         return vertex in self.verticies
-    
-    def blackListTransition(self, tr: Transition, edge: Edge):
-        self._transitionBlacklist.append(tr)
-        self.verticies = self.getAllReachableVerticies()
     
     def getAllSubAreas(self):
         subAreas = []

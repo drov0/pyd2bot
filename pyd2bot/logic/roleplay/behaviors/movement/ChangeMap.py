@@ -28,6 +28,8 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.Chang
     ChangeMapMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
     InteractiveUseRequestMessage
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
+    BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pydofus2.mapTools import MapTools
@@ -62,6 +64,7 @@ class ChangeMap(AbstractBehavior):
         self.mapChangeReqSent = False
         self.forbidenScrollCells = dict[int, list]()
         self._transitions = None
+        self._scrollMapChangeRequestTimer: BenchmarkTimer = None
 
     def run(self, transition: Transition=None, edge: Edge=None, dstMapId=None):
         if transition:
@@ -209,17 +212,19 @@ class ChangeMap(AbstractBehavior):
         
     def onCurrentMap(self, event: Event, mapId: int):
         Logger().info("Map changed!")
+        if self._scrollMapChangeRequestTimer:
+            Logger().warning("Received current map while still didnt send map change request")
+            self._scrollMapChangeRequestTimer.cancel()
         if mapId == self.dstMapId:
             if self.mapChangeRejectListener:
                 self.mapChangeRejectListener.delete()
             if self.mapChangeListener:
                 self.mapChangeListener.delete()
-            KernelEventsManager().onceMapProcessed(
+            self.onceMapProcessed(
                 lambda: self.finish(True, None),
                 mapId=self.dstMapId,
-                timeout= 40,
-                ontimeout=self.onDestMapProcessedTimeout,
-                originator=self
+                timeout=20,
+                ontimeout=self.onDestMapProcessedTimeout
             )
         else:
             self.finish(self.LANDED_ON_WRONG_MAP, f"Landed on new map '{mapId}', different from dest '{self.dstMapId}'.")
@@ -247,9 +252,7 @@ class ChangeMap(AbstractBehavior):
         )
     
     def handleOnsameCellForMapActionCell(self):
-        if self.mapChangeListener:
-            self.mapChangeListener.delete()
-        self.currentMPChilds = MapPoint.fromCellId(self.mapChangeCellId).iterChilds(False)
+        self.currentMPChilds = MapPoint.fromCellId(self.mapChangeCellId).iterChilds(False, True)
         try:
             x, y = next(self.currentMPChilds)
         except StopIteration:
@@ -259,32 +262,32 @@ class ChangeMap(AbstractBehavior):
             self.finish(self.MAP_CHANGED_UNEXPECTEDLY, "Map changed unexpectedly while resolving.")
         def onWaitForMCAfterResolve(listener: Listener):
             listener.delete()
-            MapMove().start(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell, parent=self)
+            self.mapMove(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell)
         def onMoved(code, err):
             if err:
                 try:    
                     x, y = next(self.currentMPChilds)
                 except StopIteration:
                     return self.finish(self.MAP_ACTION_ALREADY_ONCELL, f"Already on map action cell, and can't move away from it for reason : '{err}'.")
-                return MapMove().start(MapPoint.fromCoords(x, y).cellId, self.exactDestination, callback=onMoved, parent=self)
-            KernelEventsManager().on(
+                return self.mapMove(MapPoint.fromCoords(x, y).cellId, self.exactDestination, callback=onMoved)
+            self.on(
                 KernelEvent.CurrentMap, 
                 callback=onMapChangedWhileResolving,
                 timeout=1,
                 ontimeout=onWaitForMCAfterResolve,
-                originator=self
             )
-        return MapMove().start(MapPoint.fromCoords(x, y).cellId, self.exactDestination, callback=onMoved, parent=self)
+        return self.mapMove(MapPoint.fromCoords(x, y).cellId, self.exactDestination, callback=onMoved)
 
     def onMoveToMapChangeCell(self, code, error):
+        if code == MapMove.ALREADY_ONCELL and self.isMapActionTr():
+            Logger().debug("Already on map action cell, need to move away from it first")
+            return self.handleOnsameCellForMapActionCell()
         if error:
             return self.finish(code, error)
-        if code == MapMove.ALREADY_ONCELL and self.isMapActionTr():
-            return self.handleOnsameCellForMapActionCell()
         Logger().info("Reached map change cell")
         if not self.isMapActionTr():
             self.setupMapChangeRejectListener()
-            self.sendMapChangeRequest()
+            self._scrollMapChangeRequestTimer = BenchmarkTimer(0.5, self.sendMapChangeRequest).start()
 
     def actionMapChange(self):
         self.requestRejectedEvent = KernelEvent.MovementRequestRejected
