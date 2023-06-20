@@ -65,6 +65,7 @@ class QResourceFarm(AbstractFarmBehavior):
         
     def init(self):   
         if self.currentVertex:
+            Logger().debug(f"traveling to memorized current vertex...")
             return self.autotripUseZaap(self.currentVertex.mapId, self.currentVertex.zoneId, True, callback=self.onReturnToLastvertex)
         self.currentVertex = self.path.currentVertex
 
@@ -103,6 +104,7 @@ class QResourceFarm(AbstractFarmBehavior):
         if isinstance(elem, CollectableResource):
             elem.farm(self.onResourceCollectEnd, self)
         elif isinstance(elem, Edge):
+            Logger().debug("Change map action")
             self.autoTrip(elem.dst.mapId, elem.dst.zoneId, callback=self.onNextVertex)
         else:
             raise TypeError(f"Invalid action type : {type(elem).__name__}")

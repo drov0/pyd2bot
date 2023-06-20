@@ -60,6 +60,7 @@ class AbstractFarmBehavior(AbstractBehavior):
     def onReturnToLastvertex(self, code, err):
         if err:
             return self.finish(code, err)
+        Logger().debug(f"Returned to last vertex")
         self.main()
     
     def init(self, *args, **kwargs):
