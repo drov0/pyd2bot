@@ -89,7 +89,7 @@ class UnloadInBank(AbstractBehavior):
         else:
             self.finish(True, None)
 
-    def onInventoryWeightUpdate(self, event, weight, max):
+    def onInventoryWeightUpdate(self, event, lastWeight, weight, max):
         Logger().info(f"Inventory Weight percent changed to : {round(100 * weight / max, 1)}%")
         self.once(
             event_id=KernelEvent.ExchangeClose, 

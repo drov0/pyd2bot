@@ -25,6 +25,7 @@ class AutoTripState(Enum):
 
 class AutoTrip(AbstractBehavior):
     NO_PATH_FOUND = 2202203
+    PLAYER_IN_COMBAT = 89090
     
     def __init__(self):
         super().__init__()
@@ -52,7 +53,7 @@ class AutoTrip(AbstractBehavior):
             return KernelEventsManager().onceMapProcessed(self.walkToNextStep, originator=self)
         if self.path:
             self.state = AutoTripState.FOLLOWING_EDGE
-            currMapId = PlayedCharacterManager().currVertex.mapId
+            currMapId = PlayedCharacterManager().currentMap.mapId
             dstMapId = self.path[-1].dst.mapId
             if currMapId == dstMapId:
                 Logger().info(f"Trip reached destination Map : {dstMapId}")

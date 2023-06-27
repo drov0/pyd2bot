@@ -87,7 +87,7 @@ class UseSkill(AbstractBehavior):
             skill = Skill.getSkillById(skillId)
             playerPos = PlayedCharacterManager().entity.position
             Logger().debug(f"Using {skill.name}, range {skill.range}, id {skill.id}")
-            if skill.id == 211:
+            if skill.id in [211, 184] :
                 mp, _ = Kernel().interactivesFrame.getNearestCellToIe(self.element, self.elementPosition)
                 cell = mp.cellId
             if not cell:
@@ -124,12 +124,13 @@ class UseSkill(AbstractBehavior):
                 if self.useErrorListener:
                     self.useErrorListener.delete()
                 if self.elementId in Kernel().interactivesFrame._statedElm:
-                    self.once(
-                        KernelEvent.InteractiveElemUpdate,
-                        self.onInteractiveUpdated,
-                        timeout=7,
-                        ontimeout=self.onElemUpdateWaitTimeout,
-                    )
+                    if self.targetIe.element.enabledSkills[0].skillId not in [114]:
+                        self.once(
+                            KernelEvent.InteractiveElemUpdate,
+                            self.onInteractiveUpdated,
+                            timeout=7,
+                            ontimeout=self.onElemUpdateWaitTimeout,
+                        )
                 else:
                     self.finish(True, None)
 
@@ -145,6 +146,7 @@ class UseSkill(AbstractBehavior):
     def onUseError(self, event, elementId):
         if MapMove().isRunning():
             MapMove().stop()
+        
         self.finish(self.USE_ERROR, "Can't use this element, probably not in range")
 
     def requestActivateSkill(self) -> None:

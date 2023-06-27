@@ -1,3 +1,5 @@
+
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
@@ -13,17 +15,43 @@ class CollectableResource:
     def __init__(self, it: CollectableElement):
         self.resource = it
         self._nearestCell = None
+        self.timeSinceLastTimeCollected = None
 
+    @property
+    def uid(self):
+        return self.resource.id
+    
+    @property
+    def resourceId(self):
+        return self.resource.skill.gatheredRessource.id
+    
+    @property
+    def jobId(self):
+        return self.resource.skill.parentJobId
+    
     @property
     def reachable(self):
         return self.nearestCell is not None and self.nearestCell.distanceTo(self.position) <= self.resource.skill.range
 
     @property
+    def distance(self):
+        movePath = Pathfinding().findPath(PlayedCharacterManager().entity.position, self.position)
+        if movePath is None:
+            return -1
+        return len(movePath.path)
+
+    @property
     def nearestCell(self):
         if not self._nearestCell:
-            movePath = Pathfinding().findPath(PlayedCharacterManager().entity.position, self.position)
+            playerEntity = PlayedCharacterManager().entity
+            if playerEntity is None:
+                Logger().debug("Player entity not found!")
+                self._nearestCell = None
+                return None
+            movePath = Pathfinding().findPath(playerEntity.position, self.position)
             if movePath is None:
                 self._nearestCell = None
+                return None
             self._nearestCell = movePath.end
         return self._nearestCell
 
@@ -33,17 +61,16 @@ class CollectableResource:
 
     @property
     def hasRequiredLevel(self):
-        PlayedCharacterManager().joblevel(self.resource.skill.parentJobId) >= self.resource.skill.levelMin
+        return PlayedCharacterManager().joblevel(self.resource.skill.parentJobId) >= self.resource.skill.levelMin
 
     def isFiltered(self, jobFilter):
         jobId = self.resource.skill.parentJobId
-        return jobId not in jobFilter or self.resource.id not in jobFilter[jobId]
+        return jobId not in jobFilter or (jobFilter[jobId] and self.resource.skill.gatheredRessource.id not in jobFilter[jobId])
 
     @property
     def canCollecte(self):
         return self.resource.enabled and self.hasRequiredLevel and self.reachable
 
-    @property
     def canFarm(self, jobFilter=None):
         if jobFilter:
             return self.canCollecte and not self.isFiltered(jobFilter)

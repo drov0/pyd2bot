@@ -5,6 +5,7 @@ from pyd2bot.misc.Localizer import Localizer
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import InventoryManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
@@ -24,14 +25,15 @@ class BehaviorApi:
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
         if not maxCost:
-            maxCost = PlayedCharacterManager().characteristics.kamas
+            maxCost = InventoryManager().inventory.kamas
+            Logger().debug(f"Played max teleport cost is {maxCost}")
         currMp = PlayedCharacterManager().currMapPos
         dstMp = MapPosition.getMapPositionById(dstMapId)
         dist = math.sqrt((currMp.posX - dstMp.posX) ** 2 + (currMp.posY - dstMp.posY) ** 2)
         if dist > 12:
             dstZaapMapId = Localizer.findCloseZaapMapId(dstMapId, maxCost, excludeMaps=excludeMaps)
             if not dstZaapMapId:
-                Logger().warning(f"No associated zaap found for map {dstMapId}!")
+                Logger().warning(f"No src zaap found for cost {maxCost} and map {dstMapId}!")
                 return self.autoTrip(dstMapId, dstZoneId, callback=callback)
             if not PlayedCharacterManager().isZaapKnown(dstZaapMapId):
                 Logger().debug(f"Dest zaap at map {dstZaapMapId} is not known -> will travel to register it.")
@@ -52,6 +54,7 @@ class BehaviorApi:
                 return self.autotripUseZaap(
                     dstZaapMapId, excludeMaps=excludeMaps + [dstZaapMapId], callback=onDstZaapTrip
                 )
+            Logger().debug(f"Autotriping with zaaps to {dstMapId}, dst zaap at {dstZaapMapId}")
             AutoTripUseZaap().start(
                 dstMapId,
                 dstZoneId,
@@ -67,7 +70,11 @@ class BehaviorApi:
     def autoTrip(self, dstMapId, dstZoneId, path: list["Edge"] = None, callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
         from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import GetOutOfAnkarnam
+        from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 
+        if Kernel().fightContextFrame:
+            return self.finish(89090, "Player is in Fight")
+        
         srcSubArea = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
         srcAreaId = srcSubArea.areaId
         dstSubArea = SubArea.getSubAreaByMapId(dstMapId)

@@ -56,7 +56,7 @@ class FarmFights(AbstractBehavior):
 
     def onMapChanged(self, code, error):
         if error:
-            Logger().error("Error while moving to next step: %s" % error)
+            Logger().error(f"Error while moving to next step: {error}")
             return KernelEventsManager().send(KernelEvent.ClientRestart, "Error while moving to next step: %s" % error)
         self.run()
 

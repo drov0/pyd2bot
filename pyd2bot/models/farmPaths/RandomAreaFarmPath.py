@@ -1,28 +1,15 @@
 import collections
-import datetime
-import os
-import pickle
-import random
-import threading
-import time
-from typing import Iterator, List, Set, Tuple
-
-import numpy as np
-from matplotlib import pyplot as plt
+from time import perf_counter
+from typing import Iterator, Set
 
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.thriftServer.pyd2botService.ttypes import Path
+from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
-    PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import \
     AStar
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
     Edge
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
-    Transition
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import \
-    TransitionTypeEnum
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
     Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
@@ -42,23 +29,49 @@ class RandomAreaFarmPath(AbstractFarmPath):
         super().__init__()
         self.name = name
         self.startVertex = startVertex
+        self.lastVisited = dict[Vertex, int]()
         self.area = SubArea.getSubAreaByMapId(startVertex.mapId).area
         self.subAreas = self.getAllSubAreas()
         self.mapIds = self.getAllMapsIds()
         self.verticies = self.reachableVerticies()
-        self.visited = set()
 
     @property
     def pourcentExplored(self):
-        return 100 * len(self.visited) / len(self.verticies)
+        return 100 * len(self.lastVisited) / len(self.verticies)
 
-    def outgoingEdges(self, vertex=None) -> Iterator[Edge]:
+    def getClosestUnvisited(self):
+        bestDist = float("inf")
+        bestSolution = None
+        currMp = MapPosition.getMapPositionById(self.currentVertex.mapId)
+        for v in self.verticies:
+            if v.mapId == self.currentVertex.mapId:
+                continue
+            if v not in self.lastVisited:
+                vMp = MapPosition.getMapPositionById(v.mapId)
+                dist = abs(currMp.posX - vMp.posX) + abs(currMp.posY - vMp.posY)
+                if dist < bestDist:
+                    bestDist = dist
+                    bestSolution = v
+        if bestSolution is None:
+            Logger().error(f"No unvisited vertex found")
+        return bestSolution
+            
+    def outgoingEdges(self, vertex=None, onlyNonRecentVisited=False) -> Iterator[Edge]:
         if vertex is None:
             vertex = self.currentVertex
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
+        ret = []
         for edge in outgoingEdges:
             if edge.dst.mapId in self.mapIds and AStar.hasValidTransition(edge):
-                yield edge
+                if onlyNonRecentVisited:
+                    if edge.dst in self.lastVisited:
+                        if perf_counter() - self.lastVisited[edge.dst] > 60 * 60:
+                            ret.append(edge)
+                    else:
+                        ret.append(edge)
+                else:
+                    ret.append(edge)
+        return ret
     
     def reachableVerticies(self) -> Set[Vertex]:
         queue = collections.deque([self.startVertex])

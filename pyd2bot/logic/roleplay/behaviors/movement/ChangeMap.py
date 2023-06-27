@@ -9,6 +9,7 @@ from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
+from pydofus2.com.ankamagames.dofus.datacenter.interactives.Interactive import Interactive
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
@@ -109,7 +110,20 @@ class ChangeMap(AbstractBehavior):
 
     def followEdge(self):
         try:
-            self.transition = next(self.transitions)
+            self.transition: Transition = next(self.transitions)
+            self.trType = TransitionTypeEnum(self.transition.type)
+            if self.isInteractiveTr():
+                self.mapChangeIE = Kernel().interactivesFrame._ie.get(self.transition.id)
+                if self.mapChangeIE:
+                    trie = Interactive.getInteractiveById(self.mapChangeIE.element.elementTypeId)
+                    if trie:
+                        Logger().debug(f"Transition IE is {trie.name} ==> {trie.actionId}")
+                    if self.mapChangeIE.element.elementTypeId == Kernel().interactivesFrame.ZAAP_TYPEID:
+                        Logger().warning(f"Current transition is using a Zaap it must be discarded.")
+                        self.transition = next(self.transitions)
+                else:
+                    Logger().warning(f"Unable to find transiton IE!.")
+                    self.transition = next(self.transitions)
         except StopIteration:
             return self.finish(MovementFailError.INVALID_TRANSITION, "No valid transition found!")
         self.followTransition()
@@ -143,10 +157,10 @@ class ChangeMap(AbstractBehavior):
     
     def getScrollCells(self):
         if self.transition.id in self.forbidenScrollCells:
-            if self.transition.cell not in self.forbidenScrollCells[self.transition.id]:
+            if self.transition.cell not in self.forbidenScrollCells[self.transition]:
                 yield self.transition.cell
             for c in MapTools.iterMapChangeCells(self.transition.direction):
-                if c not in self.forbidenScrollCells[self.transition.id]:
+                if c not in self.forbidenScrollCells[self.transition]:
                     yield c
         else:
             yield self.transition.cell
@@ -181,9 +195,9 @@ class ChangeMap(AbstractBehavior):
                 return self.finish(reason, f"Change map failed for reason: {reason.name}")
             self.askChangeMap()
         else:
-            if self.transition.id not in self.forbidenScrollCells:
-                self.forbidenScrollCells[self.transition.id] = []
-            self.forbidenScrollCells[self.transition.id].append(self.mapChangeCellId)
+            if self.transition not in self.forbidenScrollCells:
+                self.forbidenScrollCells[self.transition] = []
+            self.forbidenScrollCells[self.transition].append(self.mapChangeCellId)
             self.askChangeMap()
             
     def onRequestTimeout(self, listener: Listener):
@@ -282,6 +296,12 @@ class ChangeMap(AbstractBehavior):
         if code == MapMove.ALREADY_ONCELL and self.isMapActionTr():
             Logger().debug("Already on map action cell, need to move away from it first")
             return self.handleOnsameCellForMapActionCell()
+        elif code == MovementFailError.MOVE_REQUEST_REJECTED:
+            if self.isScrollTr():
+                if self.transition not in self.forbidenScrollCells:
+                    self.forbidenScrollCells[self.transition] = []
+                self.forbidenScrollCells[self.transition].append(self.mapChangeCellId)
+                return self.askChangeMap()
         if error:
             return self.finish(code, error)
         Logger().info("Reached map change cell")

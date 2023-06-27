@@ -366,7 +366,7 @@ class BotFightFrame(Frame):
                 stats.getMaxHealthPoints()
                 ismonster = isinstance(entity, GameFightMonsterInformations)
                 name = "unknown"
-                level = "unknwon"
+                level = "unknown"
                 if isinstance(entity, GameFightMonsterInformations):
                     monster = Monster.getMonsterById(entity.creatureGenericId)
                     name = monster.name

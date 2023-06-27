@@ -13,6 +13,7 @@ from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.bank.RetrieveRecipeFromBank import \
     RetrieveRecipeFromBank
+from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.DQNResourceFarmer import DQNResourceFarm
 from pyd2bot.logic.roleplay.behaviors.farm.QResourceFarm import QResourceFarm
 from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import ResourceFarm
 from pyd2bot.logic.roleplay.behaviors.fight.FarmFights import FarmFights
@@ -119,7 +120,7 @@ class Pyd2Bot(DofusClient):
         
     def startSessionMainBehavior(self):
         if BotConfig().isFarmSession:
-            QResourceFarm().start()
+            DQNResourceFarm().start()
             
         elif BotConfig().isFightSession:
             if BotConfig().isLeader:
