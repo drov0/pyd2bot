@@ -7,6 +7,7 @@ from keras.layers import Dense
 from keras.optimizers import Adam
 import numpy as np
 from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.ResourceFarmerState import ResourceFarmerState
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class DQNAgent:
@@ -16,8 +17,8 @@ class DQNAgent:
         self.action_size = ResourceFarmerState.ACTION_SIZE
         self.memory = deque(maxlen=20000)
         self.gamma = 0.99  # discount rate
-        self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.01
+        self.epsilon = 0.999  # exploration rate
+        self.epsilon_min = 0.3
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.experiences_file = os.path.join(CURR_DIR, 'experience_data.csv')
@@ -45,26 +46,23 @@ class DQNAgent:
             writer.writerow(state.tolist() + [action, reward] + next_state.tolist())
 
     def act(self, state: ResourceFarmerState):
+        Logger().debug(f"Bot probability of exploration is : {self.epsilon:.2f}")
         if np.random.rand() <= self.epsilon:
+            Logger().debug("Agent will chose a random action")
             return state.getRandomValidAction()
+        Logger().debug("Agent will chose the best action")
         state_repr = state.represent()
         state_repr = np.expand_dims(state_repr, axis=0)
         act_values = self.model.predict(state_repr)
-        qvalues = act_values[0]
-        return state.getValidAction(qvalues)
+        return state.getValidAction(act_values[0])
 
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
         for state, action, reward, next_state in minibatch:
-            if action < ResourceFarmerState.ACTION_SIZE:
-                state = np.expand_dims(state, axis=0)
-                next_state = np.expand_dims(next_state, axis=0)
-                target = self.model.predict(state)
-                Q_future = max(self.model.predict(next_state)[0])
-                target[0][action] = reward + Q_future * self.gamma
-                self.model.fit(state, target, epochs=1, verbose=0)
+            self._train_single(state, action, reward, next_state)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+            Logger().debug("Epsilon updated")
 
     def load(self, file_path):
         self.model = load_model(file_path)

@@ -70,6 +70,9 @@ class AbstractFarmBehavior(AbstractBehavior):
             if code == MovementFailError.PLAYER_IS_DEAD:
                 Logger().warning(f"Player is dead.")
                 return self.autoRevive(callback=self.onRevived)
+            elif code == AutoTrip.PLAYER_IN_COMBAT:
+                Logger().debug("Player in combat")
+                return
             return self.finish(code, err)
         Logger().debug(f"Returned to last vertex")
         self.main()
@@ -184,6 +187,9 @@ class AbstractFarmBehavior(AbstractBehavior):
             if code == MovementFailError.PLAYER_IS_DEAD:
                 Logger().warning(f"Player is dead.")
                 return self.autoRevive(callback=self.onRevived)
+            elif code == AutoTrip.PLAYER_IN_COMBAT:
+                Logger().error("Player in combat")
+                return
             return self.finish(code, err)
         Logger().debug(f"Player got back to last map after combat")
         self.main()

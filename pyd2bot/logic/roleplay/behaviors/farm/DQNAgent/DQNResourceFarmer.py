@@ -78,13 +78,16 @@ class DQNResourceFarm(AbstractFarmBehavior):
         self.respawnTimeRecords = {}
         self.discovered = {}
         self.nonFarmable = set()
+        self.lastTimeSentToRandVertex = None
+        self.timeSpentFarming = 0
+        self.timeSpentChangingMap = 0
+        self.timeFarmerStarted = 0
         self.loadAgentState()
-        # self.rewards = []
-        self.agent.epsilon = 0.99999999999999999
-        self.agent.epsilon_decay = 0.99999995
         Logger().debug(f"Qresource farm initialized")
 
     def init(self):
+        if not self.timeFarmerStarted:
+            self.timeFarmerStarted = time.time()
         return True
 
     def onObjectAdded(self, event, iw: ItemWrapper):
@@ -116,17 +119,29 @@ class DQNResourceFarm(AbstractFarmBehavior):
 
     def getCollecteReward(self):
         investedTime = time.time() - self.actionStartTime
+        self.timeSpentFarming += investedTime
         jobxp = sum(
             self.gainedJobExperience.get(jobId, 0) * self.JOB_IMPORTANCE[jobId]
             for jobId in self.gainedJobExperience
         )
         win = jobxp + self.gainedKamas
-        win -= self.lostPod * 40
-        win -= 200 * investedTime / 6
-        win += sum(
-            1000000000 * self.gainedJobLevel.get(jobId, 0) * self.JOB_IMPORTANCE[jobId]
+        win -= self.lostPod 
+        win -= 20 * investedTime / 7
+        jobLvlReward = sum(
+            300 * self.gainedJobLevel.get(jobId, 0) * self.JOB_IMPORTANCE[jobId]
             for jobId in self.gainedJobExperience
         )
+        win += jobLvlReward
+        
+        Logger().debug(f"Gained kamas : {self.gainedKamas}")
+        Logger().debug(f"Gained %xp : {jobxp}%")
+        Logger().debug(f"invested time : {investedTime}")
+        Logger().debug(f"lost pod : {self.lostPod}")
+        Logger().debug(f"Job lvl reward : {jobLvlReward}")
+        Logger().debug(f"total reward : {win}")
+        
+        if win < -1000000:
+            raise Exception("Something is wrong, can't have a reward lesser than -1M")
         return win
 
     def onNextVertex(self, code, error):
@@ -134,15 +149,8 @@ class DQNResourceFarm(AbstractFarmBehavior):
             Logger().warning(error)
             if code == MovementFailError.PLAYER_IS_DEAD:
                 return self.autoRevive(self.onRevived)
-            elif code in [AutoTrip.NO_PATH_FOUND, UseSkill.USE_ERROR]:
+            elif code in [AutoTrip.NO_PATH_FOUND, UseSkill.USE_ERROR, ChangeMap.NEED_QUEST]:
                 Logger().warning("Farmer found forbiden resource")
-                next_state = self.getCurrentState()
-                self.agent.remember(
-                    self.lastState.represent(),
-                    self.lastActionIndex,
-                    -10000,
-                    next_state.represent(),
-                )
                 self.forbidenActions.add(self.lastActionElem)
                 return self.makeAction()
             elif code != ChangeMap.LANDED_ON_WRONG_MAP:
@@ -150,27 +158,31 @@ class DQNResourceFarm(AbstractFarmBehavior):
                     KernelEvent.ClientReconnect,
                     f"Error while moving to next step: {error}.",
                 )
-        self.forbidenActions.clear()
+        reward = 0
         self.currentVertex = self.path.currentVertex
         if self.currentVertex in self.nbrVertexVisites:
             self.nbrVertexVisites[self.currentVertex] += 1
         else:
             self.nbrVertexVisites[self.currentVertex] = 1
-        self.lastTimeVertexVisited[self.currentVertex] = time.time()
+            reward += 20000
+        timeSinceLastVisit = self.getVertexTimeSinceLastVisit(self.currentVertex)
         self.explorationPercentages.append(
-            1.0 * len(self.nbrVertexVisites) / len(self.path.verticies)
+            100.0 * len(self.nbrVertexVisites) / len(self.path.verticies)
         )
-        reward = 0
-        investedTime = time.time() - self.actionStartTime
-        reward -= 200 * investedTime / 6
         next_state = self.getCurrentState()
+        investedTime = time.time() - self.actionStartTime
+        self.timeSpentChangingMap += investedTime
+        reward -= 20 * investedTime / 6
         if len(next_state.resources) == 0 and len(next_state.outgoingEdges) == 1:
             Logger().warning("Farmer found dead end")
-            reward = -10000
-        for r in next_state.resources:
-            if r.uid not in self.discovered:
-                self.discovered[r.uid] = next_state.vertex
-                reward += 200 * self.JOB_IMPORTANCE.get(r.jobId, 10)
+            self.forbidenActions.add(self.lastActionElem)
+        else:
+            for r in next_state.resources:
+                if r.uid not in self.discovered:
+                    self.discovered[r.uid] = next_state.vertex
+                    reward += 1000 * self.JOB_IMPORTANCE.get(r.jobId, 10)
+        if not next_state.getFarmableResources() and timeSinceLastVisit != -1 and timeSinceLastVisit < 5:
+            reward -= 5000
         self.rewards.append(reward)
         self.agent.remember(
             self.lastState.represent(),
@@ -178,14 +190,23 @@ class DQNResourceFarm(AbstractFarmBehavior):
             reward,
             next_state.represent(),
         )
+        Logger().info(f"Agent got reward : {reward}")
+        self.agent._train_single(self.lastState.represent(), self.lastActionIndex, reward, next_state.represent())
         if len(self.agent.memory) > 32:
             self.agent.replay(32)
         self.saveAgentState()
+        if self.lastTimeSentToRandVertex is None or (time.time() - self.lastTimeSentToRandVertex) // 60 > 15:
+            self.lastTimeSentToRandVertex = time.time()
+            rv = random.choice(list(self.path.verticies))
+            self.autotripUseZaap(rv.mapId, rv.zoneId, callback=self.main)
+            return
+        self.lastTimeVertexVisited[self.currentVertex] = time.time()
         self.main()
 
     def executeAction(self, elem):
         self.gainedKamas = 0
         self.gainedJobExperience = {}
+        self.gainedJobLevel = {}
         self.lostPod = 0
         self.actionStartTime = time.time()
         if elem is None:
@@ -213,6 +234,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
                 UseSkill.ELEM_UPDATE_TIMEOUT,
                 MovementFailError.MOVE_REQUEST_REJECTED,
             ]:
+                Logger().error(error)
                 self.forbidenActions.add(self.lastActionElem.uid)
                 return self.requestMapData(callback=self.main)
             return self.send(KernelEvent.ClientShutdown, error)
@@ -221,13 +243,15 @@ class DQNResourceFarm(AbstractFarmBehavior):
         self.collected.add(self.lastActionElem.uid)
         self.lastTimeResourceCollected[self.lastActionElem.uid] = time.time()
         next_state = self.getCurrentState()
+        Logger().info(f"Agent got reward : {reward}")
+        self.agent._train_single(self.lastState.represent(), self.lastActionIndex, reward, next_state.represent())
         self.agent.remember(
             self.lastState.represent(),
             self.lastActionIndex,
             reward,
             next_state.represent(),
         )
-        BenchmarkTimer(0.2, self.main).start()
+        BenchmarkTimer(0.55, self.main).start()
 
     def onInventoryWeightUpdate(self, event, lastWeight, weight, weightMax):
         self.lostPod += weight - lastWeight
@@ -251,7 +275,6 @@ class DQNResourceFarm(AbstractFarmBehavior):
         return state
 
     def makeAction(self):
-        Logger().debug(f"Bot probability of exploration is : {self.agent.epsilon:.2f}")
         self.lastState = self.getCurrentState()
         self.updateRespawnTimers(self.lastState.resources)
         self.logActionsTable(self.lastState.resources, self.lastState.outgoingEdges)
@@ -265,7 +288,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
                 self.agent.remember(
                     self.lastState.represent(),
                     idx,
-                    -200,
+                    -90,
                     self.lastState.represent()
                 )
                 self.nonFarmable.add(r)
@@ -296,6 +319,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
                 "epsilon": self.agent.epsilon,
                 "epsilonMin": self.agent.epsilon_min,
                 "epsilonDecayRate": self.agent.epsilon_decay,
+                "memory": self.agent.memory
             },
             "self": {
                 "rewards": self.rewards,
@@ -308,22 +332,42 @@ class DQNResourceFarm(AbstractFarmBehavior):
                 "respawnTimeRecords": self.respawnTimeRecords,
                 "collected": self.collected,
                 "discovered": self.discovered,
-                "nonFarmable": self.nonFarmable
+                "nonFarmable": self.nonFarmable,
+                "timeFarmerStarted": self.timeFarmerStarted,
+                "timeSpentChangingMap": self.timeSpentChangingMap,
+                "timeSpentFarming": self.timeSpentFarming
             },
         }
         with open(self.stateFile, "wb") as f:
-            pickle.dump(agent_state, f)
+            try:
+                pickle.dump(agent_state, f)
+            except MemoryError:
+                self.rewards.clear()
+                self.explorationPercentages.clear()
+                pickle.dump(agent_state, f)
         self.agent.save(self.modelFile)
 
     def loadAgentState(self):
         if os.path.exists(self.stateFile):
             with open(self.stateFile, "rb") as f:
-                agent_state = pickle.load(f)
-            self.__dict__.update(agent_state["self"])
-            self.agent.__dict__.update(agent_state["agent"])
+                try:
+                    agent_state = pickle.load(f)
+                    self.__dict__.update(agent_state["self"])
+                    self.agent.__dict__.update(agent_state["agent"])
+                except EOFError:
+                    pass
         if os.path.exists(self.modelFile):
             self.agent.load(self.modelFile)
 
+    def getVertexTimeSinceLastVisit(self, vertex):
+        if vertex in self.lastTimeVertexVisited:
+            timeSinceLastVisite = (
+                time.time() - self.lastTimeVertexVisited[vertex]
+            ) // 60
+        else:
+            timeSinceLastVisite = -1
+        return timeSinceLastVisite
+    
     def logActionsTable(self, resources: list[CollectableResource], edges: list[Edge]):
         if resources:
             headers = [
@@ -362,7 +406,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
                 )
             Logger().debug(f"Available resources :\n{summaryTable}")
         if edges:
-            headers = ["src", "dst", "lastVisited", "nbrVisites"]
+            headers = ["src", "dst", "timeSinceLastVisit", "nbrVisites"]
             summaryTable = PrettyTable(headers)
             for e in edges:
                 if e.dst in self.lastTimeVertexVisited:

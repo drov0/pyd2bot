@@ -45,6 +45,7 @@ class ChangeMap(AbstractBehavior):
     MAP_ACTION_ALREADY_ONCELL = 1204
     INVALID_TRANSITION = 1342
     MAP_CHANGED_UNEXPECTEDLY = 1556
+    NEED_QUEST = 879908
 
     def __init__(self) -> None:
         super().__init__()
@@ -68,6 +69,7 @@ class ChangeMap(AbstractBehavior):
         self._scrollMapChangeRequestTimer: BenchmarkTimer = None
 
     def run(self, transition: Transition=None, edge: Edge=None, dstMapId=None):
+        self.on(KernelEvent.ServerTextInfo, self.onServerTextInfo)
         if transition:
             self.dstMapId = dstMapId
             self.transition = transition
@@ -78,7 +80,12 @@ class ChangeMap(AbstractBehavior):
             self.followEdge()
         else:
             self.finish(False, "No transition or edge provided")
-
+            
+    def onServerTextInfo(self, event, msgId, msgType, textId, text, params):
+        if msgId == 4908:
+            Logger().error("Need a quest to be completed")
+            return self.finish(self.NEED_QUEST, "Need a quest to be completed")
+        
     @property
     def rpiframe(cls) -> "RoleplayInteractivesFrame":
         return Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
