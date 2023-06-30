@@ -6,6 +6,7 @@ from keras.models import Sequential, load_model, save_model
 from keras.layers import Dense
 from keras.optimizers import Adam
 import numpy as np
+from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.PrioritizedMemory import PrioritizedMemory
 from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.ResourceFarmerState import ResourceFarmerState
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,8 +16,8 @@ class DQNAgent:
     def __init__(self):
         self.state_size = ResourceFarmerState.STATE_SIZE
         self.action_size = ResourceFarmerState.ACTION_SIZE
-        self.memory = deque(maxlen=2000)
-        self.gamma = 0.99  # discount rate
+        self.memory = PrioritizedMemory(2000, self)
+        self.gamma = 0.99999  # discount rate
         self.epsilon = 0.999  # exploration rate
         self.epsilon_min = 0.3
         self.epsilon_decay = 0.995
@@ -38,7 +39,7 @@ class DQNAgent:
         return model
 
     def remember(self, state, action, reward, next_state):
-        self.memory.append((state, action, reward, next_state))        
+        self.memory.add(state, action, reward, next_state)        
         
         # Save to CSV for offline training.
         with open(self.experiences_file, 'a', newline='') as file:
@@ -46,8 +47,14 @@ class DQNAgent:
             writer.writerow(state.tolist() + [action, reward] + next_state.tolist())
 
     def act(self, state: ResourceFarmerState):
-        Logger().debug(f"Bot probability of exploration is : {self.epsilon:.2f}")
-        if np.random.rand() <= self.epsilon:
+        # Adjust epsilon based on state characteristics
+        epsilon = self.epsilon
+        if state.nbrVertexVisites.get(state.vertex, 0) > 10:
+            epsilon = 0.1  # Decrease epsilon if the current vertex has been visited frequently
+        if not state.getFarmableResources():
+            epsilon = 0.8  # Decrease epsilon if there are no farmable resources in the current state
+        Logger().debug(f"Bot probability of exploration is : {epsilon:.2f}")
+        if np.random.rand() <= epsilon:
             Logger().debug("Agent will chose a random action")
             return state.getRandomValidAction()
         Logger().debug("Agent will chose the best action")
@@ -57,9 +64,9 @@ class DQNAgent:
         return state.getValidAction(act_values[0])
 
     def replay(self, batch_size):
-        minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state in minibatch:
-            self._train_single(state, action, reward, next_state)
+        minibatch, is_weights = self.memory.sample(batch_size)
+        for (state, action, reward, next_state), is_weight in zip(minibatch, is_weights):
+            self._train_single(state, action, reward, next_state, is_weight)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
             Logger().debug("Epsilon updated")
@@ -90,13 +97,20 @@ class DQNAgent:
             
         self.save(self.model_path)
         
-    def _train_single(self, state, action, reward, next_state):
+    def _train_single(self, state, action, reward, _next_state, is_weight=1):
         if action < ResourceFarmerState.ACTION_SIZE:
             state = np.expand_dims(state, axis=0)
-            next_state = np.expand_dims(next_state, axis=0)
+            next_state = np.expand_dims(_next_state, axis=0)
             target = self.model.predict(state)
+            
+            q_values = self.model.predict(next_state)[0]
+            ResourceFarmerState.getMaxQvalue(_next_state, q_values)
             Q_future = max(self.model.predict(next_state)[0])
             target[0][action] = reward + Q_future * self.gamma
+
+            # Adjust the target based on the importance sampling weight
+            target *= is_weight
+
             self.model.fit(state, target, epochs=1, verbose=0)
             
 if __name__ == "__main__":

@@ -60,6 +60,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
         self.currentVertex = None
         self.stateFile = os.path.join(CURR_DIR, f"{Logger().prefix}_state.pkl")
         self.modelFile = os.path.join(CURR_DIR, f"{Logger().prefix}_agent_model")
+        self.areaScrappingFile = os.path.join(CURR_DIR, f"Area_Data.pkl")
         self.jobFilter = BotConfig().jobFilter
         self.path: RandomAreaFarmPath = BotConfig().path
         self.forbidenActions = set()
@@ -83,6 +84,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
         self.timeSpentChangingMap = 0
         self.timeFarmerStarted = 0
         self.timeSpentLearning = 0
+        self.areaScrapping = {}
         self.loadAgentState()
         Logger().debug(f"Qresource farm initialized")
 
@@ -170,7 +172,16 @@ class DQNResourceFarm(AbstractFarmBehavior):
         self.explorationPercentages.append(
             100.0 * len(self.nbrVertexVisites) / len(self.path.verticies)
         )
+        s = time.time()
         next_state = self.getCurrentState()
+        if next_state.vertex not in self.areaScrapping:
+            self.areaScrapping[next_state.vertex] = {
+                "resources": next_state.resources,
+                "edges": next_state.outgoingEdges
+            }
+            with open(self.areaScrappingFile, 'wb') as fp:
+                pickle.dump(self.areaScrapping, fp)
+        Logger().debug(f"Get state took : {time.time() - s}")
         investedTime = time.time() - self.actionStartTime
         self.timeSpentChangingMap += investedTime
         reward -= 20 * investedTime / 6
@@ -323,8 +334,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
                 "gamma": self.agent.gamma,
                 "epsilon": self.agent.epsilon,
                 "epsilonMin": self.agent.epsilon_min,
-                "epsilonDecayRate": self.agent.epsilon_decay,
-                "memory": self.agent.memory
+                "epsilonDecayRate": self.agent.epsilon_decay            
             },
             "self": {
                 "rewards": self.rewards,

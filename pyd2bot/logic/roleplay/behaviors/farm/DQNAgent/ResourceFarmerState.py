@@ -48,7 +48,7 @@ class ResourceFarmerState:
     def resource_representation(self, resource: CollectableResource):
         return [
             resource.resourceId,
-            int(resource.canFarm(self.jobFilter)),
+            int(resource.uid not in self.forbiddenActions and resource.canFarm(self.jobFilter)),
             resource.jobId,
             resource.distance,
         ]
@@ -136,11 +136,11 @@ class ResourceFarmerState:
             else:
                 return None
 
-    def getValidAction(self, q_values):
+    def getValidActionsMask(self):
         # Create a mask of valid actions
-        valid_actions_mask = np.zeros_like(q_values)
         num_resources = min(len(self.resources), self.MAX_RESOURCES)
         num_outgoing_edges = min(len(self.outgoingEdges), self.MAX_NEIGHBORS)
+        valid_actions_mask = np.zeros(self.MAX_RESOURCES + self.MAX_NEIGHBORS)
 
         # Mark the valid resource actions as 1
         for resource_index in range(num_resources):
@@ -153,19 +153,14 @@ class ResourceFarmerState:
             e = self.outgoingEdges[edge_index]
             if e not in self.forbiddenActions:
                 valid_actions_mask[self.MAX_RESOURCES + edge_index] = 1
-
+        return valid_actions_mask
+    
+    def getValidAction(self, q_values):
+        valid_actions_mask = self.getValidActionsMask()
         # Apply the mask to the q_values
         valid_q_values = np.where(valid_actions_mask, q_values, -np.inf)
-
         # Return the action with maximum Q-value among valid actions
-        res = np.argmax(valid_q_values)
-
-        assert (
-            0 <= res < num_resources
-            or self.MAX_RESOURCES <= res < self.MAX_RESOURCES + num_outgoing_edges
-        )
-        assert res < self.ACTION_SIZE
-        return res
+        return np.argmax(valid_q_values)
 
     def getRandomValidAction(self):
         # Create a list of valid actions
@@ -209,3 +204,53 @@ class ResourceFarmerState:
         )
         assert res < self.ACTION_SIZE
         return res
+
+    @classmethod
+    def extractResourceInfo(cls, state_repr, resource_index):
+        resource_info = {}
+        if resource_index < cls.MAX_RESOURCES:
+            index_offset = 2 + 5 * 4 + 2  # Offset in the state_repr vector for resource representation
+            index = index_offset + resource_index * 5  # Calculate the starting index for the resource
+            resource_info['resourceId'] = int(state_repr[index])
+            resource_info['canFarm'] = bool(state_repr[index + 1])
+            resource_info['jobId'] = int(state_repr[index + 2])
+            resource_info['distance'] = int(state_repr[index + 3])
+            resource_info['timeSinceLastCollect'] = int(state_repr[index + 4])
+        return resource_info
+
+    @classmethod
+    def extractNeighborInfo(cls, state_repr, neighbor_index):
+        neighbor_info = {}
+        if neighbor_index < cls.MAX_NEIGHBORS:
+            index_offset = (
+                2 + 5 * 4 + 2 + cls.MAX_RESOURCES * 5
+            )  # Offset in the state_repr vector for neighbor representation
+            index = index_offset + neighbor_index * 4  # Calculate the starting index for the neighbor
+            neighbor_info['mapId'] = int(state_repr[index])
+            neighbor_info['zoneId'] = int(state_repr[index + 1])
+            neighbor_info['visitCount'] = int(state_repr[index + 2])
+            neighbor_info['timeSinceLastInteraction'] = int(state_repr[index + 3])
+        return neighbor_info
+    
+    @classmethod
+    def getMaxQvalue(cls, repr, q_values):        # Create a mask of valid actions
+        valid_actions_mask = np.zeros(cls.MAX_RESOURCES + cls.MAX_NEIGHBORS)
+
+        # Mark the valid resource actions as 1
+        for resource_index in range(cls.MAX_RESOURCES):
+            r = cls.extractResourceInfo(repr, resource_index)
+            if r['resourceId'] == 0:
+                break
+            if r["canFarm"]:
+                valid_actions_mask[resource_index] = 1
+
+        # Mark the valid vertex actions as 1
+        for edge_index in range(cls.MAX_NEIGHBORS):
+            e = cls.extractNeighborInfo(repr, edge_index)
+            if e['mapId'] == 0:
+                break
+            valid_actions_mask[cls.MAX_RESOURCES + edge_index] = 1
+        
+        valid_q_values = np.where(valid_actions_mask, q_values, -np.inf)
+        
+        return np.max(valid_q_values)
