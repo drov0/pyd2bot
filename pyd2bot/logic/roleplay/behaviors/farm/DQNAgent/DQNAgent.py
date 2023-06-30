@@ -15,7 +15,7 @@ class DQNAgent:
     def __init__(self):
         self.state_size = ResourceFarmerState.STATE_SIZE
         self.action_size = ResourceFarmerState.ACTION_SIZE
-        self.memory = deque(maxlen=20000)
+        self.memory = deque(maxlen=2000)
         self.gamma = 0.99  # discount rate
         self.epsilon = 0.999  # exploration rate
         self.epsilon_min = 0.3

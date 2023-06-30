@@ -47,7 +47,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
         2: 17,  # woodshoper,
         26: 12,  # alchimist
         28: 8,  # farmer
-        24: 20,  # miner
+        24: 200,  # miner
     }
 
     def __init__(
@@ -82,6 +82,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
         self.timeSpentFarming = 0
         self.timeSpentChangingMap = 0
         self.timeFarmerStarted = 0
+        self.timeSpentLearning = 0
         self.loadAgentState()
         Logger().debug(f"Qresource farm initialized")
 
@@ -181,8 +182,8 @@ class DQNResourceFarm(AbstractFarmBehavior):
                 if r.uid not in self.discovered:
                     self.discovered[r.uid] = next_state.vertex
                     reward += 1000 * self.JOB_IMPORTANCE.get(r.jobId, 10)
-        if not next_state.getFarmableResources() and timeSinceLastVisit != -1 and timeSinceLastVisit < 5:
-            reward -= 5000
+        if not next_state.getFarmableResources() and timeSinceLastVisit != -1 and timeSinceLastVisit < 3:
+            reward -= 15000
         self.rewards.append(reward)
         self.agent.remember(
             self.lastState.represent(),
@@ -191,9 +192,11 @@ class DQNResourceFarm(AbstractFarmBehavior):
             next_state.represent(),
         )
         Logger().info(f"Agent got reward : {reward}")
+        t = time.time()
         self.agent._train_single(self.lastState.represent(), self.lastActionIndex, reward, next_state.represent())
         if len(self.agent.memory) > 32:
             self.agent.replay(32)
+        self.timeSpentLearning += time.time() - t
         self.saveAgentState()
         if self.lastTimeSentToRandVertex is None or (time.time() - self.lastTimeSentToRandVertex) // 60 > 15:
             self.lastTimeSentToRandVertex = time.time()
@@ -244,7 +247,9 @@ class DQNResourceFarm(AbstractFarmBehavior):
         self.lastTimeResourceCollected[self.lastActionElem.uid] = time.time()
         next_state = self.getCurrentState()
         Logger().info(f"Agent got reward : {reward}")
+        t = time.time()
         self.agent._train_single(self.lastState.represent(), self.lastActionIndex, reward, next_state.represent())
+        self.timeSpentLearning += time.time() - t
         self.agent.remember(
             self.lastState.represent(),
             self.lastActionIndex,
