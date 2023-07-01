@@ -118,4 +118,5 @@ if __name__ == "__main__":
     agent = DQNAgent()
     agent.model_path = model_path
     agent.load(model_path)
-    agent.train_from_csv(32)
+    for _ in range(20):
+        agent.train_from_csv(32)
