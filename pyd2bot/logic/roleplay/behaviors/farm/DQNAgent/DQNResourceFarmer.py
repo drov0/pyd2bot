@@ -209,11 +209,11 @@ class DQNResourceFarm(AbstractFarmBehavior):
             self.agent.replay(32)
         self.timeSpentLearning += time.time() - t
         self.saveAgentState()
-        if self.lastTimeSentToRandVertex is None or (time.time() - self.lastTimeSentToRandVertex) // 60 > 15:
-            self.lastTimeSentToRandVertex = time.time()
-            rv = random.choice(list(self.path.verticies))
-            self.autotripUseZaap(rv.mapId, rv.zoneId, callback=self.main)
-            return
+        # if self.lastTimeSentToRandVertex is None or (time.time() - self.lastTimeSentToRandVertex) // 60 > 15:
+        #     self.lastTimeSentToRandVertex = time.time()
+        #     rv = random.choice(list(self.path.verticies))
+        #     self.autotripUseZaap(rv.mapId, rv.zoneId, callback=self.main)
+        #     return
         self.lastTimeVertexVisited[self.currentVertex] = time.time()
         self.main()
 
