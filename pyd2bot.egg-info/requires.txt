@@ -1,2 +1,3 @@
 thrift
 pydofus2
+prettytable

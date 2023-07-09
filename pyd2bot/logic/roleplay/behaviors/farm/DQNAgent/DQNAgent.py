@@ -1,14 +1,21 @@
-from collections import deque
 import csv
+import gc
 import os
 import random
-from keras.models import Sequential, load_model, save_model
-from keras.layers import Dense
-from keras.optimizers import Adam
+
+import keras
 import numpy as np
-from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.PrioritizedMemory import PrioritizedMemory
-from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.ResourceFarmerState import ResourceFarmerState
+import tensorflow as tf
+from keras.layers import Dense
+from keras.models import Sequential, load_model
+from keras.optimizers import Adam
+
+from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.PrioritizedMemory import \
+    PrioritizedMemory
+from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.ResourceFarmerState import \
+    ResourceFarmerState
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class DQNAgent:
@@ -35,7 +42,7 @@ class DQNAgent:
         model.add(Dense(128, activation="relu"))
         model.add(Dense(64, activation="relu"))
         model.add(Dense(self.action_size, activation="linear"))
-        model.compile(loss="mse", optimizer=Adam(learning_rate=self.learning_rate))
+        model.compile(loss="mse", optimizer=Adam(learning_rate=self.learning_rate), run_eagerly=True)
         return model
 
     def remember(self, state, action, reward, next_state):
@@ -77,7 +84,7 @@ class DQNAgent:
     def save(self, file_path):
         self.model.save(file_path)
 
-    def train_from_csv(self, batch_size):
+    def train_from_csv(self, batch_size, epochs):
         with open(self.experiences_file, 'r') as file:
             reader = csv.reader(file)
             data = []
@@ -87,14 +94,29 @@ class DQNAgent:
                 reward = float(row[self.state_size + 1])
                 next_state = np.array(row[self.state_size + 2:], dtype=float)
                 data.append((state, action, reward, next_state))
+        
+        random.shuffle(data)  # Shuffle the data before batching
+        batch_count = len(data) // batch_size
 
-        random.shuffle(data)
+        for i in range(batch_count):
+            batch_data = data[i*batch_size:(i+1)*batch_size]
+            states, targets = [], []
 
-        for i in range(0, len(data), batch_size):
-            batch_data = data[i:i+batch_size]
             for state, action, reward, next_state in batch_data:
-                self._train_single(state, action, reward, next_state)
-            
+                target = self.model.predict(np.expand_dims(state, axis=0))[0]
+                q_values = self.model.predict(np.expand_dims(next_state, axis=0))[0]
+                Q_future = ResourceFarmerState.getMaxQvalue(next_state, q_values)
+                target[action] = reward + Q_future * self.gamma
+                states.append(state)
+                targets.append(target)
+
+            states = np.array(states)
+            targets = np.array(targets)
+
+            self.model.fit(states, targets, epochs=1, verbose=1)
+            keras.backend.clear_session()
+            gc.collect()
+
         self.save(self.model_path)
         
     def _train_single(self, state, action, reward, _next_state, is_weight=1):
@@ -104,8 +126,7 @@ class DQNAgent:
             target = self.model.predict(state)
             
             q_values = self.model.predict(next_state)[0]
-            ResourceFarmerState.getMaxQvalue(_next_state, q_values)
-            Q_future = max(self.model.predict(next_state)[0])
+            Q_future = ResourceFarmerState.getMaxQvalue(_next_state, q_values)
             target[0][action] = reward + Q_future * self.gamma
 
             # Adjust the target based on the importance sampling weight
@@ -117,6 +138,6 @@ if __name__ == "__main__":
     model_path = os.path.join(CURR_DIR, "lamarque.samuel99@gmail.com_agent_model")
     agent = DQNAgent()
     agent.model_path = model_path
-    agent.load(model_path)
-    for _ in range(20):
-        agent.train_from_csv(32)
+    # agent.load(model_path)
+    for _ in range(100):
+        agent.train_from_csv(32, 100)
