@@ -30,11 +30,16 @@ class FindHintNpc(AbstractBehavior):
     def onNewMap(self, code, err):
         if err:
             return self.finish(code, err)
-        if Kernel().entitiesFrame.treasureHuntNpc and Kernel().entitiesFrame.treasureHuntNpc.npcId == self.npcId:
+        found_thnpc = Kernel().entitiesFrame.treasureHuntNpc
+        if found_thnpc and found_thnpc.npcId == self.npcId:
+            # while parsing new map data if the special treasure hunt npc is found it is stored in the treasureHuntNpc attribute
+            # if its found we simply return without ending the behavior because the entities frame it self will send the event treasureHuntNpc that will 
+            # be cought in this same behvior.
+            # but if its not found then we have to move to another map
             return
         currV = PlayedCharacterManager().currVertex
         for edge in WorldGraph().getOutgoingEdgesFromVertex(currV):
             for transition in edge.transitions:
                 if transition.direction != -1 and transition.direction == self.direction:
                     return self.changeMap(transition=transition, dstMapId=edge.dst.mapId, callback=self.onNewMap)
-        return self.finish(self.UNABLE_TO_FIND_HINT, f"Couldn't find NPC hint in the given direction")
+        self.finish(self.UNABLE_TO_FIND_HINT, f"Couldn't find NPC hint in the given direction")

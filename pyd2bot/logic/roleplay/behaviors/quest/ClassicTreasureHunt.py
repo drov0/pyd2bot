@@ -54,6 +54,7 @@ class ClassicTreasureHunt(AbstractBehavior):
     TREASURE_HUNT_ATM_IEID = 484993
     TREASURE_HUNT_ATM_SKILLUID = 152643320
     RAPPEL_POTION_GUID = 548
+    CHESTS_GUID = [15260, 15248, 15261]
     ZAAP_HUNT_MAP = 142087694
 
     with open(HINTS_FILE, "r") as fp:
@@ -131,7 +132,7 @@ class ClassicTreasureHunt(AbstractBehavior):
         else:
             self.autoTrip(self.TAKE_QUEST_MAPID, 1, callback=self.onTakeQuestMapReached)
 
-    def goToHuntAtm(self):
+    def  goToHuntAtm(self):
         Logger().debug(f"AutoTravelling to treasure hunt ATM")
         distanceToTHATMZaap = MapTools.distanceBetweenTwoMaps(self.currentMapId, self.ZAAP_HUNT_MAP)
         Logger().debug(f"Distance to ATM Zaap is {distanceToTHATMZaap}")
@@ -154,9 +155,8 @@ class ClassicTreasureHunt(AbstractBehavior):
         )
 
     def onObjectAdded(self, event, iw: ItemWrapper):
-        Logger().info(f"{iw.name}, gid {iw.objectGID}, uid {iw.objectUID}, {iw.description}")
-        if iw.objectGID in [15260, 15248, 15261] or "coffre" in iw.name.lower():
-            Logger().debug(f"{iw.name} {iw.objectUID}, {iw.objectGID}")
+        Logger().info(f"{iw.name}, gid {iw.objectGID}, uid {iw.objectUID}, {iw.description} added to inventory")
+        if iw.objectGID in self.CHESTS_GUID or "coffre" in iw.name.lower():
             Kernel().inventoryManagementFrame.useItem(iw)
             sleep(1)
 
