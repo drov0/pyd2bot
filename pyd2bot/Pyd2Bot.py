@@ -116,7 +116,7 @@ class Pyd2Bot(DofusClient):
     def onMainBehaviorFinish(self, code, err):
         if err:
             Logger().error(err, exc_info=True)
-        self.shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, err)
+            self.shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, err)
         
     def startSessionMainBehavior(self):
         if BotConfig().isFarmSession:
