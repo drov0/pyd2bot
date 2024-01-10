@@ -63,6 +63,9 @@ def sendTrace(func):
 class Pyd2botServer:
     def __init__(self, id: str):
         self.id = id
+        self.sessionsCtrl = None
+
+    def ini_sessions_ctl(self):
         self.sessionsCtrl = SessionCtrl()
 
     @sendTrace

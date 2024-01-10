@@ -30,7 +30,7 @@ class AbstractBehavior(BehaviorApi, metaclass=Singleton):
 
     def start(self, *args, parent: 'AbstractBehavior'=None, callback=None, **kwargs) -> None:
         if self.parent and not self.parent.running.is_set():
-            return Logger().debug(f"Cancel start coz parent is dead")
+            return Logger().debug(f"Cancel start for reason : parent exists abd it is dead.")
         self.callback = callback
         self.parent = parent
         if self.parent:

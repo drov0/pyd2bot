@@ -44,7 +44,7 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         self._recent_visited = [(_, time_added) for (_, time_added) in self._recent_visited if (time.time() - time_added) < 60 * 5]
         return [v for v, _ in self._recent_visited]
     
-    def __next__(self) -> Tuple[Transition, Edge]:
+    def __next__(self, forbidenEdges=None) -> Tuple[Transition, Edge]:
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(self.currentVertex)
         transitions = list[Tuple[Edge, Transition]]()
         for edge in outgoingEdges:

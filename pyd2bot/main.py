@@ -20,6 +20,7 @@ if __name__ == "__main__":
         Logger.prefix = args.id
         Logger("Pyd2BotServer", True)
         handler = Pyd2botServer(args.id)
+        handler.ini_sessions_ctl()
         processor = Pyd2botService.Processor(handler)
         serverTransport = THttpServer.THttpServer(processor, (args.host, args.port), TJSONProtocolFactory())
         serverTransport.httpd.RequestHandlerClass = getReqHandler(serverTransport)

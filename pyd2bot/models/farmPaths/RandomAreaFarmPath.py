@@ -1,4 +1,5 @@
 import collections
+import random
 from time import perf_counter
 from typing import Iterator, Set
 
@@ -72,6 +73,14 @@ class RandomAreaFarmPath(AbstractFarmPath):
                 else:
                     ret.append(edge)
         return ret
+    
+    def __next__(self, forbidenEdges) -> Edge:
+        outgoingEdges = list(self.outgoingEdges(onlyNonRecentVisited=True))
+        outgoingEdges = [e for e in outgoingEdges if e not in forbidenEdges]
+        if not outgoingEdges:
+            raise NoTransitionFound()
+        edge = random.choice(outgoingEdges)
+        return edge
     
     def reachableVerticies(self) -> Set[Vertex]:
         queue = collections.deque([self.startVertex])

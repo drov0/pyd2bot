@@ -141,12 +141,15 @@ class UseSkill(AbstractBehavior):
                     self.finish(True, None)
 
     def onElemUpdateWaitTimeout(self, listener: Listener):
+        if not self.running.is_set():
+            return
         self.finish(self.ELEM_UPDATE_TIMEOUT, "Elem update wait timedout")
 
     def onUseError(self, event, elementId):
+        if not self.running.is_set():
+            return
         if MapMove().isRunning():
             MapMove().stop()
-        
         self.finish(self.USE_ERROR, "Can't use this element, probably not in range")
 
     def requestActivateSkill(self) -> None:

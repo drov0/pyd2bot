@@ -43,6 +43,8 @@ class AbstractFarmBehavior(AbstractBehavior):
     def __init__(self, timeout=None):
         self.timeout = timeout
         self.currentVertex: Vertex = None
+        self.forbidenActions = set()
+        self.forbidenEdges = set()
         super().__init__()
 
     def run(self, *args, **kwargs):
@@ -97,11 +99,14 @@ class AbstractFarmBehavior(AbstractBehavior):
             if code == MovementFailError.PLAYER_IS_DEAD:
                 Logger().warning(f"Player is dead.")
                 return self.autoRevive(self.onRevived)
-            elif code != ChangeMap.LANDED_ON_WRONG_MAP:
+            elif code == ChangeMap.LANDED_ON_WRONG_MAP:
+                Logger().warning(f"Player landed on wrong map!")
+            else:
                 return self.send(
                     KernelEvent.ClientRestart,
                     "Error while moving to next step: %s." % error,
                 )
+        self.path.lastVisited[self._currEdge] = perf_counter()
         self.forbidenActions = set()
         self.main()
 
@@ -109,7 +114,7 @@ class AbstractFarmBehavior(AbstractBehavior):
         if not self.running.is_set():
             return
         try:
-            self._currEdge = next(self.path)
+            self._currEdge = self.path.__next__(self.forbidenEdges)
         except NoTransitionFound as e:
             return self.onBotOutOfFarmPath()
         self.changeMap(
@@ -212,6 +217,7 @@ class AbstractFarmBehavior(AbstractBehavior):
             Logger().error(f"Is not running!")
             return
         if self.timeout and perf_counter() - self.startTime > self.timeout:
+            Logger().warning(f"Ending Behavior for reason : Timeout reached")
             return self.finish(True, None)
         if PlayedCharacterManager().currentMap is None:
             return self.onceMapProcessed(callback=self.main)
@@ -224,6 +230,7 @@ class AbstractFarmBehavior(AbstractBehavior):
             Logger().warning(f"Inventory is almost full will trigger auto unload ...")
             return self.UnloadInBank(callback=self.onBotUnloaded)
         if not self.initialized:
+            Logger().debug(f"Initializing behavior...")
             self.initialized = True
             if self.currentVertex:
                 Logger().debug(f"Traveling to the memorized current vertex...")
@@ -236,10 +243,13 @@ class AbstractFarmBehavior(AbstractBehavior):
         self.makeAction()
 
     def makeAction(self):
+        '''
+        This method is called each time the main loop is called.
+        It should be overriden by subclasses to implement the behavior.
+        The default implementation is to collect the nearest resource.
+        '''
         pass
 
-    def getAvailableResources(self):
-        raise NotImplementedError()
 
     def getAvailableResources(self) -> list[CollectableResource]:
         if not Kernel().interactivesFrame:
@@ -248,3 +258,19 @@ class AbstractFarmBehavior(AbstractBehavior):
         collectables = Kernel().interactivesFrame.collectables.values()
         collectableResources = [CollectableResource(it) for it in collectables]
         return collectableResources
+
+    def logResourcesTable(self, resources: list[CollectableResource]):
+        if resources:
+            headers = ["jobName", "resourceName", "enabled", "reachable", "canFarm", ]
+            summaryTable = PrettyTable(headers)
+            for e in resources:
+                summaryTable.add_row(
+                    [
+                        e.resource.skill.parentJob.name,
+                        e.resource.skill.gatheredRessource.name,
+                        e.resource.enabled,
+                        e.reachable,
+                        e.canFarm(self.jobFilter)
+                    ]
+                )
+            Logger().debug(f"Available resources :\n{summaryTable}")

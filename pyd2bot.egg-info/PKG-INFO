@@ -9,6 +9,9 @@ Classifier: Programming Language :: Python :: 3.9.11
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: Windows
 Requires-Python: <=3.9.13
+Requires-Dist: thrift
+Requires-Dist: pydofus2
+Requires-Dist: prettytable
 
 # pyd2bot
 A bot that uses pydofus2 as a background client

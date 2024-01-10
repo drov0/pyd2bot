@@ -1,19 +1,15 @@
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractFarmBehavior import \
     AbstractFarmBehavior
+from pyd2bot.logic.roleplay.behaviors.farm.CollectableResource import CollectableResource
 from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
-from pydofus2.com.ankamagames.dofus.internalDatacenter.DataEnum import DataEnum
 from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
     ItemWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
-    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import MovementFailError
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
-    Pathfinding
 
 
 class ResourceFarm(AbstractFarmBehavior):
@@ -24,74 +20,54 @@ class ResourceFarm(AbstractFarmBehavior):
     def init(self):
         self.jobFilter = BotConfig().jobFilter
         self.path = BotConfig().path
+        self.currentTarget: CollectableResource = None
         self.on(KernelEvent.ObjectAdded, self.onObjectAdded)
         self.on(KernelEvent.ObtainedItem, self.onObtainedItem)
+        return True
 
-    def onObtainedItem(self, event, guid, qty):
-        averageKamasWon = Kernel().averagePricesFrame.getItemAveragePrice(guid) * qty
-        self._totalRewardOfCurrMap += averageKamasWon
-        Logger().debug(f"Average kamas won: {averageKamasWon}")
-        
-    def onObjectAdded(self, event, iw:ItemWrapper):
-        if "sac de " in iw.name.lower():
-            return Kernel().inventoryManagementFrame.useItem(iw.objectGID, iw.quantity, False, iw)
-        
-    def isCollectErrRequireRestart(self, code: int) -> bool:
-        return code not in [UseSkill.ELEM_BEING_USED, UseSkill.ELEM_TAKEN, UseSkill.CANT_USE, UseSkill.USE_ERROR]
-    
-    def isCollectErrCodeRequireRefresh(self, code: int) -> bool:
-        return code in [UseSkill.ELEM_BEING_USED]
-    
-    def isCollectErrRequireShutdown(self, code):
-        return False
-    
-    def collectCurrResource(self):
-        self.useSkill(ie=self.currentTarget["interactiveElement"], cell=self.currentTarget["nearestCell"], callback=self.onCollectEnd)
-
-    def getResourcesTableHeaders(self) -> list[str]:
-        return ["jobName", "resourceName", "distance", "enabled", "reachable", "canFarm"]
-
-    def iterResourceToCollect(self) -> list[dict]:
-        collectables = Kernel().interactivesFrame.collectables.values()
-        availableResources = []
-        for it in collectables:
-            ie = Kernel().interactivesFrame.interactives.get(it.id)
-            playerJobLevel = PlayedCharacterManager().joblevel(it.skill.parentJobId)
-            r = {
-                "jobId": it.skill.parentJobId,
-                "jobName": it.skill.parentJob.name,
-                "resourceId": it.skill.gatheredRessource.id,
-                "resourceName": it.skill.gatheredRessource.name,
-                "jobLevelMin": it.skill.levelMin,
-                "interactiveElement": ie,
-                "enabled": it.enabled,
-                "playerJobLevel": playerJobLevel,
-                "hasLevel": playerJobLevel >= it.skill.levelMin,
-                "insidePlayerZone": PlayedCharacterManager().inSameRpZone(ie.position.cellId),
-            }
-            movePath = Pathfinding().findPath(PlayedCharacterManager().entity.position, ie.position)
-            r["reachable"] = movePath is not None and movePath.end.distanceTo(ie.position) <= it.skill.range
-            if movePath:
-                r["nearestCell"] = movePath.end.cellId
-                r["distance"] = len(movePath)
-            else:
-                r["nearestCell"] = None
-                r["distance"] = float("inf")
-            canFarm = (
-                r["reachable"]
-                and r["enabled"]
-                and r["jobId"] in self.jobFilter
-                and (not self.jobFilter[r["jobId"]] or r["resourceId"] in self.jobFilter[r["jobId"]])
-                and r["hasLevel"]
-            )
-            r["canFarm"] = canFarm
-            availableResources.append(r)
-        if availableResources:
-            Logger().debug(f"Available resources :\n{self.getAvailableResourcesTable(availableResources)}")
-            availableResources.sort(key=lambda r : r['distance'])
-            for r in availableResources:
-                if r['canFarm'] :
-                    yield r
+    def makeAction(self):
+        '''
+        This function is called when the bot is ready to make an action. It will select the next resource to farm and move to it.
+        '''
+        available_resources = self.getAvailableResources()
+        farmable_resources = [r for r in available_resources if r.canFarm(self.jobFilter)]
+        nonForbidenResources = [r for r in farmable_resources if r.uid not in self.forbidenActions]
+        nonForbidenResources.sort(key=lambda r: r.distance)
+        if len(nonForbidenResources) == 0:
+            Logger().warning("No farmable resource found!")
+            self.moveToNextStep()
         else:
-            return []
+            self.logResourcesTable(nonForbidenResources)
+            self.currentTarget = nonForbidenResources[0]
+            self.useSkill(
+                elementId=self.currentTarget.resource.id,
+                skilluid=self.currentTarget.resource.interactiveSkill.skillInstanceUid,
+                cell=self.currentTarget.nearestCell.cellId,
+                callback=self.onResourceCollectEnd
+            )
+        
+    def onObtainedItem(self, event, iw: ItemWrapper, qty):
+        averageKamasWon = (
+            Kernel().averagePricesFrame.getItemAveragePrice(iw.objectGID) * qty
+        )
+        Logger().debug(f"Average kamas won: {averageKamasWon}")
 
+    def onResourceCollectEnd(self, code, error):
+        if not self.running.is_set():
+            return
+        if error:
+            if code in [
+                UseSkill.ELEM_BEING_USED,
+                UseSkill.ELEM_TAKEN,
+                UseSkill.CANT_USE,
+                UseSkill.USE_ERROR,
+                UseSkill.NO_ENABLED_SKILLS,
+                UseSkill.ELEM_UPDATE_TIMEOUT,
+                MovementFailError.MOVE_REQUEST_REJECTED,
+            ]:
+                Logger().warning(f"Error while collecting resource: {error}, not a fatal error, restarting.")
+                self.forbidenActions.add(self.currentTarget.uid)
+                return self.requestMapData(callback=self.main)
+            return self.send(KernelEvent.ClientShutdown, error)
+        BenchmarkTimer(0.2, self.main).start()
+        

@@ -4,6 +4,7 @@ from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
 from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
     RequestMapData
+from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
                                                                      Listener)
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
@@ -233,22 +234,27 @@ class ChangeMap(AbstractBehavior):
         
     def onCurrentMap(self, event: Event, mapId: int):
         Logger().info("Map changed!")
+        if self.mapChangeRejectListener:
+            self.mapChangeRejectListener.delete()
+        if self.mapChangeListener:
+            self.mapChangeListener.delete()
+        if UseSkill().isRunning():
+            Logger().warning("Received current map while still using skill")
+            UseSkill().stop()
         if self._scrollMapChangeRequestTimer:
-            Logger().warning("Received current map while still didnt send map change request")
+            Logger().warning("Received current map while still didn't send map change request")
             self._scrollMapChangeRequestTimer.cancel()
+            
         if mapId == self.dstMapId:
-            if self.mapChangeRejectListener:
-                self.mapChangeRejectListener.delete()
-            if self.mapChangeListener:
-                self.mapChangeListener.delete()
-            self.onceMapProcessed(
-                lambda: self.finish(True, None),
-                mapId=self.dstMapId,
-                timeout=20,
-                ontimeout=self.onDestMapProcessedTimeout
-            )
+            callback = lambda: self.finish(True, None)
         else:
-            self.finish(self.LANDED_ON_WRONG_MAP, f"Landed on new map '{mapId}', different from dest '{self.dstMapId}'.")
+            callback = lambda: self.finish(self.LANDED_ON_WRONG_MAP, f"Landed on new map '{mapId}', different from dest '{self.dstMapId}'.")
+        self.onceMapProcessed(
+            callback=callback,
+            mapId=mapId,
+            timeout=20,
+            ontimeout=self.onDestMapProcessedTimeout
+        )
 
     def setupMapChangeListener(self):
         if self.mapChangeListener:

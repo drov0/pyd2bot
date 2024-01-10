@@ -9,7 +9,9 @@ from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteracti
     CollectableElement
 from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
     Pathfinding
-
+from  typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from pyd2bot.logic.roleplay.behaviors.AbstractFarmBehavior import AbstractFarmBehavior
 
 class CollectableResource:
     def __init__(self, it: CollectableElement):
@@ -76,13 +78,12 @@ class CollectableResource:
             return self.canCollecte and not self.isFiltered(jobFilter)
         return self.canCollecte
 
-    def farm(self, callback, caller=None):
-        UseSkill().start(
+    def farm(self, callback, caller: 'AbstractFarmBehavior'=None):
+        caller.useSkill(
             elementId=self.resource.id,
             skilluid=self.resource.interactiveSkill.skillInstanceUid,
             cell=self.nearestCell.cellId,
             callback=callback,
-            parent=caller
         )
 
     def __hash__(self) -> int:

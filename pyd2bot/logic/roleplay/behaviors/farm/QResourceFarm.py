@@ -78,16 +78,9 @@ class QResourceFarm(AbstractFarmBehavior):
         self.collected = set()
         self.nonFarmableUpdated = set()
         self.loadAgentState()
-        # self.path.lastVisited = {}
-        # self.epsilon = 0.99999999999999999999999999999999999999999
         self.explorationPercentages = []
         self.rewards = []
-        # self.Q = {}
-        # self.lastTimeActionVisited = {}
-        # self.tabuList = {}
-        # self.epsilonMin = 0.5
-        # self.estimatedResourceRespawnTimes = {}
-        # self.collected = set()
+
         Logger().debug(f"Qresource farm initialized")
         
     def init(self):
@@ -364,7 +357,6 @@ class QResourceFarm(AbstractFarmBehavior):
                 )
             Logger().debug(f"Available resources :\n{summaryTable}")
         if edges:
-            
             headers = ["src", "dst", "lastVisited", "nbrVisites", "Qvalue"]
             summaryTable = PrettyTable(headers)
             for e in edges:

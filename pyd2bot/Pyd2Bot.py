@@ -13,8 +13,6 @@ from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.bank.RetrieveRecipeFromBank import \
     RetrieveRecipeFromBank
-from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.DQNResourceFarmer import DQNResourceFarm
-from pyd2bot.logic.roleplay.behaviors.farm.QResourceFarm import QResourceFarm
 from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import ResourceFarm
 from pyd2bot.logic.roleplay.behaviors.fight.FarmFights import FarmFights
 from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
@@ -88,6 +86,7 @@ class Pyd2Bot(DofusClient):
         return super().onReconnect(event, message, afterTime)
     
     def onInGame(self):
+        Logger().info(f"Character {self.name} is now in game.")
         if self._role == CharacterRoleEnum.SELLER:
             BotConfig.SELLER_VACANT.set()
         for instId, inst in Kernel.getInstances():
@@ -119,10 +118,13 @@ class Pyd2Bot(DofusClient):
             self.shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, err)
         
     def startSessionMainBehavior(self):
+        Logger().info(f"Starting main behavior for {self.name}")
         if BotConfig().isFarmSession:
-            DQNResourceFarm().start()
+            Logger().info(f"Starting farm behavior for {self.name}")
+            ResourceFarm().start()
             
         elif BotConfig().isFightSession:
+            Logger().info(f"Starting fight behavior for {self.name}")
             if BotConfig().isLeader:
                 if BotConfig().followers:
                     FarmFights().start(callback=self.onMainBehaviorFinish)
@@ -132,6 +134,7 @@ class Pyd2Bot(DofusClient):
                 MuleFighter().start(callback=self.onMainBehaviorFinish)
                 
         elif BotConfig().isTreasureHuntSession:
+            Logger().info(f"Starting treasure hunt behavior for {self.name}")
             ClassicTreasureHunt().start(callback=self.onMainBehaviorFinish)
             
         elif BotConfig().isMixed:

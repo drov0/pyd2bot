@@ -1,21 +1,18 @@
 import json
 import os
 
+from pyd2bot.thriftServer.pyd2botServer import Pyd2botServer
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
+from pydofus2.com.ankamagames.atouin.Haapi import Haapi
 
-__dir = os.path.dirname(os.path.abspath(__file__))
-persistence_dir = os.path.join(__dir, "..", "..", "..", "..", "Grinder", "dist_electron", "persistence")
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+persistence_dir = "D://botdev//persistence"
 accounts_jsonfile = os.path.join(persistence_dir, "accounts.json")
-creds_jsonfile = os.path.join(persistence_dir, "credentials.json")
 
 class AccountManager:
     
     with open(accounts_jsonfile, 'r') as fp:
         accounts : dict = json.load(fp)
-    with open(creds_jsonfile, 'r') as fp:
-        creds: dict = json.load(fp)
-    certificates = creds["certificates"]
-    apikeys = creds["apikeys"]
 
     @classmethod
     def getAccount(cls, accountId):
@@ -45,15 +42,46 @@ class AccountManager:
         )
     
     @classmethod
-    def getCert(cls, accountId):
+    def get_apikey(cls, accountId):
         acc = cls.getAccount(accountId)
-        return cls.certificates.get(acc["login"])
+        return acc["apikey"]
+
+    @classmethod
+    def fetch_account(cls, game, apikey):
+        import asyncio
+        r = asyncio.run(Haapi.signOnWithApikey(game, apikey))
+        accountId = r['id']
+        cls.accounts[accountId] = r['account']
+        cls.accounts[accountId]["apikey"] = apikey
+        return cls.fetch_characters(accountId)
+        
+    @classmethod
+    def fetch_characters(cls, accountId):
+        acc = cls.getAccount(accountId)
+        apikey = acc['apikey']
+        token = Haapi.getLoginTokenCloudScraper(1, apikey)
+        srv = Pyd2botServer("test")
+        chars = srv.fetchCharacters(token)
+        chars_json = [
+            {
+                "name": ch.name,
+                "id": ch.id,
+                "level": ch.level,
+                "breedId": ch.breedId,
+                "breedName": ch.breedName,
+                "serverId": ch.serverId,
+                "serverName": ch.serverName,
+                "login": acc['login'],
+                "accountId": accountId
+            } for ch in chars
+        ]
+        cls.accounts[accountId]["characters"] = chars_json
+        cls.save()
+        return chars_json
+        
     
     @classmethod
-    def getkey(cls, accountId):
-        acc = cls.getAccount(accountId)
-        return cls.apikeys.get(acc["login"]).get("key")
-
-
-if __name__ == "__main__":
-    print(AccountManager.getCert("173257465"))
+    def save(cls):
+        with open(accounts_jsonfile, 'w') as fp:
+            json.dump(cls.accounts, fp, indent=4)
+    
