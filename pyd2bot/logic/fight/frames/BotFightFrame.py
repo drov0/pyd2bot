@@ -155,6 +155,7 @@ class BotFightFrame(Frame):
         self._turnStartPlaying = False
         self._suspectedUnreachableCell = None
         self.fightResumed = False
+        self._challengeChosen = False
 
     def onFightJoined(self, event, isFightStarted, fightType, isTeamPhase, timeMaxBeforeFightStart):
         Logger().separator("Joined fight", "*")
@@ -178,6 +179,15 @@ class BotFightFrame(Frame):
                     ConnectionsHandler().send(gfotmsg)
             BotConfig().fightOptionsSent = True
     
+    def onChallengeBonusChosen(self, event, bonusId):
+        self._challengeChosen = True
+        if BotConfig().isLeader:
+            Logger().info(f"Challenge bonus {bonusId} chosen.")
+            if self.allMembersJoinedFight():
+                self.sendFightReady()
+            else:
+                Logger().info("Waiting for members to join fight.")
+            
     def onFighterShowed(self, event, fighterId):
         if BotConfig().isLeader:
             self._turnPlayed = 0
@@ -188,8 +198,6 @@ class BotFightFrame(Frame):
                     self.onMemberJoinedFight(player)
                 else:
                     Logger().info(f"Party Leader {player.name} joined fight.")
-                    if not BotConfig().followers:
-                        self.sendFightReady()
             elif fighterId > 0 and fighterId != BotConfig().character.id:
                 Logger().error(f"Unknown Player {fighterId} joined fight.")
             elif fighterId < 0:
@@ -204,6 +212,7 @@ class BotFightFrame(Frame):
         KernelEventsManager().once(KernelEvent.FightResumed, self.onFightResumed, originator=self)
         KernelEventsManager().on(KernelEvent.FighterShowed, self.onFighterShowed, originator=self)
         KernelEventsManager().once(KernelEvent.FightJoined, self.onFightJoined, originator=self)
+        KernelEventsManager().on(KernelEvent.ChallengeBonusSelected, self.onChallengeBonusChosen, originator=self)
         return True
 
     @property
@@ -402,7 +411,7 @@ class BotFightFrame(Frame):
         summaryTable = PrettyTable(["name", "id", "boneId", "level", "hitpoints", "hidden", "summoned", "state", "canhit", "reason"])
         for e in infosTable:
             summaryTable.add_row([e[k] for k in summaryTable.field_names])
-        Logger().info(str(summaryTable))
+        Logger().info("\n" + str(summaryTable))
         return result
 
     def remainsEnemies(self):
@@ -483,14 +492,16 @@ class BotFightFrame(Frame):
         self.nextTurnAction("play turn")
 
     def getActualSpellRange(self, spellw: SpellWrapper) -> int:
-        range: int = spellw["range"]
-        minRange: int = spellw["minRange"]
-        if spellw["rangeCanBeBoosted"]:
-            range += self.playerStats.getStatTotalValue(StatIds.RANGE) - self.playerStats.getStatAdditionalValue(
-                StatIds.RANGE
-            )
-        range = max(min(max(minRange, range), AtouinConstants.MAP_WIDTH * AtouinConstants.MAP_HEIGHT), 0)
+        range = spellw.maxRange
         return range
+        # range = spellw["range"]
+        # minRange = spellw["minRange"]
+        # if spellw["rangeCanBeBoosted"]:
+        #     range += self.playerStats.getStatTotalValue(StatIds.RANGE) - self.playerStats.getStatAdditionalValue(
+        #         StatIds.RANGE
+        #     )
+        # range = max(min(max(minRange, range), AtouinConstants.MAP_WIDTH * AtouinConstants.MAP_HEIGHT), 0)
+        # return range
 
     def getSpellShape(self, spellw: SpellWrapper) -> int:
         if not self._spellShape:
@@ -557,24 +568,31 @@ class BotFightFrame(Frame):
 
     def canCastSpell(self, targetId: int=0) -> bool:
         return CurrentPlayedFighterManager().canCastThisSpell(self.spellId, self.spellw.spellLevel, targetId)
-            
+    
+    def allMembersJoinedFight(self) -> bool:
+        for member in BotConfig().fightPartyMembers:
+            if not Kernel().fightEntitiesFrame.getEntityInfos(member.id):
+                return False
+        return True
+
     def onMemberJoinedFight(self, player: Character):
         Logger().info(f"Follower '{player.name}' joined fight.")
         if self.fightResumed:
             return Logger().warning("Fight resumed so wont check if members joined or not.")
         if self.fightReadySent:
-            return Logger().warning("Fight ready already sent so wont check if members joined or not.")
+            return Logger().warning("Fight ready already sent so we wont check if members joined or not.")
         PlayedCharacterManager.getInstance(player.login).isFighting = True
         self.sendFightReady(ConnectionsHandler.getInstance(player.login))
-        notjoined = [
-            m.name for m in BotConfig().fightPartyMembers if not Kernel().fightEntitiesFrame.getEntityInfos(m.id)
-        ]
-        if not notjoined:
+        if self.allMembersJoinedFight():
             Logger().info(f"All party members joined fight.")
-            self.sendFightReady()
+            if self._challengeChosen:
+                self.sendFightReady()
             self.fightReadySent = True
         else:
-            Logger().info(f"Members not joined : {notjoined}")
+            missing = [
+                m.name for m in BotConfig().fightPartyMembers if not Kernel().fightEntitiesFrame.getEntityInfos(m.id)
+            ]
+            Logger().info(f"Members missing : {missing}")
 
     def sendFightReady(self, connh=None):
         if not connh:
@@ -588,7 +606,7 @@ class BotFightFrame(Frame):
         if isinstance(msg, GameFightOptionStateUpdateMessage):
             if msg.option not in BotConfig().fightOptions:
                 BotConfig().fightOptions.append(msg.option)
-            if Kernel().worker.getFrameByName("RoleplayEntitiesFrame"):
+            if Kernel().roleplayEntitiesFrame:
                 return False
             return True
 

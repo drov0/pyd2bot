@@ -43,7 +43,7 @@ class MuleFighter(AbstractBehavior):
         self.leader = leader
         self.running.set()
         self.checkIfLeaderInFight()
-        KernelEventsManager().on(KernelEvent.FightSwordShowed, self.onFightSword, originator=self)
+        KernelEventsManager().on(KernelEvent.FightSwordShowed, self.onceFightStarted, originator=self)
         KernelEventsManager().on(KernelEvent.ServerTextInfo, self.onServerNotif, originator=self)
         BotEventsManager().on(BotEventsManager.MOVE_TO_VERTEX, self.onMoveToVertex, originator=self)
     
@@ -101,7 +101,7 @@ class MuleFighter(AbstractBehavior):
                 self.joinFight()
             MapMove().start(MapPoint.fromCoords(x, y).cellId, callback=onMoved, parent=self)
                 
-    def onFightSword(self, event: Event, infos: FightCommonInformations):
+    def onceFightStarted(self, event: Event, infos: FightCommonInformations):
         for team in infos.fightTeams:
             if team.leaderId == self.leader.id:
                 self.fightId = infos.fightId
@@ -131,8 +131,8 @@ class MuleFighter(AbstractBehavior):
         ConnectionsHandler().send(gfjrmsg)
 
     def checkIfLeaderInFight(self):
-        if not PlayedCharacterManager().isFighting and Kernel().entitiesFrame:
-            for fightId, fight in Kernel().entitiesFrame._fights.items():
+        if not PlayedCharacterManager().isFighting and Kernel().roleplayEntitiesFrame:
+            for fightId, fight in Kernel().roleplayEntitiesFrame._fights.items():
                 for team in fight.teams:
                     if team.teamInfos.leaderId == self.leader.id:
                         self.fightId = fightId

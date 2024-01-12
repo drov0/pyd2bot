@@ -1,13 +1,13 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from pyd2bot.logic.common.frames.BotRPCFrame import BotRPCFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
-from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import AutoTripUseZaap
 from pyd2bot.logic.roleplay.behaviors.exchange.BotExchange import (
     BotExchange, ExchangeDirectionEnum)
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
+from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import \
+    AutoTripUseZaap
 from pyd2bot.misc.Localizer import Localizer
 from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
@@ -24,8 +24,7 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterMa
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 if TYPE_CHECKING:
-    from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayEntitiesFrame import \
-        RoleplayEntitiesFrame
+    from pyd2bot.logic.common.frames.BotRPCFrame import BotRPCFrame
 
 class GiveItelsStates(Enum):
     WAITING_FOR_MAP = -1
@@ -55,10 +54,6 @@ class GiveItems(AbstractBehavior):
         self._run()
 
     @property
-    def entitiesFrame(self) -> "RoleplayEntitiesFrame":
-        return Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
-
-    @property
     def rpcFrame(self) -> "BotRPCFrame":
         return Kernel().worker.getFrameByName("BotRPCFrame")
 
@@ -79,11 +74,11 @@ class GiveItems(AbstractBehavior):
             return "loadingPlayer"
         elif PlayedCharacterManager.getInstance(instanceId).isInFight:
             return "fighting"
-        elif not Kernel.getInstance(instanceId).entitiesFrame:
+        elif not Kernel.getInstance(instanceId).roleplayEntitiesFrame:
             return "outOfRolePlay"
         elif MapDisplayManager.getInstance(instanceId).currentDataMap is None:
             return "loadingMap"
-        elif not Kernel.getInstance(instanceId).entitiesFrame.mcidm_processed:
+        elif not Kernel.getInstance(instanceId).roleplayEntitiesFrame.mcidm_processed:
             return "processingMapData"
         for behavior in AbstractBehavior.getSubs(instanceId):
             return str(behavior)
@@ -116,15 +111,15 @@ class GiveItems(AbstractBehavior):
             self.rpcFrame.askComeToCollect(self.seller.login, self.bankInfos, BotConfig().character, onSellerResponse)
 
     def waitForGuestToComme(self):
-        if self.entitiesFrame:
-            if self.entitiesFrame.getEntityInfos(self.seller.id):
+        if Kernel().roleplayEntitiesFrame:
+            if Kernel().roleplayEntitiesFrame.getEntityInfos(self.seller.id):
                 BotExchange().start(ExchangeDirectionEnum.GIVE, target=self.seller, callback=self.onExchangeConcluded, parent=self)
                 self.state = GiveItelsStates.IN_EXCHANGE_WITH_SELLER
                 return True
             else:
                 KernelEventsManager().onceActorShowed(self.seller.id, self.waitForGuestToComme, originator=self)
         else:
-            KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self.waitForGuestToComme, originator=self)
+            self.onceFramePushed("RoleplayEntitiesFrame", self.waitForGuestToComme)
 
     def onExchangeConcluded(self, errorId, error) -> bool:
         if error:            

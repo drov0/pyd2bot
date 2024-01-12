@@ -10,6 +10,7 @@ from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
 from pydofus2.com.ankamagames.dofus.datacenter.npcs.Npc import Npc
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.misc.utils.ParamsDecoder import \
     ParamsDecoder
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcDialogReplyMessage import \
@@ -27,11 +28,15 @@ if TYPE_CHECKING:
 class NpcDialog(AbstractBehavior):
     NO_MORE_REPLIES = 10235
     No_PROGRAMMED_REPLY = 10236
+    NOT_IN_MAP = 10237
+    MISSING_CONDITION = 10238
     
     def __init__(self) -> None:
         super().__init__()
 
     def run(self, npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies) -> bool:
+        if PlayedCharacterManager().currentMap.mapId != npcMapId:
+            return self.finish(self.NOT_IN_MAP, f"Character not in NPC map {npcMapId}")
         self.npcMapId = npcMapId
         self.npcId = npcId
         self.npcOpenDialogId = npcOpenDialogId
@@ -44,8 +49,17 @@ class NpcDialog(AbstractBehavior):
         self._textParams["f"] = True;
         self._textParams["n"] = True;
         self._textParams["g"] = False;
-        self.autotripUseZaap(self.npcMapId, dstZoneId=1, callback=self.onNPCMapReached)
+        msg = NpcGenericActionRequestMessage()
+        msg.init(self.npcId, self.npcOpenDialogId, self.npcMapId)
+        self.once(KernelEvent.DialogLeft, self.onNpcDialogleft)
+        self.once(KernelEvent.NpcQuestion, self.onNpcQuestion)
+        self.on(KernelEvent.ServerTextInfo, self.onServerTextInfo)
+        ConnectionsHandler().send(msg)
         
+    def onServerTextInfo(self, event, msgId, msgType, textId, text, params):
+        if textId == 309584: # The conditions for validating this response haven't been met.
+            self.finish(self.MISSING_CONDITION, text)
+            
     def getTextWithParams(textId:int, params:list, replace:str = "%") -> str:
         msgContent:str = I18n.getText(textId)
         if msgContent:
@@ -91,12 +105,3 @@ class NpcDialog(AbstractBehavior):
     def onNpcDialogleft(self, event):
         self.finish(0, None)
 
-    def onNPCMapReached(self, code, error):
-        Logger().info(f"NPC Map reached with error : {error}")
-        if error:
-            return self.finish(code, error)
-        msg = NpcGenericActionRequestMessage()
-        msg.init(self.npcId, self.npcOpenDialogId, self.npcMapId)
-        self.once(KernelEvent.DialogLeft, self.onNpcDialogleft)
-        self.once(KernelEvent.NpcQuestion, self.onNpcQuestion)
-        ConnectionsHandler().send(msg) 

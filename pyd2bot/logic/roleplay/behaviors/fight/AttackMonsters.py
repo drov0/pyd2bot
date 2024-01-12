@@ -46,14 +46,14 @@ class AttackMonsters(AbstractBehavior):
     def __init__(self) -> None:
         super().__init__()
         self.entityMovedListener: Listener = None
-        self.fightShwordListener: Listener = None
+        self.fightSwordListener: Listener = None
         self.attackMonsterListener: Listener = None
         self.mapChangeListener: Listener = None
         self.nbrFails = 0
 
     @property
     def entityInfo(self) -> "GameContextActorInformations":
-        return Kernel().entitiesFrame.getEntityInfos(self.entityId)
+        return Kernel().roleplayEntitiesFrame.getEntityInfos(self.entityId)
     
     def getEntityCellId(self) -> int:
         if not self.entityInfo:
@@ -65,21 +65,19 @@ class AttackMonsters(AbstractBehavior):
         cellId = self.getEntityCellId()
         if not cellId:
             return self.finish(self.ENTITY_VANISHED, "Entity no more on the map")
-        self.entityMovedListener = KernelEventsManager().onEntityMoved(self.entityId, self.onEntityMoved, originator=self)
-        self.fightShwordListener = KernelEventsManager().onceFightSword(
-            self.entityId, cellId, self.onFightWithEntityTaken, originator=self
-        )
-        self.mapChangeListener = KernelEventsManager().on(KernelEvent.CurrentMap, self.onCurrentMap, originator=self)
+        self.entityMovedListener = self.onEntityMoved(self.entityId, callback=self.ontargetMonsterMoved)
+        self.fightSwordListener = self.onceFightSword(self.entityId, cellId, callback=self.onFightWithEntityTaken)
+        self.mapChangeListener = self.on(KernelEvent.CurrentMap, self.onCurrentMap)
         self._start()
 
     def _start(self):
-        if not Kernel().entitiesFrame:
-            return KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self._start, originator=self)
+        if not Kernel().roleplayEntitiesFrame:
+            return self.onceFramePushed("RoleplayEntitiesFrame", self._start)
         cellId = self.getEntityCellId()
         if not cellId:
             return self.finish(self.ENTITY_VANISHED, "Entity not more on the map")
         Logger().info(f"[AttackMonsters] Moving to monster {self.entityId} cell {cellId}")
-        MapMove().start(MapPoint.fromCellId(cellId), callback=self.onEntityReached, parent=self)
+        MapMove().start(MapPoint.fromCellId(cellId), callback=self.ontargetMonsterReached, parent=self)
 
     def onFightWithEntityTaken(self):
         if MapMove().isRunning():
@@ -89,7 +87,7 @@ class AttackMonsters(AbstractBehavior):
             error = "Entity vanished while attacking it"
         return self.finish(self.ENTITY_VANISHED, error)
 
-    def onEntityReached(self, status, error):
+    def ontargetMonsterReached(self, status, error):
         if error:
             return self.finish(status, error)
         Logger().info(f"[AttackMonsters] Reached monster group cell")
@@ -104,7 +102,7 @@ class AttackMonsters(AbstractBehavior):
         )
         self.requestAttackMonsters()
 
-    def onEntityMoved(self, event: Event, movePath: MovementPath):
+    def ontargetMonsterMoved(self, event: Event, movePath: MovementPath):
         Logger().warning(f"[AttackMonsters] Entity moved to cell {movePath.end.cellId}")
         if MapMove().isRunning():
             MapMove().stop()

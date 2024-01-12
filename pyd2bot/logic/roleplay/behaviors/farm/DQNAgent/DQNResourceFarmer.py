@@ -235,7 +235,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
         else:
             raise TypeError(f"Invalid action type : {type(elem).__name__}")
 
-    def onResourceCollectEnd(self, code, error):
+    def onResourceCollectEnd(self, code, error, iePosition=None):
         if not self.running.is_set():
             return
         if error:

@@ -107,7 +107,7 @@ class BotCharacterUpdatesFrame(Frame):
         return boost, usedCapital
     
     def boostCharacs(self, boost, statId):
-        rpeframe: "RoleplayEntitiesFrame" = Kernel().worker.getFrameByName("RoleplayEntitiesFrame")
+        rpeframe = Kernel().roleplayEntitiesFrame
         if not rpeframe or not rpeframe.mcidm_processed:
             return KernelEventsManager().onceMapProcessed(self.boostCharacs, [boost, statId], originator=self)
         sumsg = StatsUpgradeRequestMessage()

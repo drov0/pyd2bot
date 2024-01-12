@@ -1,19 +1,14 @@
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
 from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
-from pydofus2.com.ankamagames.dofus.datacenter.interactives.Interactive import \
-    Interactive
 from pydofus2.com.ankamagames.dofus.datacenter.jobs.Skill import Skill
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
-    InteractiveElementData, RoleplayInteractivesFrame)
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.InteractiveElementData import InteractiveElementData
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveElementUpdatedMessage import \
     InteractiveElementUpdatedMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
@@ -21,9 +16,6 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.Interactiv
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.skill.InteractiveUseWithParamRequestMessage import \
     InteractiveUseWithParamRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import \
-    Pathfinding
-from pydofus2.mapTools import MapTools
 
 
 class UseSkill(AbstractBehavior):
@@ -81,20 +73,13 @@ class UseSkill(AbstractBehavior):
         self._useSkill()
 
     def _useSkill(self) -> None:
-        cell = self.cell
         if self.targetIe.element.enabledSkills:
             skillId = self.targetIe.element.enabledSkills[0].skillId
             skill = Skill.getSkillById(skillId)
-            playerPos = PlayedCharacterManager().entity.position
             Logger().debug(f"Using {skill.name}, range {skill.range}, id {skill.id}")
-            if skill.id in [211, 184] :
-                mp, _ = Kernel().interactivesFrame.getNearestCellToIe(self.element, self.elementPosition)
-                cell = mp.cellId
-            if not cell:
-                movePath = Pathfinding().findPath(playerPos, self.elementPosition)
-                cell = movePath.end.cellId
-                if self.elementPosition.distanceToCell(movePath.end) > skill.range:
-                    return self.finish(self.UNREACHABLE_IE, "Unable to find cell close enough to use element", iePosition=self.elementPosition)
+            mp, send_request = Kernel().interactivesFrame.getNearestCellToIe(self.element, self.elementPosition)
+            if not mp:
+                return self.finish(self.UNREACHABLE_IE, "Unable to find cell close enough to use element", iePosition=self.elementPosition)
             def onmoved(code, error):
                 if error:
                     return self.finish(code, error)
@@ -102,7 +87,7 @@ class UseSkill(AbstractBehavior):
             if self.waitForSkillUsed:
                 self.on(KernelEvent.IElemBeingUsed, self.onUsingInteractive,)
                 self.on(KernelEvent.InteractiveElementUsed, self.onUsedInteractive)
-            self.mapMove(destCell=cell, exactDistination=False, callback=onmoved)
+            self.mapMove(destCell=mp.cellId, exactDistination=False, callback=onmoved)
         else:
             self.finish(self.NO_ENABLED_SKILLS, f"Interactive element has no enabled skills!")
 
@@ -128,7 +113,7 @@ class UseSkill(AbstractBehavior):
                         self.once(
                             KernelEvent.InteractiveElemUpdate,
                             self.onInteractiveUpdated,
-                            timeout=7,
+                            timeout=10,
                             ontimeout=self.onElemUpdateWaitTimeout,
                         )
                 else:
@@ -166,7 +151,7 @@ class UseSkill(AbstractBehavior):
             self.currentRequestedElementId = self.elementId
         self.sendRequestSkill()
         if not self.waitForSkillUsed:
-            super().finish(True, None)
+            self.finish(True, None)
 
     def sendRequestSkill(self, additionalParam=0):
         if additionalParam == 0:
@@ -179,13 +164,11 @@ class UseSkill(AbstractBehavior):
             ConnectionsHandler().send(iuwprmsg)
 
     def getInteractiveElement(self, elementId, skilluid, callback) -> InteractiveElementData:
-        rpif: "RoleplayInteractivesFrame" = Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
-        if rpif is None:
-            Logger().warning("No roleplay interactive frame found")
-            return KernelEventsManager().onceFramePushed(
+        if Kernel().interactivesFrame is None:
+            Logger().warning("No roleplay interactive frame found, waiting for it to get pushed")
+            return self.onceFramePushed(
                 "RoleplayInteractivesFrame",
                 self.getInteractiveElement,
                 [elementId, skilluid, callback],
-                originator=self,
             )
-        callback(rpif.getInteractiveElement(elementId, skilluid))
+        callback(Kernel().interactivesFrame.getInteractiveElement(elementId, skilluid))

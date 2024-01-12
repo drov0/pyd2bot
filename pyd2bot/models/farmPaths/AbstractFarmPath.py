@@ -1,11 +1,14 @@
+from time import perf_counter
 from typing import TYPE_CHECKING, Iterator
 
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import AStar
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
     Transition
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
     Vertex
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import WorldGraph
 
 if TYPE_CHECKING:
     from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
@@ -18,11 +21,12 @@ class AbstractFarmPath:
     skills = []
     jobIds = []
     monsterLvlCoefDiff = float("inf")
-    name = "undefined"
-    lastVisited = dict['Edge', int]()
+    name : str
+    lastVisited : dict['Edge', int]()
 
     def __init__(self) -> None:
-        pass
+        self.lastVisited = dict()
+        self.name = "undefined"
 
     @property
     def currentVertex(self) -> Vertex:
@@ -38,9 +42,6 @@ class AbstractFarmPath:
         raise NotImplementedError()
 
     def currNeighbors(self) -> Iterator[Vertex]:
-        raise NotImplementedError()
-
-    def outgoingEdges(self, vertex: Vertex) -> list['Edge']:
         raise NotImplementedError()
 
     def to_json(self):

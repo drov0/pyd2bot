@@ -30,7 +30,7 @@ class FindHintNpc(AbstractBehavior):
     def onNewMap(self, code, err):
         if err:
             return self.finish(code, err)
-        found_thnpc = Kernel().entitiesFrame.treasureHuntNpc
+        found_thnpc = Kernel().roleplayEntitiesFrame.treasureHuntNpc
         if found_thnpc and found_thnpc.npcId == self.npcId:
             # while parsing new map data if the special treasure hunt npc is found it is stored in the treasureHuntNpc attribute
             # if its found we simply return without ending the behavior because the entities frame it self will send the event treasureHuntNpc that will 

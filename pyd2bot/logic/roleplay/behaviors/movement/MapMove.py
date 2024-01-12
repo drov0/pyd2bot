@@ -50,7 +50,7 @@ class MapMove(AbstractBehavior):
         elif isinstance(destCell, MapPoint):
             self.dstCell = destCell
         else:
-            self.finish(False, "Invalid destination cell")
+            self.finish(False, f"Invalid destination cell param : {destCell}!")
         self.countMoveFail = 0
         self.move()
 
@@ -62,27 +62,38 @@ class MapMove(AbstractBehavior):
 
     def move(self) -> bool:
         rpmframe: "RoleplayMovementFrame" = Kernel().movementFrame
+        
         if not rpmframe:
             return self.onceFramePushed("RoleplayMovementFrame", self.move)
+        
         playerEntity = DofusEntities().getEntity(PlayedCharacterManager().id)
+        
         self.errMsg = f"Move to cell {self.dstCell} failed for reason %s"
+        
         if playerEntity is None:
             return self.fail(MovementFailError.PLAYER_NOT_FOUND)
+        
         currentCellId = playerEntity.position.cellId
         if MapDisplayManager().dataMap is None:
             return self.fail(MovementFailError.MAP_NOT_LOADED)
+        
         if currentCellId == self.dstCell.cellId:
             Logger().info(f"Destination cell {self.dstCell.cellId} is the same as the current player cell")
             return self.finish(self.ALREADY_ONCELL, None)
+        
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
             return self.fail(MovementFailError.PLAYER_IS_DEAD)
+        
         self.movePath = Pathfinding().findPath(playerEntity.position, self.dstCell)
         if self.movePath is None:
             return self.fail(MovementFailError.NO_PATH_FOUND)
+        
         if self.exactDestination and self.movePath.end.cellId != self.dstCell.cellId:
             return self.fail(MovementFailError.CANT_REACH_DEST_CELL)
+        
         if len(self.movePath) == 0:
             return self.finish(True, None)
+        
         self.requestMovement()
 
     def fail(self, reason: MovementFailError) -> None:

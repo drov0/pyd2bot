@@ -53,12 +53,12 @@ class Pyd2Bot(DofusClient):
     def setConfig(
         self,
         apiKey: str,
-        certId: int,
-        certHash: str,
         session: Session,
         role: CharacterRoleEnum,
         character: Character,
-        mitmMode=False
+        mitmMode=False,
+        certId='',
+        certHash='',
     ):
         self._apiKey = apiKey
         self._certId = certId
@@ -172,11 +172,11 @@ class Pyd2Bot(DofusClient):
             return SessionStatus.AUTHENTICATING
         if PlayedCharacterManager.getInstance(self.name).isInFight:
             return SessionStatus.FIGHTING
-        elif not Kernel.getInstance(self.name).entitiesFrame:
+        elif not Kernel.getInstance(self.name).roleplayEntitiesFrame:
             return SessionStatus.OUT_OF_ROLEPLAY
         elif MapDisplayManager.getInstance(self.name).currentDataMap is None:
             return SessionStatus.LOADING_MAP
-        elif not Kernel.getInstance(self.name).entitiesFrame.mcidm_processed:
+        elif not Kernel.getInstance(self.name).roleplayEntitiesFrame.mcidm_processed:
             return SessionStatus.PROCESSING_MAP
         if AbstractBehavior.hasRunning():
             return SessionStatus.ROLEPLAYING

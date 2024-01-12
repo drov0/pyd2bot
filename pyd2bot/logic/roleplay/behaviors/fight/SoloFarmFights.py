@@ -1,13 +1,13 @@
 import heapq
 
+from prettytable import PrettyTable
+
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractFarmBehavior import \
     AbstractFarmBehavior
 from pyd2bot.logic.roleplay.behaviors.fight.AttackMonsters import \
     AttackMonsters
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.monsters.Monster import Monster
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
@@ -26,12 +26,19 @@ class SoloFarmFights(AbstractFarmBehavior):
     def init(self):
         self.path = BotConfig().path
         Logger().debug(f"Solo farm fights started")
+        return True
 
-    def getResourcesTableHeaders(self) -> list[str]:
-        return ["mainMonsterName", "id", "cell", "distance"]
-
-    def availableResources(self):
-        if not Kernel().entitiesFrame._monstersIds:
+    def makeAction(self):
+        all_monster_groups = self.getAvailableResources()
+        if all_monster_groups:
+            monster_group = all_monster_groups[0]
+            self.attackMonsters(monster_group["id"], self.onFightStarted)
+        else:
+            Logger().warning("No monster group found!")
+            self.moveToNextStep()
+        
+    def getAvailableResources(self):
+        if not Kernel().roleplayEntitiesFrame._monstersIds:
             return []
         availableMonsterFights = []
         visited = set()
@@ -39,8 +46,8 @@ class SoloFarmFights(AbstractFarmBehavior):
         currCellId = PlayedCharacterManager().currentCellId
         teamLvl = sum(PlayedCharacterManager.getInstance(c.login).limitedLevel for c in BotConfig().fightPartyMembers)
         monsterByCellId = dict[int, GameRolePlayGroupMonsterInformations]()
-        for entityId in Kernel().entitiesFrame._monstersIds:
-            infos: GameRolePlayGroupMonsterInformations = Kernel().entitiesFrame.getEntityInfos(entityId)
+        for entityId in Kernel().roleplayEntitiesFrame._monstersIds:
+            infos: GameRolePlayGroupMonsterInformations = Kernel().roleplayEntitiesFrame.getEntityInfos(entityId)
             if infos:
                 totalGrpLvl = infos.staticInfos.mainCreatureLightInfos.level + sum(
                     ul.level for ul in infos.staticInfos.underlings
@@ -69,23 +76,31 @@ class SoloFarmFights(AbstractFarmBehavior):
                 if adjacentPos.cellId in visited:
                     continue
                 heapq.heappush(queue, (distance + 1, adjacentPos.cellId))
-        Logger().debug(self.getAvailableResourcesTable(availableMonsterFights))
         availableMonsterFights.sort(key=lambda r : r['distance'])
-        for r in availableMonsterFights:
-            yield r
+        self.logResourcesTable(availableMonsterFights)
+        return availableMonsterFights
         
     def onFightStarted(self, code, error):        
         if not self.running.is_set():
             return
         if error:
             Logger().warning(error)
-            if code == AttackMonsters.MAP_CHANGED:
-                self.availableResources = None
-                self.main()
-            elif code in [AttackMonsters.ENTITY_VANISHED, AttackMonsters.FIGHT_REQ_TIMEDOUT]:
+            if code in [AttackMonsters.ENTITY_VANISHED, AttackMonsters.FIGHT_REQ_TIMEDOUT, AttackMonsters.MAP_CHANGED]:
                 self.main()
             else:
-                return KernelEventsManager().send(KernelEvent.ClientRestart, f"Error while attacking monsters: {error}")
+                return self.send(KernelEvent.ClientRestart, f"Error while attacking monsters: {error}")
 
-    def collectCurrResource(self):
-        AttackMonsters().start(self.currentTarget["id"], callback=self.onFightStarted, parent=self)
+    def logResourcesTable(self, resources):
+        if resources:
+            headers = ["mainMonsterName", "id", "cell", "distance"]
+            summaryTable = PrettyTable(headers)
+            for e in resources:
+                summaryTable.add_row(
+                    [
+                        e["mainMonsterName"],
+                        e["id"],
+                        e["cell"],
+                        e["distance"]
+                    ]
+                )
+            Logger().debug(f"Available resources :\n{summaryTable}")

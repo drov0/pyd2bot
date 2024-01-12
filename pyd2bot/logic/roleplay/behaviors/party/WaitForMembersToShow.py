@@ -24,9 +24,9 @@ class WaitForMembersToShow(AbstractBehavior):
         KernelEventsManager().on(KernelEvent.ActorShowed, self.onActorShowed, originator=self)
 
     def onTeamMemberShowed(self):
-        if Kernel().entitiesFrame is None:
+        if Kernel().roleplayEntitiesFrame is None:
             return KernelEventsManager().onceFramePushed("RoleplayEntitiesFrame", self.onTeamMemberShowed, originator=self)
-        notShowed = [member.name for member in self.members if not Kernel().entitiesFrame.getEntityInfos(member.id)]
+        notShowed = [member.name for member in self.members if not Kernel().roleplayEntitiesFrame.getEntityInfos(member.id)]
         if len(notShowed) > 0:
             return Logger().info(f"Waiting for members {notShowed} to show up.")
         Logger().info("All party members showed.")

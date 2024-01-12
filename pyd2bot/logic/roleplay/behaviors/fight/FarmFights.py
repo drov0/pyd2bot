@@ -80,7 +80,7 @@ class FarmFights(AbstractBehavior):
         return tablestr
 
     def findMonstersToAttack(self):
-        if not Kernel().entitiesFrame._monstersIds:
+        if not Kernel().roleplayEntitiesFrame._monstersIds:
             return []
         availableMonsterFights = []
         visited = set()
@@ -88,8 +88,8 @@ class FarmFights(AbstractBehavior):
         currCellId = PlayedCharacterManager().currentCellId
         teamLvl = sum(PlayedCharacterManager.getInstance(c.login).limitedLevel for c in BotConfig().fightPartyMembers)
         monsterByCellId = dict[int, GameRolePlayGroupMonsterInformations]()
-        for entityId in Kernel().entitiesFrame._monstersIds:
-            infos: GameRolePlayGroupMonsterInformations = Kernel().entitiesFrame.getEntityInfos(entityId)
+        for entityId in Kernel().roleplayEntitiesFrame._monstersIds:
+            infos: GameRolePlayGroupMonsterInformations = Kernel().roleplayEntitiesFrame.getEntityInfos(entityId)
             if infos:
                 totalGrpLvl = infos.staticInfos.mainCreatureLightInfos.level + sum(
                     ul.level for ul in infos.staticInfos.underlings
@@ -221,16 +221,16 @@ class FarmFights(AbstractBehavior):
 
     def askFollowersMoveToVertex(self, vertex: Vertex):
         for follower in BotConfig().followers:
-            entity = Kernel().entitiesFrame.getEntityInfos(follower.id)
+            entity = Kernel().roleplayEntitiesFrame.getEntityInfos(follower.id)
             if not entity:
                 Kernel.getInstance(follower.login).worker.process(MoveToVertexMessage(vertex))                
                 Logger().debug(f"Asked follower {follower.login} to go to farm start vertex")
             
     def allMembersOnSameMap(self):
         for follower in BotConfig().followers:
-            if Kernel().entitiesFrame is None:
+            if Kernel().roleplayEntitiesFrame is None:
                 return False
-            entity = Kernel().entitiesFrame.getEntityInfos(follower.id)
+            entity = Kernel().roleplayEntitiesFrame.getEntityInfos(follower.id)
             if not entity:
                 return False
         return True

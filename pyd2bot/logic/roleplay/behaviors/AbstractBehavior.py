@@ -65,7 +65,7 @@ class AbstractBehavior(BehaviorApi, metaclass=Singleton):
         if self.parent and self in self.parent.children:
             self.parent.children.remove(self)
         error = f"[{type(self).__name__}] failed for reason : {error}" if error else None
-        if callback:
+        if callback is not None:
             callback(code, error, **kwargs)
         else:
             Logger().debug(error)

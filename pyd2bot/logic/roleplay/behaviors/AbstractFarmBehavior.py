@@ -1,44 +1,32 @@
 import os
 from time import perf_counter
-from typing import Any, Tuple
-
-from prettytable import PrettyTable
-
+from typing import Any
+from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.farm.CollectableResource import (
-    CollectableResource,
-)
 from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
-from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.models.farmPaths.RandomAreaFarmPath import NoTransitionFound
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.dofus.datacenter.jobs.Job import Job
-from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
-from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import (
-    ItemWrapper,
-)
-from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import (
-    PlayedCharacterManager,
-)
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import (
-    MovementFailError,
-)
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import Vertex
-from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import (
-    JobExperience,
-)
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
+    ItemWrapper
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
+    MovementFailError
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
+    Vertex
+from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import \
+    JobExperience
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 
-
 class AbstractFarmBehavior(AbstractBehavior):
     path: AbstractFarmPath
     currentTarget: Any = None
-    availableResources: list[CollectableResource] = None
 
     def __init__(self, timeout=None):
         self.timeout = timeout
@@ -58,8 +46,8 @@ class AbstractFarmBehavior(AbstractBehavior):
         self.inFight = False
         self.initialized = False
         self.startTime = perf_counter()
-        if self.init(*args, **kwargs):
-            self.main()
+        self.init(*args, **kwargs)
+        self.main()
 
     def onJobLevelUp(self, event, jobId, jobName, lastJobLevel, newLevel, podsBonus):
         pass
@@ -101,13 +89,18 @@ class AbstractFarmBehavior(AbstractBehavior):
                 return self.autoRevive(self.onRevived)
             elif code == ChangeMap.LANDED_ON_WRONG_MAP:
                 Logger().warning(f"Player landed on wrong map!")
+            elif code == ChangeMap.INVALID_TRANSITION:
+                Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
+                self.forbidenEdges.add(self._currEdge)
+                return self.moveToNextStep()
             else:
                 return self.send(
-                    KernelEvent.ClientRestart,
+                    KernelEvent.ClientShutdown,
                     "Error while moving to next step: %s." % error,
                 )
         self.path.lastVisited[self._currEdge] = perf_counter()
         self.forbidenActions = set()
+        self.currentVertex = self.path.currentVertex
         self.main()
 
     def moveToNextStep(self):
@@ -146,14 +139,13 @@ class AbstractFarmBehavior(AbstractBehavior):
     def onBotUnloaded(self, code, err):
         if err:
             return self.send(KernelEvent.ClientRestart, f"Error while unloading: {err}")
-        self.availableResources = None
         self.main()
 
-    def onResourceCollectEnd(self, code, error):
+    def onResourceCollectEnd(self, code, error, iePosition=None):
         raise NotImplementedError()
 
     def onFight(self, event=None):
-        Logger().warning(f"Player is in fight")
+        Logger().warning(f"Player entered in a fight.")
         self.inFight = True
         self.stopChilds()
         self.once(KernelEvent.RoleplayStarted, self.onRoleplayAfterFight)
@@ -175,8 +167,7 @@ class AbstractFarmBehavior(AbstractBehavior):
 
     def onRevived(self, code, error):
         if error:
-            raise Exception(f"[BotWorkflow] Error while autoreviving player: {error}")
-        self.availableResources = None
+            KernelEventsManager().send(KernelEvent.ClientShutdown, f"Error while auto-reviving player: {error}")
         Logger().debug(
             f"Bot back on form, autotravelling to last vertex {self.currentVertex}"
         )
@@ -202,7 +193,6 @@ class AbstractFarmBehavior(AbstractBehavior):
     def onRoleplayAfterFight(self, event=None):
         Logger().debug(f"Player ended fight and started roleplay")
         self.inFight = False
-        self.availableResources = None
         self.onceMapProcessed(
             lambda: self.autotripUseZaap(
                 self.currentVertex.mapId,
@@ -228,7 +218,10 @@ class AbstractFarmBehavior(AbstractBehavior):
             return self.autoRevive(callback=self.onRevived)
         if PlayedCharacterManager().isPodsFull():
             Logger().warning(f"Inventory is almost full will trigger auto unload ...")
-            return self.UnloadInBank(callback=self.onBotUnloaded)
+            if PlayedCharacterManager().limitedLevel < 10 and BotConfig().unloadInBank:
+                Logger().warning(f"Player level is too low to unload in bank, ending behavior")
+                return KernelEventsManager().send(KernelEvent.ClientShutdown, message="Player level is too low to unload in bank")
+            return self.unloadInBank(callback=self.onBotUnloaded)
         if not self.initialized:
             Logger().debug(f"Initializing behavior...")
             self.initialized = True
@@ -249,28 +242,3 @@ class AbstractFarmBehavior(AbstractBehavior):
         The default implementation is to collect the nearest resource.
         '''
         pass
-
-
-    def getAvailableResources(self) -> list[CollectableResource]:
-        if not Kernel().interactivesFrame:
-            Logger().error("No interactives frame found")
-            return None
-        collectables = Kernel().interactivesFrame.collectables.values()
-        collectableResources = [CollectableResource(it) for it in collectables]
-        return collectableResources
-
-    def logResourcesTable(self, resources: list[CollectableResource]):
-        if resources:
-            headers = ["jobName", "resourceName", "enabled", "reachable", "canFarm", ]
-            summaryTable = PrettyTable(headers)
-            for e in resources:
-                summaryTable.add_row(
-                    [
-                        e.resource.skill.parentJob.name,
-                        e.resource.skill.gatheredRessource.name,
-                        e.resource.enabled,
-                        e.reachable,
-                        e.canFarm(self.jobFilter)
-                    ]
-                )
-            Logger().debug(f"Available resources :\n{summaryTable}")

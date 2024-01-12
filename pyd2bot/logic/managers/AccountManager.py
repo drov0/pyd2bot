@@ -6,7 +6,7 @@ from pyd2bot.thriftServer.pyd2botService.ttypes import Character
 from pydofus2.com.ankamagames.atouin.Haapi import Haapi
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-persistence_dir = "D://botdev//persistence"
+persistence_dir = "D://botdev//pyd2bot//pyd2bot//persistence"
 accounts_jsonfile = os.path.join(persistence_dir, "accounts.json")
 
 class AccountManager:
@@ -19,7 +19,7 @@ class AccountManager:
         return cls.accounts[accountId]
 
     @classmethod
-    def getCharacter(cls, accountId, charId=None):
+    def get_character(cls, accountId, charId=None):
         characterJson = None
         if charId is None:
             characterJson = cls.accounts[accountId]["characters"][0]

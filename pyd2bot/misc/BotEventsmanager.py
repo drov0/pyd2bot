@@ -1,3 +1,4 @@
+from enum import auto
 from time import perf_counter
 from typing import TYPE_CHECKING
 
@@ -18,14 +19,15 @@ if TYPE_CHECKING:
 
 
 class BotEventsManager(EventsHandler, metaclass=Singleton):
-    MEMBERS_READY = 0
-    ALL_PARTY_MEMBERS_IDLE = 1
-    ALL_MEMBERS_JOINED_PARTY = 2
-    MULE_FIGHT_CONTEXT = 3
-    BOT_CONNECTED = 4
-    PLAYER_DISCONNECTED = 5
-    SELLER_AVAILABLE = 6
-    MOVE_TO_VERTEX = 7
+    MEMBERS_READY = auto()
+    ALL_PARTY_MEMBERS_IDLE = auto()
+    ALL_MEMBERS_JOINED_PARTY = auto()
+    MULE_FIGHT_CONTEXT = auto()
+    BOT_CONNECTED = auto()
+    PLAYER_DISCONNECTED = auto()
+    SELLER_AVAILABLE = auto()
+    MOVE_TO_VERTEX = auto()
+    ALL_MEMBERS_JOINED_FIGHT = auto()
 
     def __init__(self):
         super().__init__()

@@ -8,16 +8,13 @@ from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
                                                                      Listener)
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.interactives.Interactive import Interactive
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.RoleplayInteractivesFrame import (
-    InteractiveElementData, RoleplayInteractivesFrame)
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.InteractiveElementData import InteractiveElementData
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
     MovementFailError
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
@@ -28,8 +25,6 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTy
     TransitionTypeEnum
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.ChangeMapMessage import \
     ChangeMapMessage
-from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.InteractiveUseRequestMessage import \
-    InteractiveUseRequestMessage
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
     BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -86,10 +81,6 @@ class ChangeMap(AbstractBehavior):
         if msgId == 4908:
             Logger().error("Need a quest to be completed")
             return self.finish(self.NEED_QUEST, "Need a quest to be completed")
-        
-    @property
-    def rpiframe(cls) -> "RoleplayInteractivesFrame":
-        return Kernel().worker.getFrameByName("RoleplayInteractivesFrame")
 
     @property
     def transitions(self):
@@ -109,12 +100,8 @@ class ChangeMap(AbstractBehavior):
                     scroll_trs.append(tr)
                 else:
                     other_trs.append(tr)
-        for tr in mapAction_trs:
-            yield tr
-        for tr in scroll_trs:
-            yield tr
-        for tr in other_trs:
-            yield tr
+        all_trs = mapAction_trs + scroll_trs + other_trs
+        return iter(all_trs)
 
     def followEdge(self):
         try:
@@ -130,15 +117,15 @@ class ChangeMap(AbstractBehavior):
                         Logger().warning(f"Current transition is using a Zaap it must be discarded.")
                         self.transition = next(self.transitions)
                 else:
-                    Logger().warning(f"Unable to find transiton IE!.")
+                    Logger().error(f"Unable to find transiton IE {self.transition.id}!. {Kernel().interactivesFrame._ie}")
                     self.transition = next(self.transitions)
         except StopIteration:
-            return self.finish(MovementFailError.INVALID_TRANSITION, "No valid transition found!")
+            return self.finish(self.INVALID_TRANSITION, "No valid transition found!, available transitions: " + str(self.edge.transitions))
         self.followTransition()
 
     def getTransitionIe(self, transition: Transition, callback) -> "InteractiveElementData":
         if not self.rpiframe:
-            return KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", self.getTransitionIe, [transition], originator=self)
+            return self.onceFramePushed("RoleplayInteractivesFrame", self.getTransitionIe, [transition])
         callback(self.rpiframe.getInteractiveElement(transition.id, transition.skillId))
 
     def followTransition(self):

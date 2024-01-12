@@ -23,9 +23,9 @@ class PlayerAPI(metaclass=Singleton):
             status = "fighting"
         elif MapDisplayManager.getInstance(instanceId).currentDataMap is None:
             status = "loadingMap"
-        elif not Kernel.getInstance(instanceId).entitiesFrame:
+        elif not Kernel.getInstance(instanceId).roleplayEntitiesFrame:
             status = "outOfRolePlay"
-        elif not Kernel.getInstance(instanceId).entitiesFrame.mcidm_processed:
+        elif not Kernel.getInstance(instanceId).roleplayEntitiesFrame.mcidm_processed:
             status = "processingMapData"
         else:
             status = "idle"

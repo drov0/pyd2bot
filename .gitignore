@@ -1,3 +1,4 @@
 .buildEnv
 build
+persistence
 __pycache__

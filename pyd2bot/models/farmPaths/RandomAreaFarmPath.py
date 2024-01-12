@@ -30,7 +30,6 @@ class RandomAreaFarmPath(AbstractFarmPath):
         super().__init__()
         self.name = name
         self.startVertex = startVertex
-        self.lastVisited = dict[Vertex, int]()
         self.area = SubArea.getSubAreaByMapId(startVertex.mapId).area
         self.subAreas = self.getAllSubAreas()
         self.mapIds = self.getAllMapsIds()
@@ -56,23 +55,6 @@ class RandomAreaFarmPath(AbstractFarmPath):
         if bestSolution is None:
             Logger().error(f"No unvisited vertex found")
         return bestSolution
-            
-    def outgoingEdges(self, vertex=None, onlyNonRecentVisited=False) -> Iterator[Edge]:
-        if vertex is None:
-            vertex = self.currentVertex
-        outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
-        ret = []
-        for edge in outgoingEdges:
-            if edge.dst.mapId in self.mapIds and AStar.hasValidTransition(edge):
-                if onlyNonRecentVisited:
-                    if edge.dst in self.lastVisited:
-                        if perf_counter() - self.lastVisited[edge.dst] > 60 * 60:
-                            ret.append(edge)
-                    else:
-                        ret.append(edge)
-                else:
-                    ret.append(edge)
-        return ret
     
     def __next__(self, forbidenEdges) -> Edge:
         outgoingEdges = list(self.outgoingEdges(onlyNonRecentVisited=True))
@@ -92,7 +74,24 @@ class RandomAreaFarmPath(AbstractFarmPath):
                     queue.append(e.dst)
                     verticies.add(e.dst)
         return verticies
-        
+
+    def outgoingEdges(self, vertex=None, onlyNonRecentVisited=False) -> Iterator[Edge]:
+        if vertex is None:
+            vertex = self.currentVertex
+        outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
+        ret = []
+        for edge in outgoingEdges:
+            if edge.dst.mapId in self.mapIds and AStar.hasValidTransition(edge):
+                if onlyNonRecentVisited:
+                    if edge.dst in self.lastVisited:
+                        if perf_counter() - self.lastVisited[edge.dst] > 60 * 60:
+                            ret.append(edge)
+                    else:
+                        ret.append(edge)
+                else:
+                    ret.append(edge)
+        return ret
+    
     def __iter__(self) -> Iterator[Vertex]:
         for it in self.verticies:
             yield it

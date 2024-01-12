@@ -1,9 +1,10 @@
 import collections
 import random
 import time
-from typing import Iterator, Tuple
+from typing import Iterator, Set, Tuple
 
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
+from pyd2bot.models.farmPaths.RandomAreaFarmPath import NoTransitionFound
 from pyd2bot.thriftServer.pyd2botService.ttypes import Path
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
@@ -32,73 +33,55 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         startVertex: Vertex,
         onlyDirections: bool = True,
     ) -> None:
+        super().__init__()
         self.name = name
         self.startVertex = startVertex
         self.subArea = SubArea.getSubAreaByMapId(startVertex.mapId)
-        self._currentVertex = None
-        self._verticies = list[Vertex]()
+        self.verticies = self.reachableVerticies()
         self.noInteractive = onlyDirections
-        self._recent_visited = list[Tuple['Vertex', float]]()
 
     def recentVisitedVerticies(self):
         self._recent_visited = [(_, time_added) for (_, time_added) in self._recent_visited if (time.time() - time_added) < 60 * 5]
         return [v for v, _ in self._recent_visited]
     
-    def __next__(self, forbidenEdges=None) -> Tuple[Transition, Edge]:
-        outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(self.currentVertex)
-        transitions = list[Tuple[Edge, Transition]]()
-        for edge in outgoingEdges:
-            if edge.dst.mapId in self.subArea.mapIds:
-                if AStar.hasValidTransition(edge):
-                    for tr in edge.transitions:
-                        if self.noInteractive and TransitionTypeEnum(tr.type) == TransitionTypeEnum.INTERACTIVE:
-                            continue
-                        if TransitionTypeEnum(tr.type) != TransitionTypeEnum.INTERACTIVE:
-                                currMP = PlayedCharacterManager().entity.position
-                                candidate = MapPoint.fromCellId(tr.cell)
-                                movePath = Pathfinding().findPath(currMP, candidate)
-                                if movePath.end == candidate:
-                                    transitions.append((edge, tr))
-                        else:
-                            transitions.append((edge, tr))
-        notrecent = [(edge, tr) for edge, tr in transitions if edge.dst not in self.recentVisitedVerticies()]
-        if notrecent:
-            edge, tr = random.choice(notrecent)
-        else:
-            if len(transitions) == 0:
-                raise Exception("Couldnt find next transition in path from current vertex.")
-            edge, tr = random.choice(transitions)
-        self._recent_visited.append((self.currentVertex, time.time()))
-        return tr, edge
+    def __next__(self, forbidenEdges) -> Edge:
+        outgoingEdges = list(self.outgoingEdges(onlyNonRecentVisited=True))
+        outgoingEdges = [e for e in outgoingEdges if e not in forbidenEdges]
+        if not outgoingEdges:
+            raise NoTransitionFound()
+        edge = random.choice(outgoingEdges)
+        return edge
 
     def currNeighbors(self) -> Iterator[Vertex]:
         return self.outgoingEdges(self.currentVertex)
 
-    def outgoingEdges(self, vertex: Vertex) -> Iterator[Vertex]:
+    def outgoingEdges(self, vertex=None, onlyNonRecentVisited=False) -> Iterator[Edge]:
+        if vertex is None:
+            vertex = self.currentVertex
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
+        ret = []
         for edge in outgoingEdges:
-            if edge.dst.mapId in self.subArea.mapIds:
-                found = False
-                for tr in edge.transitions:
-                    if tr.direction != -1:
-                        found = True
-                        break
-                if found:
-                    yield edge.dst
-
-    @property
-    def verticies(self):
-        if self._verticies:
-            return self._verticies
+            if edge.dst.mapId in self.subArea.mapIds and AStar.hasValidTransition(edge):
+                if onlyNonRecentVisited:
+                    if edge.dst in self.lastVisited:
+                        if time.perf_counter() - self.lastVisited[edge.dst] > 60 * 60:
+                            ret.append(edge)
+                    else:
+                        ret.append(edge)
+                else:
+                    ret.append(edge)
+        return ret
+    
+    def reachableVerticies(self) -> Set[Vertex]:
         queue = collections.deque([self.startVertex])
-        self._verticies = set([self.startVertex])
+        verticies = set([self.startVertex])
         while queue:
             curr = queue.popleft()
-            for v in self.outgoingEdges(curr):
-                if v not in self._verticies:
-                    queue.append(v)
-                    self._verticies.add(v)
-        return self._verticies
+            for e in self.outgoingEdges(curr):
+                if e.dst not in verticies:
+                    queue.append(e.dst)
+                    verticies.add(e.dst)
+        return verticies
 
     def __iter__(self) -> Iterator[Vertex]:
         for it in self.verticies:
