@@ -56,7 +56,7 @@ class MapMove(AbstractBehavior):
 
     def stop(self) -> None:
         if PlayedCharacterManager().entity and PlayedCharacterManager().entity.isMoving:
-            PlayedCharacterManager().entity.stop()
+            PlayedCharacterManager().entity.stop_move()
         KernelEventsManager().clearAllByOrigin(self)
         MapMove.clear()
 
