@@ -1,8 +1,7 @@
 from pyd2bot.logic.managers.AccountManager import AccountManager
 from pyd2bot.logic.managers.BotConfig import CharacterRoleEnum
-from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import ResourceFarm
 from pyd2bot.Pyd2Bot import Pyd2Bot
-from pyd2bot.thriftServer.pyd2botService.ttypes import (JobFilter, Path,
+from pyd2bot.thriftServer.pyd2botService.ttypes import (Path,
                                                         PathType, Session,
                                                         SessionType,
                                                         UnloadType, Vertex, TransitionType)
@@ -42,7 +41,7 @@ if __name__ == "__main__":
         unloadType=UnloadType.BANK,
         type=SessionType.FIGHT,
         path=path,
-        monsterLvlCoefDiff=1.7
+        monsterLvlCoefDiff=1.4
     )
     
     bot = Pyd2Bot(character.login)

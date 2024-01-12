@@ -86,7 +86,32 @@ class RandomAreaFarmPath(AbstractFarmPath):
             if TransitionTypeEnum(tr.type) not in tr_types_whitelist:
                 edge.transitions.remove(tr)
         return edge
+    
+    def hasValidTransition(self, edge: Edge) -> bool:
+        from pydofus2.com.ankamagames.dofus.datacenter.items.criterion.GroupItemCriterion import \
+            GroupItemCriterion
+
+        
+        if self.transitionTypeWhitelist:
+            transitions = [tr for tr in edge.transitions if TransitionTypeEnum(tr.type) in self.transitionTypeWhitelist]
+        else:
+            transitions = edge.transitions
+        
+        valid = False
+        for transition in transitions:
             
+            if transition.criterion:
+                if (
+                    "&" not in transition.criterion
+                    and "|" not in transition.criterion
+                    and transition.criterion[0:2] not in AStar.CRITERION_WHITE_LIST
+                ):
+                    return False
+                criterion = GroupItemCriterion(transition.criterion)
+                return criterion.isRespected
+            valid = True
+        return valid
+    
     def outgoingEdges(self, vertex=None, onlyNonRecentVisited=False) -> Iterator[Edge]:
         if vertex is None:
             vertex = self.currentVertex
@@ -94,10 +119,7 @@ class RandomAreaFarmPath(AbstractFarmPath):
         ret = []
         for edge in outgoingEdges:
             if edge.dst.mapId in self.mapIds:
-                if self.transitionTypeWhitelist:
-                    edge = edge.clone()
-                    edge = self.filter_out_transitions(edge, self.transitionTypeWhitelist)
-                if AStar.hasValidTransition(edge):
+                if self.hasValidTransition(edge):
                     if onlyNonRecentVisited:
                         if edge.dst in self.lastVisited:
                             if perf_counter() - self.lastVisited[edge.dst] > 60 * 60:

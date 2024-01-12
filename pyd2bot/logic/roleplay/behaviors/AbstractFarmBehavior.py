@@ -138,7 +138,7 @@ class AbstractFarmBehavior(AbstractBehavior):
 
     def onBotUnloaded(self, code, err):
         if err:
-            return self.send(KernelEvent.ClientRestart, f"Error while unloading: {err}")
+            return self.send(KernelEvent.ClientShutdown, f"Error while unloading: {err}")
         self.main()
 
     def onResourceCollectEnd(self, code, error, iePosition=None):
