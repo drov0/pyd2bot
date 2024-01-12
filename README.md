@@ -13,11 +13,13 @@ A bot that uses pydofus2 as a background client
 5. Extract path to pydofus2 and pyd2bot into the .venv : 
    1. crate a file `pydofus2.pth` in the root od the folder `.venv` and write in it the absolute path to pydofus2 folder.
    2. crate a file `pyd2bot.pth` in the root od the folder `.venv` and write in it the absolute path to pyd2bot folder.
+
 For example in my env, pydofus2.pth is situated in : d:/botdev/.venv/pydofus2.pth and contains `D:\botdev\pyd2bot`
 ### Install dependencies:
 - Source .venv: `source .venv/Scripts/activate`
 - Install dependencies for pyd2bot: `pip install -r pyd2bot/requirements.txt`
 - Install dependencies for pydofus2: `pip install -r pydofus2/requirements.txt`
+  
 Note that some dependencies might be missing in the requirement files so you might have to install them later.
 
 ### Setup config files:
@@ -37,6 +39,7 @@ PYD2BOT_DIR = D://botdev//pyd2bot
 GRINDER_DIR = D://botdev/Grinder
 VENV_DIR = D://botdev//.venv
 ```
+
 One way to use the devops pipeline is to update the protocol after a new dofus maj:
 For that you simply launch `make update`, this will regenerate the new protocol specs, update the message shuffling and générate new set of message classes in their respective folder under the pydofus2 folders hirarchy.
 
@@ -60,6 +63,7 @@ To import your account and character data into pyd2bot, follow these steps:
    - Use a local proxy and configure your operating system to route requests to it.
    - Log in to your account in the Ankama Launcher.
    - Find your API key in the header of the call to `https://haapi.ankama.com/json/Ankama/v5/Account/CreateToken`.
+
 Personaly i use mitmproxy-10.2 for windows, i run it on localhost:8080, i install its certificate and i configure windows to use it. Then i open its web interface and i connect to my bot account trough the launcher and i look for the request i mentioned above.
 This proces is done once in a month because the apikey has a one month expiration date.
 
