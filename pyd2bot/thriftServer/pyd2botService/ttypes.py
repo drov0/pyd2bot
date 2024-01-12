@@ -82,6 +82,36 @@ class SessionType(object):
     }
 
 
+class TransitionType(object):
+    SCROLL = 1
+    SCROLL_ACTION = 2
+    MAP_EVENT = 4
+    MAP_ACTION = 8
+    MAP_OBSTACLE = 16
+    INTERACTIVE = 32
+    NPC_ACTION = 64
+
+    _VALUES_TO_NAMES = {
+        1: "SCROLL",
+        2: "SCROLL_ACTION",
+        4: "MAP_EVENT",
+        8: "MAP_ACTION",
+        16: "MAP_OBSTACLE",
+        32: "INTERACTIVE",
+        64: "NPC_ACTION",
+    }
+
+    _NAMES_TO_VALUES = {
+        "SCROLL": 1,
+        "SCROLL_ACTION": 2,
+        "MAP_EVENT": 4,
+        "MAP_ACTION": 8,
+        "MAP_OBSTACLE": 16,
+        "INTERACTIVE": 32,
+        "NPC_ACTION": 64,
+    }
+
+
 class UnloadType(object):
     BANK = 0
     STORAGE = 1
@@ -868,14 +898,16 @@ class Path(object):
      - id
      - type
      - startVertex
+     - transitionTypeWhitelist
 
     """
 
 
-    def __init__(self, id=None, type=None, startVertex=None,):
+    def __init__(self, id=None, type=None, startVertex=None, transitionTypeWhitelist=None,):
         self.id = id
         self.type = type
         self.startVertex = startVertex
+        self.transitionTypeWhitelist = transitionTypeWhitelist
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -902,6 +934,16 @@ class Path(object):
                     self.startVertex.read(iprot)
                 else:
                     iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.LIST:
+                    self.transitionTypeWhitelist = []
+                    (_etype10, _size7) = iprot.readListBegin()
+                    for _i11 in range(_size7):
+                        _elem12 = iprot.readI32()
+                        self.transitionTypeWhitelist.append(_elem12)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -923,6 +965,13 @@ class Path(object):
         if self.startVertex is not None:
             oprot.writeFieldBegin('startVertex', TType.STRUCT, 3)
             self.startVertex.write(oprot)
+            oprot.writeFieldEnd()
+        if self.transitionTypeWhitelist is not None:
+            oprot.writeFieldBegin('transitionTypeWhitelist', TType.LIST, 4)
+            oprot.writeListBegin(TType.I32, len(self.transitionTypeWhitelist))
+            for iter13 in self.transitionTypeWhitelist:
+                oprot.writeI32(iter13)
+            oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1205,11 +1254,11 @@ class Session(object):
             elif fid == 3:
                 if ftype == TType.LIST:
                     self.followers = []
-                    (_etype10, _size7) = iprot.readListBegin()
-                    for _i11 in range(_size7):
-                        _elem12 = Character()
-                        _elem12.read(iprot)
-                        self.followers.append(_elem12)
+                    (_etype17, _size14) = iprot.readListBegin()
+                    for _i18 in range(_size14):
+                        _elem19 = Character()
+                        _elem19.read(iprot)
+                        self.followers.append(_elem19)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1243,11 +1292,11 @@ class Session(object):
             elif fid == 9:
                 if ftype == TType.LIST:
                     self.jobFilters = []
-                    (_etype16, _size13) = iprot.readListBegin()
-                    for _i17 in range(_size13):
-                        _elem18 = JobFilter()
-                        _elem18.read(iprot)
-                        self.jobFilters.append(_elem18)
+                    (_etype23, _size20) = iprot.readListBegin()
+                    for _i24 in range(_size20):
+                        _elem25 = JobFilter()
+                        _elem25.read(iprot)
+                        self.jobFilters.append(_elem25)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1272,8 +1321,8 @@ class Session(object):
         if self.followers is not None:
             oprot.writeFieldBegin('followers', TType.LIST, 3)
             oprot.writeListBegin(TType.STRUCT, len(self.followers))
-            for iter19 in self.followers:
-                iter19.write(oprot)
+            for iter26 in self.followers:
+                iter26.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.type is not None:
@@ -1299,8 +1348,8 @@ class Session(object):
         if self.jobFilters is not None:
             oprot.writeFieldBegin('jobFilters', TType.LIST, 9)
             oprot.writeListBegin(TType.STRUCT, len(self.jobFilters))
-            for iter20 in self.jobFilters:
-                iter20.write(oprot)
+            for iter27 in self.jobFilters:
+                iter27.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -1474,6 +1523,7 @@ Path.thrift_spec = (
     (1, TType.STRING, 'id', 'UTF8', None, ),  # 1
     (2, TType.I32, 'type', None, None, ),  # 2
     (3, TType.STRUCT, 'startVertex', [Vertex, None], None, ),  # 3
+    (4, TType.LIST, 'transitionTypeWhitelist', (TType.I32, None, False), None, ),  # 4
 )
 all_structs.append(Spell)
 Spell.thrift_spec = (

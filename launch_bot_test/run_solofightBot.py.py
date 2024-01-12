@@ -5,7 +5,7 @@ from pyd2bot.Pyd2Bot import Pyd2Bot
 from pyd2bot.thriftServer.pyd2botService.ttypes import (JobFilter, Path,
                                                         PathType, Session,
                                                         SessionType,
-                                                        UnloadType, Vertex)
+                                                        UnloadType, Vertex, TransitionType)
 from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import \
     DisconnectionReasonEnum
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -22,7 +22,8 @@ if __name__ == "__main__":
         startVertex=Vertex(
             mapId=191106048.0, 
             zoneId=1
-        )
+        ),
+        transitionTypeWhitelist=[TransitionType.SCROLL, TransitionType.SCROLL_ACTION]
     )
     accountId = "244588168071629885"
     character = AccountManager.get_character(accountId)

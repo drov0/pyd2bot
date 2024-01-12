@@ -4,13 +4,16 @@ from time import perf_counter
 from typing import Iterator, Set
 
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
-from pyd2bot.thriftServer.pyd2botService.ttypes import Path
-from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
+from pyd2bot.thriftServer.pyd2botService.ttypes import Path, TransitionType
+from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import \
+    MapPosition
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import \
     AStar
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
     Edge
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import \
+    TransitionTypeEnum
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
     Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
@@ -25,11 +28,14 @@ class RandomAreaFarmPath(AbstractFarmPath):
     def __init__(
         self,
         name: str,
-        startVertex: Vertex
+        startVertex: Vertex,
+        transitionTypeWhitelist: list = None,
     ) -> None:
         super().__init__()
         self.name = name
         self.startVertex = startVertex
+        self.transitionTypeWhitelist: list[TransitionTypeEnum] = transitionTypeWhitelist
+
         self.area = SubArea.getSubAreaByMapId(startVertex.mapId).area
         self.subAreas = self.getAllSubAreas()
         self.mapIds = self.getAllMapsIds()
@@ -75,21 +81,31 @@ class RandomAreaFarmPath(AbstractFarmPath):
                     verticies.add(e.dst)
         return verticies
 
+    def filter_out_transitions(self, edge: Edge, tr_types_whitelist: list[TransitionTypeEnum]) -> bool:
+        for tr in edge.transitions:
+            if TransitionTypeEnum(tr.type) not in tr_types_whitelist:
+                edge.transitions.remove(tr)
+        return edge
+            
     def outgoingEdges(self, vertex=None, onlyNonRecentVisited=False) -> Iterator[Edge]:
         if vertex is None:
             vertex = self.currentVertex
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
         ret = []
         for edge in outgoingEdges:
-            if edge.dst.mapId in self.mapIds and AStar.hasValidTransition(edge):
-                if onlyNonRecentVisited:
-                    if edge.dst in self.lastVisited:
-                        if perf_counter() - self.lastVisited[edge.dst] > 60 * 60:
+            if edge.dst.mapId in self.mapIds:
+                if self.transitionTypeWhitelist:
+                    edge = edge.clone()
+                    edge = self.filter_out_transitions(edge, self.transitionTypeWhitelist)
+                if AStar.hasValidTransition(edge):
+                    if onlyNonRecentVisited:
+                        if edge.dst in self.lastVisited:
+                            if perf_counter() - self.lastVisited[edge.dst] > 60 * 60:
+                                ret.append(edge)
+                        else:
                             ret.append(edge)
                     else:
                         ret.append(edge)
-                else:
-                    ret.append(edge)
         return ret
     
     def __iter__(self) -> Iterator[Vertex]:
@@ -129,4 +145,20 @@ class RandomAreaFarmPath(AbstractFarmPath):
         startVertex = WorldGraph().getVertex(path.startVertex.mapId, path.startVertex.zoneId)
         if startVertex is None:
             raise ValueError("Could not find start vertex from startVertex : " + str(path.startVertex))
-        return cls(path.id, startVertex)
+        twl = None
+        if path.transitionTypeWhitelist:
+            twl = []
+            for e in path.transitionTypeWhitelist:
+                if e == TransitionType.SCROLL:
+                    twl.append(TransitionTypeEnum.SCROLL)
+                elif e == TransitionType.SCROLL_ACTION:
+                    twl.append(TransitionTypeEnum.SCROLL_ACTION)
+                elif e == TransitionType.INTERACTIVE:
+                    twl.append(TransitionTypeEnum.INTERACTIVE)
+                elif e == TransitionType.MAP_ACTION:
+                    twl.append(TransitionTypeEnum.MAP_ACTION)
+                elif e == TransitionType.MAP_EVENT:
+                    twl.append(TransitionTypeEnum.MAP_EVENT)
+                elif e == TransitionType.MAP_OBSTACLE:
+                    twl.append(TransitionTypeEnum.MAP_OBSTACLE)
+        return cls(path.id, startVertex, twl)

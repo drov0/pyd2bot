@@ -1,9 +1,11 @@
 typedef i32 int
+
 struct Vertex {
     1: double mapId,
     2: int zoneId,
     3: optional bool onlyDirections
 }
+
 enum SessionStatus {
     CRASHED = 0
     TERMINATED = 1
@@ -17,10 +19,12 @@ enum SessionStatus {
     OUT_OF_ROLEPLAY = 9
     IDLE = 10
 }
+
 struct JobFilter {
     1: i32 jobId,
     2: list<i32> resoursesIds
 }
+
 struct RunSummary {
     1: string login,
     2: i64 startTime,
@@ -34,6 +38,7 @@ struct RunSummary {
     10: required int nbrFightsDone,
     11: required int earnedLevels,
 }
+
 struct CharacterDetails {
     1: required int level,
     2: required int hp,
@@ -48,6 +53,7 @@ struct CharacterDetails {
     11: required int shopWeight,
     12: required int inventoryWeightMax,
 }
+
 struct Server {
     1: int id,
     2: string name,
@@ -59,10 +65,12 @@ struct Server {
     8: bool isMonoAccount,
     9: bool isSelectable,
 }
+
 struct Breed {
     1: int id,
     2: string name
 }
+
 enum SessionType {
     FIGHT = 0,
     FARM = 1,
@@ -70,25 +78,41 @@ enum SessionType {
     TREASURE_HUNT = 4,
     MIXED = 5
 }
+
+enum TransitionType {
+    SCROLL = 1,
+    SCROLL_ACTION = 2,
+    MAP_EVENT = 4,
+    MAP_ACTION = 8,
+    MAP_OBSTACLE = 16,
+    INTERACTIVE = 32,
+    NPC_ACTION = 64
+}
+
 enum UnloadType {
     BANK = 0,
     STORAGE = 1,
     SELLER = 2
 }
+
 enum PathType {
     RandomSubAreaFarmPath = 0,
     RandomAreaFarmPath=2,
     CyclicFarmPath = 1,
 }
+
 struct Path {
     1: string id,
     2: PathType type,
     3: optional Vertex startVertex,
+    4: optional list<TransitionType> transitionTypeWhitelist,
 }
+
 struct Spell {
     1:int id,
     2:string name
 }
+
 struct Character {
     1: string name,
     2: double id,
@@ -100,6 +124,7 @@ struct Character {
     8: optional string login,
     9: optional int accountId,
 }
+
 struct Session {
     1: string id,
     2: Character leader,
@@ -111,10 +136,12 @@ struct Session {
     8: optional double monsterLvlCoefDiff,
     9: optional list<JobFilter> jobFilters
 }
+
 exception DofusError {
     1: int code,
     2: string message
 }
+
 service Pyd2botService {
     string ping() throws (1: DofusError error),
     list<Character> fetchCharacters(1: string token) throws (1: DofusError error),
