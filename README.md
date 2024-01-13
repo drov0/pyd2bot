@@ -1,80 +1,106 @@
-# pyd2bot
-A bot that uses pydofus2 as a background client
+# Pyd2bot: A Python Bot for Dofus
+
+Pyd2bot utilizes the Pydofus2 client as a background to automate tasks in Dofus. This guide is tailored for beginners, especially for Windows users.
 
 ## Prerequisites:
-- Install of python 3.9.11 (other versions might work, not guaranteed)
-- Install pcap and shark for sniffer functionality
+- **Python 3.9.11**: Download and install from [python.org](https://www.python.org/downloads/release/python-3911/).
+- **Pcap and Wireshark**: Required for sniffer functionality. Download Wireshark from [here](https://www.wireshark.org/download.html).
 
-## Steps for developers:
-1. Create a new folder, e.g., 'botdev', `cd botdev`
-2. Clone pydofus2: `git clone https://github.com/kmajdoub/pydofus2.git`
-3. Clone pyd2bot: `git clone https://github.com/kmajdoub/pyd2bot.git`
-4. Create a new venv in folder `python -m venv .venv`
-5. Extract path to pydofus2 and pyd2bot into the .venv : 
-   1. crate a file `pydofus2.pth` in the root od the folder `.venv` and write in it the absolute path to pydofus2 folder.
-   2. crate a file `pyd2bot.pth` in the root od the folder `.venv` and write in it the absolute path to pyd2bot folder.
+## Setup Steps for Developers:
 
-For example in my env, pydofus2.pth is situated in : d:/botdev/.venv/pydofus2.pth and contains `D:\botdev\pyd2bot`
-### Install dependencies:
-- Source .venv: `source .venv/Scripts/activate`
-- Install dependencies for pyd2bot: `pip install -r pyd2bot/requirements.txt`
-- Install dependencies for pydofus2: `pip install -r pydofus2/requirements.txt`
-  
-Note that some dependencies might be missing in the requirement files so you might have to install them later.
+### 1. Setting Up the Environment
+- **Create a New Folder**: 
+  - Open Command Prompt.
+  - Create a new folder named `botdev` and navigate into it:
+    ```bash
+    mkdir botdev
+    cd botdev
+    ```
+- **Clone Repositories**:
+  - Clone the `pydofus2` repository:
+    ```bash
+    git clone https://github.com/kmajdoub/pydofus2.git
+    ```
+  - Clone the `pyd2bot` repository:
+    ```bash
+    git clone https://github.com/kmajdoub/pyd2bot.git
+    ```
+- **Create a Virtual Environment**:
+  - Within the `botdev` folder, execute:
+    ```bash
+    python -m venv .venv
+    ```
+- **Set Up Path Files**:
+  - Create `pydofus2.pth` and `pyd2bot.pth` inside `.venv`.
+  - Write the absolute path to `pydofus2` and `pyd2bot` in their respective files.
+    - Example for `pydofus2.pth`: `D:\botdev\pydofus2`
 
-### Setup config files:
-- In `pydofus2.pydofus2.com.ankamagames.dofus.Constants`, set:
-  - `DOFUS_ROOTDIR` to your Dofus installation directory (where `invoker.swf` is located)
-  - `LANG_FILE_PATH` to your Dofus lang file (e.g., `LANG_FILE_PATH = DOFUS_DATA_DIR / "i18n" / "i18n_fr.d2i"`)
-- Other paths can be adjusted as needed if you know what you are doing.
+### 2. Installing Dependencies
+- **Activate Virtual Environment**:
+  - Execute:
+    ```bash
+    .venv\Scripts\activate
+    ```
+- **Install Dependencies**:
+  - For `pyd2bot`:
+    ```bash
+    pip install -r pyd2bot/requirements.txt
+    ```
+  - For `pydofus2`:
+    ```bash
+    pip install -r pydofus2/requirements.txt
+    ```
 
-### Change Makefile for regenerating Dofus protocol:
-- Edit `<pydofus2_dir>\pydofus2\devops\Makefile`
-- Set variables correctly (e.g., `DOFUSINVOKER`, `PYDOFUS_DIR`, `PYD2BOT_DIR`, `GRINDER_DIR`, `VENV_DIR`)
-- Example setup:
+### 3. Configuration
+- **Setup Config Files**:
+  - In `pydofus2.pydofus2.com.ankamagames.dofus.Constants`, configure:
+    - `DOFUS_ROOTDIR`: Path to your Dofus installation directory.
+    - `LANG_FILE_PATH`: Path to your Dofus language file.
+- **Edit Makefile for Dofus Protocol**:
+  - Modify the Makefile in `<pydofus2_dir>\pydofus2\devops\Makefile`.
+  - Set variables like `DOFUSINVOKER`, `PYDOFUS_DIR`, etc.
+    - Example:
+      ```bash
+      DOFUSINVOKER = D://Dofus//DofusInvoker.swf
+      PYDOFUS_DIR = D://botdev//pydofus2
+      PYD2BOT_DIR = D://botdev//pyd2bot
+      VENV_DIR = D://botdev//.venv
+      ```
+- **Set Logs Directory**:
+  - Specify the log folder path in `<pydofus2_dir>\pydofus2\com\ankamagames\jerakine\logger\Logger.py`.
+    - Example: `LOGS_PATH = Path("D:/botdev/logs")`
+
+### 4. Generate Keys and Unpack Maps
+- Navigate to `<pydofus2_dir>\pydofus2\devops`.
+- Execute:
 ```bash
-DOFUSINVOKER = D://Dofus//DofusInvoker.swf
-PYDOFUS_DIR = D://botdev//pydofus2
-PYD2BOT_DIR = D://botdev//pyd2bot
-GRINDER_DIR = D://botdev/Grinder
-VENV_DIR = D://botdev//.venv
+make extract-keys
+make unpack-maps
+```
+### 5. If you want to use the Sniffer App (Optional)
+- Go to `<pydofus2_dir>\pydofus2\sniffer`.
+- Install requirements and run the app:
+```bash
+pip install -r requirements.txt
+python app.py
 ```
 
-One way to use the devops pipeline is to update the protocol after a new dofus maj:
-For that you simply launch `make update`, this will regenerate the new protocol specs, update the message shuffling and générate new set of message classes in their respective folder under the pydofus2 folders hirarchy.
 
-### Set logs directory:
-For logging you need to specify the path you want the folder of logs to be situated.
-- In `<pydofus2_dir>\pydofus2\com\ankamagames\jerakine\logger\Logger.py`, set `LOGS_PATH` (e.g., `LOGS_PATH = Path("D:/botdev/logs")`)
+## Importing Account and Character Data
 
-### Generate keys and unpack maps:
-- Navigate to `<pydofus2_dir>\pydofus2\devops`
-- Run `make extract-keys` and `make unpack-maps`
-Note that this is done in the `make update` pipeline.
-### If you want to start the sniffer app:
-- Navigate to `<pydofus2_dir>\pydofus2\sniffer`
-- Install requirements: `pip install -r requirements.txt`
-- Run the app: `python app.py`
+1. **Obtain Your HAAPI API Key**:
+ - Use a local proxy like mitmproxy and configure your Windows to route requests through it.
+ - Log in to your Ankama account via the Launcher.
+ - Find the API key in the request header to `https://haapi.ankama.com/json/Ankama/v5/Account/CreateToken`.
 
-## Import your account and character data, run a bot example
-To import your account and character data into pyd2bot, follow these steps:
+2. **Update the Script with Your API Key**:
+ - Navigate to `<pyd2bot_dir>/launch_bot_test`.
+ - In `fetch_account_data.py`, replace `api_key` with your API key.
+ - Running the script will store your account data in `accounts.json`.
 
-1. **Obtain your HAAPI API key:**
-   - Use a local proxy and configure your operating system to route requests to it.
-   - Log in to your account in the Ankama Launcher.
-   - Find your API key in the header of the call to `https://haapi.ankama.com/json/Ankama/v5/Account/CreateToken`.
+3. **Configure and Run the Bot Example**:
+ - Edit `run_resourceFarmBot.py`.
+ - Replace `accountId` with your account ID.
+ - Start the script to see the bot in action.
 
-Personaly i use mitmproxy-10.2 for windows, i run it on localhost:8080, i install its certificate and i configure windows to use it. Then i open its web interface and i connect to my bot account trough the launcher and i look for the request i mentioned above.
-This proces is done once in a month because the apikey has a one month expiration date.
-
-2. **Update the script with your API key:**
-   - Go to `<pyd2bot_dir>/launch_bot_test`.
-   - In the `fetch_account_data.py` script, replace `api_key` with your own API key.
-   - Run the script. This will create a JSON file with your account data and store it in `<pyd2bot_dir>/pyd2bot/persistence/accounts.json`.
-
-3. **Configure and run the bot example:**
-   - Open the `run_resourceFarmBot.py` script.
-   - Replace `accountId` with your account ID (it should be the key of your account data in the `accounts.json` file).
-   - Run the script, a log file should appear in the logs dir you configured and you can see in it detailed logs on whats happening with your bot.
-
-By following these steps, your account and character data will be successfully imported into pyd2bot, allowing you to start using the bot with your personal data.
+Follow these steps to successfully set up and run Pyd2bot on your Windows system.
