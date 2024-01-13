@@ -302,6 +302,9 @@ class ChangeMap(AbstractBehavior):
                     self.forbidenScrollCells[self.transition] = []
                 self.forbidenScrollCells[self.transition].append(self.mapChangeCellId)
                 return self.askChangeMap()
+        elif code == MovementFailError.CANT_REACH_DEST_CELL:
+            if self.edge:
+                return self.followEdge()
         if error:
             return self.finish(code, error)
         Logger().info("Reached map change cell")
