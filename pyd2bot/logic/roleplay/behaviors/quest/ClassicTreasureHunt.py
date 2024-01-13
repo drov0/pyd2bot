@@ -77,6 +77,9 @@ class ClassicTreasureHunt(AbstractBehavior):
         self.guessMode = False
         self.guessedAnswers = []
 
+    def submitet_flag_maps(self):
+        return [_.mapId for _ in self.infos.stepList if _.flagState == TreasureHuntFlagStateEnum.TREASURE_HUNT_FLAG_STATE_UNKNOWN]
+    
     def getCurrentStepIndex(self):
         i = 1
         while i < len(self.infos.stepList):
@@ -102,9 +105,9 @@ class ClassicTreasureHunt(AbstractBehavior):
     def onFlagRequestAnswer(self, event, result, err):
         if result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_OK:
             pass
-        elif result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG:
+        elif result in [TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG]:
             answer = (self.startMapId, self.currentStep.poiLabel, self.currentMapId)
-            self.removePoiFromMap(self.currentMapId, self.currentStep.poiLabel)
+            Logger().debug(f"Wrong answer : {answer}")
             if answer in self.guessedAnswers:
                 self.guessedAnswers.remove(answer)
             self.wrongAnswers.add(answer)
@@ -112,17 +115,15 @@ class ClassicTreasureHunt(AbstractBehavior):
                 json.dump({
                     "recordedWrongAnswers": list(self.wrongAnswers)
                 }, fp)
-            self.guessMode = True
             self.solveNextStep(True)
         elif result in [
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_ERROR_UNDEFINED,
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_TOO_MANY,
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_ERROR_IMPOSSIBLE,
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG_INDEX,
+            TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_SAME_MAP
         ]:
-            pass
-        elif result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_SAME_MAP:
-            pass
+            KernelEventsManager().send(KernelEvent.ClientShutdown, f"Treasure hunt flag request error : {result} {err}")
 
     def onTelportToDistributorNearestZaap(self, code, err):
         if code == UseTeleportItem.CANT_USE_ITEM_IN_MAP:
@@ -240,17 +241,23 @@ class ClassicTreasureHunt(AbstractBehavior):
             if not mapId:
                 return None
             Logger().debug(f"iter {i + 1}: nextMapId {mapId}.")
-
+            if mapId in self.submitet_flag_maps():
+                Logger().debug(f"Map {mapId} has already been submitted")
+                continue
             if self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_POI:
-                if not self.guessMode and self.isPoiInMap(mapId, self.currentStep.poiLabel):
-                    poi = PointOfInterest.getPointOfInterestById(self.currentStep.poiLabel)
-                    Logger().debug(
-                        f"Found {poi.name} in Map {mapId} at {i + 1} maps to the {DirectionsEnum(self.currentStep.direction)}"
-                    )
-                    return mapId
-                elif self.guessMode:
-                    if (self.startMapId, self.currentStep.poiLabel, mapId) not in self.wrongAnswers:
+                if (self.startMapId, self.currentStep.poiLabel, mapId) in self.wrongAnswers:
+                    Logger().debug(f"Map {mapId} has already been registred as a wrong answer for this poi")
+                    continue
+                if not self.guessMode:
+                    if self.isPoiInMap(mapId, self.currentStep.poiLabel):
+                        poi = PointOfInterest.getPointOfInterestById(self.currentStep.poiLabel)
+                        Logger().debug(
+                            f"Found {poi.name} in Map {mapId} at {i + 1} maps to the {DirectionsEnum(self.currentStep.direction)}"
+                        )
                         return mapId
+                else:
+                    Logger().debug(f"Guess mode enabled, will try to find the poi in this map {mapId}")
+                    return mapId
         return None
 
     @classmethod
@@ -321,7 +328,7 @@ class ClassicTreasureHunt(AbstractBehavior):
             self.autotripUseZaap(nextMapId, maxCost=self.maxCost, callback=self.onNextHintMapReached)
         elif self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_HINT:
             FindHintNpc().start(
-                self.currentStep.count, self.currentStep.direction, parent=self, callback=self.onNextHintMapReached
+                self.currentStep.count, self.currentStep.direction, callback=self.onNextHintMapReached, parent=self
             )
         else:
             return self.finish(self.UNSUPPORTED_THUNT_TYPE, f"Unsupported hunt step type {self.currentStep.type}")
