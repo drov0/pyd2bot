@@ -268,7 +268,21 @@ class ClassicTreasureHunt(AbstractBehavior):
                     if transition.direction != -1 and transition.direction == direction:
                         return edge.dst.mapId
 
+    def onRevived(self, code, error, ignoreSame=False):
+        if error:
+            KernelEventsManager().send(KernelEvent.ClientShutdown, f"Error while auto-reviving player: {error}")
+        Logger().debug(
+            f"Bot back on form, can continue treasure hunt"
+        )
+        self.solveNextStep(ignoreSame)
+        
     def solveNextStep(self, ignoreSame=False):
+        if Kernel().fightContextFrame:
+            Logger().debug(f"Waiting for fight to end")
+            return self.once(KernelEvent.RoleplayStarted, lambda e: self.solveNextStep(ignoreSame))
+        if PlayedCharacterManager().isDead():
+            Logger().warning(f"Player is dead.")
+            return self.autoRevive(callback=lambda code, err: self.onRevived(code, err, ignoreSame))
         lastStep = self.currentStep
         idx = self.getCurrentStepIndex()
         if idx is None:

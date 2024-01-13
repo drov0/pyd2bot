@@ -80,7 +80,7 @@ class BehaviorApi:
         from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 
         if Kernel().fightContextFrame:
-            return self.finish(89090, "Player is in Fight")
+            return callback(89090, "Player is in Fight")
         
         srcSubArea = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
         srcAreaId = srcSubArea.areaId

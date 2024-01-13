@@ -878,6 +878,10 @@ class BotFightFrame(Frame):
 
     def confirmTurnEnd(self) -> None:
         if self.currentPlayer:
+            if self.currentPlayer.id in Kernel().battleFrame.deadFightersList:
+                Logger().info(f"Player {self.currentPlayer.name} is dead")
+                self.turnEnd()
+                return
             fighterInfos = Kernel().fightEntitiesFrame.getEntityInfos(self.currentPlayer.id)
             if fighterInfos:
                 BuffManager().markFinishingBuffs(self.currentPlayer.id)
