@@ -133,7 +133,7 @@ class ClassicTreasureHunt(AbstractBehavior):
         else:
             self.autoTrip(self.TAKE_QUEST_MAPID, 1, callback=self.onTakeQuestMapReached)
 
-    def  goToHuntAtm(self):
+    def goToHuntAtm(self):
         Logger().debug(f"AutoTravelling to treasure hunt ATM")
         distanceToTHATMZaap = MapTools.distanceBetweenTwoMaps(self.currentMapId, self.ZAAP_HUNT_MAP)
         Logger().debug(f"Distance to ATM Zaap is {distanceToTHATMZaap}")
@@ -150,7 +150,7 @@ class ClassicTreasureHunt(AbstractBehavior):
                 else:
                     Logger().debug(f"No rappel potions found in player consumable view")
             else:
-                Logger().debug(f"Don't have info about the saved Zaap or its not the TH-ATM zaap")
+                Logger().debug(f"Saved Zaap ({Kernel().zaapFrame.spawnMapId}) is not the TH-ATM zaap")
         self.autotripUseZaap(
             self.TAKE_QUEST_MAPID, withSaveZaap=True, maxCost=self.maxCost, callback=self.onTakeQuestMapReached
         )

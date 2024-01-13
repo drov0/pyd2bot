@@ -64,14 +64,13 @@ class AutoTripUseZaap(AbstractBehavior):
         teleportCostFromCurrToDstMap = 10 * MapTools.distL2Maps(
             self.currMapId, self.dstZaapMapId
         )
+        Logger().debug(f"Player basic account: {PlayerManager().isBasicAccount()}")
         Logger().debug(
             f"Teleport cost to dst from curr pos is : {teleportCostFromCurrToDstMap:.2f}, teleport max cost is {maxCost}."
         )
-        if PlayerManager().isBasicAccount() or teleportCostFromCurrToDstMap > maxCost:
+        if PlayerManager().isBasicAccount() or teleportCostFromCurrToDstMap > maxCost: # Here we check if we can't use havenbag to reach dest zaap
             if not self.findSrcZaap():
-                return self.autoTrip(
-                    self.dstMapId, self.dstZoneId, callback=self.finish
-                )
+                return self.goToDestinationOnFeet()
         else:
             self.srcZaapDist = 0
         self.dstVertex, self.distFromTarget = self.findDistFrom(
@@ -80,11 +79,9 @@ class AutoTripUseZaap(AbstractBehavior):
         Logger().debug(
             f"Walking dist = {self.distFromTarget}, walking to src zap + walking to dst from dst Zaap = {self.srcZaapDist + self.dstZaapDist}"
         )
-        Logger().debug(f"Player basic account: {PlayerManager().isBasicAccount()}")
-
         if self.distFromTarget <= self.srcZaapDist + self.dstZaapDist:
             Logger().debug(f"Will auto trip on feet to dest")
-            self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
+            self.goToDestinationOnFeet()
         elif PlayerManager().isBasicAccount() or teleportCostFromCurrToDstMap > maxCost:
             Logger().debug(f"Auto travelling to src zaap on feet")
             self.autoTrip(
@@ -126,9 +123,7 @@ class AutoTripUseZaap(AbstractBehavior):
                 self.havenBagListener.delete()
             if not self.srcZaapVertex:
                 if not self.findSrcZaap():
-                    return self.autoTrip(
-                        self.dstMapId, self.dstZoneId, callback=self.finish
-                    )
+                    return self.goToDestinationOnFeet()
             Logger().debug(
                 f"Can't use haven bag so will travel to source zaap on feet."
             )
@@ -143,31 +138,62 @@ class AutoTripUseZaap(AbstractBehavior):
                 "Player is busy so cant use zaap and walking might raise unexpected errors.",
             )
 
-    def onDstZaapTrip(self, code, err, **kwargs):
+    def onDstZaapSaved(self, code, err):
+        if err:
+            return self.finish(code, err)
+        self.autotripToDestOnFeet()
+    
+    def onDstZaapReached(self):
+        Logger().debug(f"Reached dest map!")
+        if self.withSaveZaap:
+            self.saveZaap(self.onDstZaapSaved)
+        else:
+            self.autotripToDestOnFeet()
+
+    def onDstZaap_feetTrip(self, code, err):
+        if err:
+            if code == AutoTrip.NO_PATH_FOUND:
+                return self.onDstZaapUnreachable()
+            return self.finish(code, err)
+        self.onDstZaapReached()
+            
+    def autotripToDstZaapOnFeet(self):
+        self.autoTrip(self.dstZaapVertex.mapId, self.dstZaapVertex.zoneId, callback=self.onDstZaap_feetTrip)
+    
+    def autotripToDestOnFeet(self):
+        self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
+        
+    def onDstZaapUnreachable(self):
+        Logger().warning(
+            "No path found to dest zaap will travel to dest map on feet"
+        )
+        return self.autoTrip(
+            self.dstMapId, self.dstZoneId, callback=self.finish
+        )
+        
+    def goToDestinationOnFeet(self):
+        if self.withSaveZaap:
+            Logger().debug(f"Will trip to dest zaap on feet to save it before travelling to dest on feet")
+            self.autotripToDstZaapOnFeet()
+        else:
+            Logger().debug(f"Will auto trip on feet to dest")
+            self.autotripToDestOnFeet()
+    
+    def onDstZaap_zaapTrip(self, code, err, **kwargs):
         if err:
             if code == UseZaap.NOT_RICH_ENOUGH:
                 Logger().warning(err)
                 if PlayerManager().isMapInHavenbag(self.currMapId):
-                    return self.enterHavenBag(
-                        lambda: self.autoTrip(
-                            self.dstMapId, self.dstZoneId, callback=self.finish
-                        )
-                    )
+                    Logger().debug(f"Player is not rich enough to use  haven bag to join dest zaap so will quit haven bag.")
+                    return self.enterHavenBag(self.goToDestinationOnFeet)
                 else:
-                    return self.autoTrip(
-                        self.dstMapId, self.dstZoneId, callback=self.finish
-                    )
-            elif code == AutoTrip.NO_PATH_FOUND:
-                Logger().warning(
-                    "No path found to dest zaap will travel to dest map on feet"
-                )
-                return self.autoTrip(
-                    self.dstMapId, self.dstZoneId, callback=self.finish
-                )
+                    return self.goToDestinationOnFeet()
             elif code == UseSkill.UNREACHABLE_IE:
+                Logger().warning(f"Unreachable IE position of src zaap, can't use it to reach dst zaap map!")
                 iePos: MapPoint = kwargs.get("iePosition")
                 cellData = MapDisplayManager().dataMap.cells[iePos.cellId]
                 if not PlayedCharacterManager().currentZoneRp != cellData.linkedZoneRP:
+                    Logger().warning(f"Unreachable IE position of src zaap because of rp zone restriction!")
                     return self.autoTrip(
                         self.srcZaapMapId,
                         cellData.linkedZoneRP,
@@ -176,27 +202,24 @@ class AutoTripUseZaap(AbstractBehavior):
                 return self.finish(code, err)
             else:
                 return self.finish(code, err)
-        else:
-            self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
+        self.onDstZaapReached()
 
     def onSrcZaapTrip(self, code=1, err=None):
         if err:
             if code == AutoTrip.NO_PATH_FOUND:
                 Logger().error(f"No path found to source zaap!")
-                return self.autoTrip(
-                    self.dstMapId, self.dstZoneId, callback=self.finish
-                )
+                return self.goToDestinationOnFeet()
             return self.finish(code, err)
         if not self.currMapId:
             return self.onceMapProcessed(lambda: self.onSrcZaapTrip(code, err))
         Logger().debug(f"Source zaap map reached! => Will use zaap to destination.")
         if self.dstZaapVertex.mapId == self.currMapId:
-            self.autoTrip(self.dstMapId, self.dstZoneId, callback=self.finish)
+            Logger().warning(f"Destination zaap is on same map as source zaap!")
+            self.goToDestinationOnFeet()
         else:
             self.useZaap(
                 self.dstZaapVertex.mapId,
-                callback=self.onDstZaapTrip,
-                saveZaap=self.withSaveZaap,
+                callback=self.onDstZaap_zaapTrip            
             )
 
     @classmethod

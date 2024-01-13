@@ -8,6 +8,8 @@ from pydofus2.com.ankamagames.dofus.internalDatacenter.taxi.TeleportDestinationW
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.network.messages.game.dialog.LeaveDialogRequestMessage import \
     LeaveDialogRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -20,10 +22,13 @@ class SaveZaap(AbstractBehavior):
         super().__init__()
 
     def run(self) -> bool:
+        if int(Kernel().zaapFrame.spawnMapId) == int(PlayedCharacterManager().currentMap.mapId):
+            Logger().debug(f"Zaap already saved in current map {PlayedCharacterManager().currentMap.mapId}.")
+            return self.finish(True, None)
         if Kernel().interactivesFrame:
             self.openCurrMapZaapDialog()
         else:
-            KernelEventsManager().onceFramePushed("RoleplayInteractivesFrame", self.openCurrMapZaapDialog, originator=self)
+            self.onceFramePushed("RoleplayInteractivesFrame", self.openCurrMapZaapDialog)
 
     def openCurrMapZaapDialog(self):
         self.zaapIe = Kernel().interactivesFrame.getZaapIe()

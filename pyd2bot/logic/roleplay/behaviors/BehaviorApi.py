@@ -42,7 +42,7 @@ class BehaviorApi:
                 Logger().warning(f"No src zaap found for cost {maxCost} and map {dstMapId}!")
                 return self.autoTrip(dstMapId, dstZoneId, callback=callback)
             if not PlayedCharacterManager().isZaapKnown(dstZaapMapId):
-                Logger().debug(f"Dest zaap at map {dstZaapMapId} is not known -> will travel to register it.")
+                Logger().debug(f"Dest zaap at map {dstZaapMapId} is not known ==> will travel to register it.")
 
                 def onDstZaapTrip(code, err):
                     if err:
@@ -71,6 +71,7 @@ class BehaviorApi:
                 parent=self,
             )
         else:
+            Logger().debug(f"Dist is less than 12 steps ==> Autotriping without zaaps to {dstMapId}")
             self.autoTrip(dstMapId, dstZoneId, callback=callback)
 
     def autoTrip(self, dstMapId, dstZoneId, path: list["Edge"] = None, callback=None):
