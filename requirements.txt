@@ -1,2 +1,4 @@
 thrift
 prettytable
+cloudscraper
+aiohttp

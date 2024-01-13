@@ -102,7 +102,7 @@ class ClassicTreasureHunt(AbstractBehavior):
     def onFlagRequestAnswer(self, event, result, err):
         if result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_OK:
             pass
-        elif result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG:
+        elif result in [TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG, TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_SAME_MAP]:
             answer = (self.startMapId, self.currentStep.poiLabel, self.currentMapId)
             self.removePoiFromMap(self.currentMapId, self.currentStep.poiLabel)
             if answer in self.guessedAnswers:
@@ -120,9 +120,8 @@ class ClassicTreasureHunt(AbstractBehavior):
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_ERROR_IMPOSSIBLE,
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG_INDEX,
         ]:
-            pass
-        elif result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_SAME_MAP:
-            pass
+            KernelEventsManager().send(KernelEvent.ClientShutdown, f"Treasure hunt flag request error : {result} {err}")
+
 
     def onTelportToDistributorNearestZaap(self, code, err):
         if code == UseTeleportItem.CANT_USE_ITEM_IN_MAP:
