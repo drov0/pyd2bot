@@ -219,7 +219,7 @@ class ClassicTreasureHunt(AbstractBehavior):
         worldHints = cls.hint_db[str(mp.worldMap)]
         if str(mp.id) not in worldHints:
             return
-        mapHints: list = [_ for _ in worldHints[str(mp.id)] if _ != poiId]
+        mapHints = [_ for _ in worldHints[str(mp.id)] if _ != poiId]
         cls.hint_db[str(mp.worldMap)][str(mp.id)] = mapHints
         cls.saveHints()
 
@@ -242,7 +242,7 @@ class ClassicTreasureHunt(AbstractBehavior):
                 return None
             Logger().debug(f"iter {i + 1}: nextMapId {mapId}.")
             if mapId in self.submitet_flag_maps():
-                Logger().debug(f"Map {mapId} has already been submitted")
+                Logger().debug(f"Map {mapId} has already been submitted for a previous step")
                 continue
             if self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_POI:
                 if (self.startMapId, self.currentStep.poiLabel, mapId) in self.wrongAnswers:
@@ -270,7 +270,7 @@ class ClassicTreasureHunt(AbstractBehavior):
 
     def onRevived(self, code, error, ignoreSame=False):
         if error:
-            KernelEventsManager().send(KernelEvent.ClientShutdown, f"Error while auto-reviving player: {error}")
+            return KernelEventsManager().send(KernelEvent.ClientShutdown, f"Error while auto-reviving player: {error}")
         Logger().debug(
             f"Bot back on form, can continue treasure hunt"
         )
@@ -290,7 +290,7 @@ class ClassicTreasureHunt(AbstractBehavior):
         else:
             self.currentStep = self.infos.stepList[idx]
             if not ignoreSame and lastStep == self.currentStep:
-                raise Exception("Step didnt change!")
+                return KernelEventsManager().send(KernelEvent.ClientShutdown, "Step didnt change after update!")
             self.startMapId = self.infos.stepList[idx - 1].mapId
         Logger().debug(f"Infos:\n{self.infos}")
         if self.currentStep is not None:
@@ -339,6 +339,10 @@ class ClassicTreasureHunt(AbstractBehavior):
                 Logger().error(f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.startMapId}:({mp.posX}, {mp.posY})!")
                 self.guessMode = True
                 nextMapId = self.getNextHintMap()
+                if not nextMapId:
+                    self.guessMode = False
+                    Logger().error(f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.startMapId} in guess mode!")
+                    return self.digTreasure()
             self.autotripUseZaap(nextMapId, maxCost=self.maxCost, callback=self.onNextHintMapReached)
         elif self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_HINT:
             FindHintNpc().start(

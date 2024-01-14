@@ -78,7 +78,7 @@ class ChangeMap(AbstractBehavior):
             self.finish(False, "No transition or edge provided")
             
     def onServerTextInfo(self, event, msgId, msgType, textId, text, params):
-        if msgId == 4908:
+        if textId == 4908:
             Logger().error("Need a quest to be completed")
             return self.finish(self.NEED_QUEST, "Need a quest to be completed")
 

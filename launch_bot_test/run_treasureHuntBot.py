@@ -42,6 +42,7 @@ session = Session(
 )
 bot.setConfig(apikey, session, CharacterRoleEnum.LEADER, character)
 bot.start()
+bot.addShutDownListener(lambda: QtWidgets.QApplication.quit())
 # Setting up the system tray icon
 icon = QtGui.QIcon(os.path.join(__dir__, "icon.png"))
 trayIcon = SystemTrayIcon(icon, character.login)

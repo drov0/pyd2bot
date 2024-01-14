@@ -14,6 +14,7 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import
     AStar
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.types.positions.WorldPoint import \
     WorldPoint
 
@@ -99,6 +100,7 @@ class Localizer:
                 return None
             path = AStar().search(WorldGraph(), startVertex, candidates)
             if not path:
+                Logger().warning(f"Could not find a path to a zaap from map {mapId}")
                 return None
             if len(path) == 0:
                 return mapId
