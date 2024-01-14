@@ -37,6 +37,7 @@ from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import \
     DisconnectionReasonEnum
 from pydofus2.com.ankamagames.dofus.kernel.net.PlayerDisconnectedMessage import \
     PlayerDisconnectedMessage
+from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
@@ -123,7 +124,7 @@ class Pyd2Bot(DofusClient):
     
     def startSessionMainBehavior(self):
         
-        if PlayedCharacterManager().mount and not PlayedCharacterManager().isRidding:
+        if not PlayerManager().isBasicAccount() and PlayedCharacterManager().mount and not PlayedCharacterManager().isRidding:
             Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
             KernelEventsManager().once(KernelEvent.MountRiding, self.onPlayerRidingMount)
             return Kernel().mountFrame.mountToggleRidingRequest()
