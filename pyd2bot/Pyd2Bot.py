@@ -1,6 +1,5 @@
 import random
 import time
-from datetime import datetime
 
 from pyd2bot.logic.common.frames.BotCharacterUpdatesFrame import \
     BotCharacterUpdatesFrame
@@ -11,8 +10,6 @@ from pyd2bot.logic.common.rpcMessages.PlayerConnectedMessage import \
 from pyd2bot.logic.fight.frames.BotFightFrame import BotFightFrame
 from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
-from pyd2bot.logic.roleplay.behaviors.bank.RetrieveRecipeFromBank import \
-    RetrieveRecipeFromBank
 from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import ResourceFarm
 from pyd2bot.logic.roleplay.behaviors.fight.FarmFights import FarmFights
 from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
@@ -27,7 +24,6 @@ from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
-from pydofus2.com.ankamagames.dofus.datacenter.jobs.Recipe import Recipe
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
@@ -35,13 +31,12 @@ from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionType import \
     ConnectionType
 from pydofus2.com.ankamagames.dofus.kernel.net.DisconnectionReasonEnum import \
     DisconnectionReasonEnum
-from pydofus2.com.ankamagames.dofus.kernel.net.PlayerDisconnectedMessage import \
-    PlayerDisconnectedMessage
-from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
+from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import \
+    PlayerManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
-    BenchmarkTimer
+from pydofus2.com.ankamagames.dofus.uiApi.PlayedCharacterApi import \
+    PlayedCharacterApi
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
 
@@ -119,15 +114,14 @@ class Pyd2Bot(DofusClient):
             self.shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, err)
     
     def onPlayerRidingMount(self, event, riding):
-        PlayedCharacterManager().isRidding = riding
         self.startSessionMainBehavior()
     
     def startSessionMainBehavior(self):
-        
-        if not PlayerManager().isBasicAccount() and PlayedCharacterManager().mount and not PlayedCharacterManager().isRidding:
-            Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
-            KernelEventsManager().once(KernelEvent.MountRiding, self.onPlayerRidingMount)
-            return Kernel().mountFrame.mountToggleRidingRequest()
+        with PlayedCharacterManager().lock:
+            if not PlayerManager().isBasicAccount() and PlayedCharacterApi.getMount() and not PlayedCharacterApi.isRiding():
+                Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
+                KernelEventsManager().once(KernelEvent.MountRiding, self.onPlayerRidingMount)
+                return Kernel().mountFrame.mountToggleRidingRequest()
         
         Logger().info(f"Starting main behavior for {self.name}")
         
