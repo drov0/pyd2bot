@@ -333,6 +333,9 @@ class ChangeMap(AbstractBehavior):
 
     def onChangeMapIE(self, code, err):
         if err:
+            if code == UseSkill.USE_ERROR:
+                if self.edge:
+                    return self.followEdge()
             return self.finish(code, err)
         Logger().debug("Map change IE used")
         self.setupMapChangeRejectListener()

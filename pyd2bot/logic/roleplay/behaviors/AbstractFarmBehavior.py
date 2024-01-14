@@ -5,6 +5,7 @@ from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
+from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.models.farmPaths.RandomAreaFarmPath import NoTransitionFound
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
@@ -90,6 +91,10 @@ class AbstractFarmBehavior(AbstractBehavior):
             elif code == ChangeMap.LANDED_ON_WRONG_MAP:
                 Logger().warning(f"Player landed on wrong map!")
             elif code == ChangeMap.INVALID_TRANSITION:
+                Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
+                self.forbidenEdges.add(self._currEdge)
+                return self.moveToNextStep()
+            elif code == UseSkill.USE_ERROR:
                 Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
                 self.forbidenEdges.add(self._currEdge)
                 return self.moveToNextStep()

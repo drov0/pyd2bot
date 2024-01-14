@@ -110,6 +110,7 @@ class BehaviorApi:
                 )
 
             self.npcDialog(88213267.0, -20001, 3, replies, onNpcDialogEnd)
+        
         AutoTrip().start(dstMapId, dstZoneId, path, callback=callback, parent=self)
 
     def changeMap(self, transition: "Transition" = None, edge: "Edge" = None, dstMapId=None, callback=None):

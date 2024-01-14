@@ -16,9 +16,9 @@ if __name__ == "__main__":
     accountId = "244588168071629885"
     path = Path(
         id="test_path",
-        type=PathType.RandomSubAreaFarmPath,
+        type=PathType.RandomAreaFarmPath,
         startVertex=Vertex(
-            mapId=189531147.0, 
+            mapId=88082704.0, 
             zoneId=1
         )
     )
