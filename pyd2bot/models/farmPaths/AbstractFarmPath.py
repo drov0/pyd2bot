@@ -50,6 +50,9 @@ class AbstractFarmPath:
     def to_json(self):
         raise NotImplementedError()
 
+    def init(self):
+        raise NotImplementedError()
+
     @classmethod
     def from_json(cls, pathJson) -> "AbstractFarmPath":
         raise NotImplementedError()

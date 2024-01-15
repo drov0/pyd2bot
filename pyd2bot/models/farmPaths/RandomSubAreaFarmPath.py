@@ -17,6 +17,7 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
     Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
 class RandomSubAreaFarmPath(AbstractFarmPath):
@@ -30,8 +31,11 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         self.name = name
         self.startVertex = startVertex
         self.transitionTypeWhitelist = transitionTypeWhitelist
-        self.subArea = SubArea.getSubAreaByMapId(startVertex.mapId)
+    
+    def ini(self):
+        self.subArea = SubArea.getSubAreaByMapId(self.startVertex.mapId)
         self.verticies = self.reachableVerticies()
+        Logger().info(f"RandomSubAreaFarmPath {self.name} initialized with {len(self.verticies)} verticies")
 
     def recentVisitedVerticies(self):
         self._recent_visited = [(_, time_added) for (_, time_added) in self._recent_visited if (time.time() - time_added) < 60 * 5]

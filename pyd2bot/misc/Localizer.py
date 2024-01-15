@@ -75,10 +75,12 @@ class Localizer:
                     candidates.extend(WorldGraph().getVertices(hint.mapId).values())
             if not candidates:
                 return None
+            Logger().debug(f"Found {len(candidates)} candidates maps for closest map to hint {gfx}")  
             return AStar().search(WorldGraph(), startVertex, candidates)
 
     @classmethod
     def findCloseZaapMapId(cls, mapId, maxCost=float("inf"), dstZaapMapId=None, excludeMaps=[]):
+        Logger().debug(f"Searching closest zaap from map {mapId}")
         if not mapId:
             raise ValueError(f"Invalid mapId value {mapId}")
         if dstZaapMapId:
@@ -97,12 +99,15 @@ class Localizer:
                     else:
                         candidates.extend(WorldGraph().getVertices(hint.mapId).values())
             if not candidates:
-                Logger().warning(f"Could not find a candidate zaap from map {mapId}")
+                Logger().warning(f"Could not find a candidate zaap for map {mapId}")
                 return None
+            Logger().debug(f"Found {len(candidates)} candidates maps for closest zaap to map {mapId}")
+            Logger().debug(f"Searching path to one of the candidates")
             path = AStar().search(WorldGraph(), startVertex, candidates)
-            if not path:
-                Logger().warning(f"Could not find a path to a zaap from map {mapId}")
+            if path is None:
+                Logger().warning(f"Could not find a path to any of the candidates!")
                 return None
             if len(path) == 0:
+                Logger().warning(f"One of the candidates is the start map, returning it as closest zaap")
                 return mapId
             return path[-1].dst.mapId
