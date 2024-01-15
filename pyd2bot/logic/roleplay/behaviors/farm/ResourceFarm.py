@@ -1,20 +1,22 @@
+from prettytable import PrettyTable
+
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractFarmBehavior import \
     AbstractFarmBehavior
 from pyd2bot.logic.roleplay.behaviors.farm.CollectableResource import \
     CollectableResource
 from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
-from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.dofus.network.enums.PlayerStatusEnum import PlayerStatusEnum
 from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
     ItemWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
     MovementFailError
+from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.GuildInformations import GuildInformations
 from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
     BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from prettytable import PrettyTable
 
 
 class ResourceFarm(AbstractFarmBehavior):
@@ -28,7 +30,16 @@ class ResourceFarm(AbstractFarmBehavior):
         self.path = BotConfig().path
         self.path.init()
         self.currentTarget: CollectableResource = None
+        Kernel().socialFrame.updateStatus(PlayerStatusEnum.PLAYER_STATUS_PRIVATE)
 
+    def onPartyInvited(self, event, partyId, partyType, fromId, fromName):
+        Logger().warning(f"Player invited to party {partyId} by {fromName}")
+        Kernel().partyFrame.sendPartyInviteCancel(fromId)
+        
+    def onGuildInvited(self, event, guildInfo: GuildInformations, recruterName):
+        Logger().warning(f"Player invited to guild {guildInfo.guildName} by {recruterName}")
+        Kernel().guildDialogFrame.guildInvitationAnswer(False)
+        
     def makeAction(self):
         '''
         This function is called when the bot is ready to make an action. 

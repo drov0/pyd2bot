@@ -53,7 +53,7 @@ class NpcDialog(AbstractBehavior):
         self._textParams["g"] = False;
         msg = NpcGenericActionRequestMessage()
         msg.init(self.npcId, self.npcOpenDialogId, self.npcMapId)
-        self.once(KernelEvent.DialogLeft, self.onNpcDialogleft)
+        self.once(KernelEvent.LeaveDialog, self.onNpcDialogleft)
         self.once(KernelEvent.NpcQuestion, self.onNpcQuestion)
         self.on(KernelEvent.ServerTextInfo, self.onServerTextInfo)
         ConnectionsHandler().send(msg)

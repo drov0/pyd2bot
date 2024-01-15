@@ -1,10 +1,10 @@
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.misc.BotEventsmanager import BotEventsManager
-from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
+from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.party.PartyMemberInformations import \
     PartyMemberInformations
@@ -37,7 +37,7 @@ class PartyLeader(AbstractBehavior):
         self.wantedDeleteParty = False
         self.expectingMemberLeave = set()
         self.partyJoinListeners = dict[str, Listener]()
-        KernelEventsManager().on(KernelEvent.PartyInvitation, self.onPartyInvitation, originator=self)
+        KernelEventsManager().on(KernelEvent.PartyInvited, self.onPartyInvitation, originator=self)
         KernelEventsManager().on(KernelEvent.PartyDeleted, self.onPartyDeleted, originator=self)
         KernelEventsManager().on(KernelEvent.MemberLeftParty, self.onMemberLeft, originator=self)
         KernelEventsManager().on(KernelEvent.IJoinedParty, self.onPartyJoin, originator=self)

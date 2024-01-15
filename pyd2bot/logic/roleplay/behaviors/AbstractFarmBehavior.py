@@ -10,15 +10,24 @@ from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.models.farmPaths.RandomAreaFarmPath import NoTransitionFound
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
-from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import ItemWrapper
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
+    ItemWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import MovementFailError
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import Vertex
-from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import JobExperience
-from pydofus2.com.ankamagames.dofus.uiApi.PlayedCharacterApi import PlayedCharacterApi
+from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import \
+    PlayerManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
+    MovementFailError
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
+    Vertex
+from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.GuildInformations import GuildInformations
+from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import \
+    JobExperience
+from pydofus2.com.ankamagames.dofus.uiApi.PlayedCharacterApi import \
+    PlayedCharacterApi
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -44,12 +53,20 @@ class AbstractFarmBehavior(AbstractBehavior):
         self.on(KernelEvent.ObtainedItem, self.onObtainedItem)
         self.on(KernelEvent.ObjectAdded, self.onObjectAdded)
         self.on(KernelEvent.JobLevelUp, self.onJobLevelUp)
+        self.on(KernelEvent.PartyInvited, self.onPartyInvited)
+        self.on(KernelEvent.GuildInvited, self.onGuildInvited)
         self.inFight = False
         self.initialized = False
         self.startTime = perf_counter()
         self.init(*args, **kwargs)
         self.main()
 
+    def onPartyInvited(self, event, partyId, partyType, fromId, fromName):
+        pass
+        
+    def onGuildInvited(self, event, guildInfo: GuildInformations, recruterName):
+        pass
+        
     def onJobLevelUp(self, event, jobId, jobName, lastJobLevel, newLevel, podsBonus):
         pass
 
