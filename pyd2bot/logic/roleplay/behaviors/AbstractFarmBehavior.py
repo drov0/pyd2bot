@@ -13,6 +13,8 @@ from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
     KernelEventsManager
 from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
     ItemWrapper
+from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
+from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
@@ -21,6 +23,7 @@ from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex impor
     Vertex
 from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import \
     JobExperience
+from pydofus2.com.ankamagames.dofus.uiApi.PlayedCharacterApi import PlayedCharacterApi
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -170,12 +173,26 @@ class AbstractFarmBehavior(AbstractBehavior):
     def getResourcesTableHeaders(self) -> list[str]:
         raise NotImplementedError()
 
+    def onPlayerRidingMount(self, event, riding):
+        if not riding:
+            Logger().error(f"Player dismounted when asked to mount!")
+        self.autotripUseZaap(
+            self.currentVertex.mapId,
+            self.currentVertex.zoneId,
+            True,
+            callback=self.main,
+        )
+    
     def onRevived(self, code, error):
         if error:
-            KernelEventsManager().send(KernelEvent.ClientShutdown, f"Error while auto-reviving player: {error}")
+            KernelEventsManager().send(KernelEvent.ClientShutdown, f"Error [{code}] while auto-reviving player: {error}")
         Logger().debug(
-            f"Bot back on form, autotravelling to last vertex {self.currentVertex}"
+            f"Bot back on form, autotravelling to last memorized vertex {self.currentVertex}"
         )
+        if not PlayerManager().isBasicAccount() and PlayedCharacterApi.getMount() and not PlayedCharacterApi.isRiding():
+            Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
+            KernelEventsManager().once(KernelEvent.MountRiding, self.onPlayerRidingMount)
+            return Kernel().mountFrame.mountToggleRidingRequest()
         self.autotripUseZaap(
             self.currentVertex.mapId,
             self.currentVertex.zoneId,
