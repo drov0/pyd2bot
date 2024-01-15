@@ -16,6 +16,7 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.Interactiv
 from pydofus2.com.ankamagames.dofus.network.messages.game.interactive.skill.InteractiveUseWithParamRequestMessage import \
     InteractiveUseWithParamRequestMessage
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
+from pydofus2.com.ankamagames.jerakine.pathfinding.Pathfinding import Pathfinding
 
 
 class UseSkill(AbstractBehavior):
@@ -38,6 +39,7 @@ class UseSkill(AbstractBehavior):
         self._curr_skill_mp = None
         self._reach_skillcell_fails = 0
         self._move_to_skillcell_landingcell = None
+        self._reach_with_cellid_tried = False
 
     def run(
         self,
@@ -86,9 +88,10 @@ class UseSkill(AbstractBehavior):
             skillId = self.targetIe.element.enabledSkills[0].skillId
             skill = Skill.getSkillById(skillId)
             Logger().debug(f"Using {skill.name}, range {skill.range}, id {skill.id}")
-            self._curr_skill_mp, send_request = Kernel().interactivesFrame.getNearestCellToIe(self.element, self.elementPosition)
+            if skill.id in [211, 184] :
+                self._curr_skill_mp, send_request = Kernel().interactivesFrame.getNearestCellToIe(self.element, self.elementPosition)
             if not self._curr_skill_mp:
-                return self.finish(self.UNREACHABLE_IE, "Unable to find cell close enough to use element", iePosition=self.elementPosition)
+                self._curr_skill_mp = self.elementPosition
             if self.waitForSkillUsed:
                 self.on(KernelEvent.IElemBeingUsed, self.onUsingInteractive,)
                 self.on(KernelEvent.InteractiveElementUsed, self.onUsedInteractive)
@@ -99,6 +102,7 @@ class UseSkill(AbstractBehavior):
     def onUsingInteractive(self, event, entityId, usingElementId):
         if self.elementId == usingElementId:
             if MapMove().isRunning():
+                Logger().debug(f"Someone else is using this element, while we are moving to it, stopping map move")
                 MapMove().stop()
             if entityId != PlayedCharacterManager().id:
                 self.finish(self.ELEM_BEING_USED, "Someone else is using this element")
@@ -145,6 +149,10 @@ class UseSkill(AbstractBehavior):
                 return self.finish(self.USE_ERROR, f"Use Error for element {elementId} - Server refuses to move player to skill cell")
             Logger().debug(f"retrying for {self._reach_skillcell_fails} time")
             return self.mapMove(destCell=self._curr_skill_mp.cellId, exactDistination=False, callback=self.onUseSkillCellReached)
+        elif not self._reach_with_cellid_tried:
+            # try with cellid path finding cell
+            self._reach_with_cellid_tried = True        
+            return self.mapMove(destCell=self.elementPosition.cellId, exactDistination=False, callback=self.onUseSkillCellReached)
         self.finish(self.USE_ERROR, f"Use Error for element {elementId}!")
         
     def onUseError(self, event, elementId):

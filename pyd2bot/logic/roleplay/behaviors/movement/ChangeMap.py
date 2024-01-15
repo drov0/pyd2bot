@@ -283,7 +283,7 @@ class ChangeMap(AbstractBehavior):
             listener.delete()
             self.mapMove(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell)
 
-        def onMoved(code, err):
+        def onMoved(code, err, landingCell):
             if err:
                 try:
                     x, y = next(self.currentMPChilds)

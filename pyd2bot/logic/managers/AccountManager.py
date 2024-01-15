@@ -15,6 +15,10 @@ class AccountManager:
         accounts : dict = json.load(fp)
 
     @classmethod
+    def get_cert(cls, accountId):
+        return {"id": cls.accounts[accountId]["certid"], "hash": cls.accounts[accountId]["certhash"]}
+    
+    @classmethod
     def getAccount(cls, accountId):
         return cls.accounts[accountId]
 
@@ -47,19 +51,21 @@ class AccountManager:
         return acc["apikey"]
 
     @classmethod
-    def fetch_account(cls, game, apikey):
+    def fetch_account(cls, game, apikey, certid='', certhash=''):
         import asyncio
         r = asyncio.run(Haapi.signOnWithApikey(game, apikey))
         accountId = r['id']
         cls.accounts[accountId] = r['account']
         cls.accounts[accountId]["apikey"] = apikey
-        return cls.fetch_characters(accountId)
+        cls.accounts[accountId]["certid"] = certid
+        cls.accounts[accountId]["certhash"] = certhash
+        return cls.fetch_characters(accountId, certid, certhash)
         
     @classmethod
-    def fetch_characters(cls, accountId):
+    def fetch_characters(cls, accountId, certid, certhash):
         acc = cls.getAccount(accountId)
         apikey = acc['apikey']
-        token = Haapi.getLoginTokenCloudScraper(1, apikey)
+        token = Haapi.getLoginTokenCloudScraper(1, apikey, certid, certhash)
         srv = Pyd2botServer("test")
         chars = srv.fetchCharacters(token)
         chars_json = [

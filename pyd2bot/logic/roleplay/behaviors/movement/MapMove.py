@@ -55,6 +55,8 @@ class MapMove(AbstractBehavior):
     def stop(self) -> None:
         if PlayedCharacterManager().entity and PlayedCharacterManager().entity.isMoving:
             PlayedCharacterManager().entity.stop_move()
+        else:
+            Logger().warning("Player is not moving!")
         KernelEventsManager().clearAllByOrigin(self)
         MapMove.clear()
 

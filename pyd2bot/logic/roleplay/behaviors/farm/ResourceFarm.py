@@ -7,6 +7,8 @@ from pyd2bot.logic.roleplay.behaviors.farm.CollectableResource import \
     CollectableResource
 from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.network.enums.PlayerStatusEnum import PlayerStatusEnum
 from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
     ItemWrapper
@@ -30,8 +32,14 @@ class ResourceFarm(AbstractFarmBehavior):
         self.path = BotConfig().path
         self.path.init()
         self.currentTarget: CollectableResource = None
-        Kernel().socialFrame.updateStatus(PlayerStatusEnum.PLAYER_STATUS_PRIVATE)
+        KernelEventsManager().on(KernelEvent.PlayerStatusUpdate, self.onPlayerStatusUpdate)
+        Kernel().socialFrame.updateStatus(PlayerStatusEnum.PLAYER_STATUS_SOLO)
 
+    def onPlayerStatusUpdate(self, event, accountId, playerId, statusId, message):
+        if playerId == PlayedCharacterManager().id:
+            if statusId == PlayerStatusEnum.PLAYER_STATUS_SOLO:
+                Logger().info("Player is now solo and can't be bothered by other players")
+                
     def onPartyInvited(self, event, partyId, partyType, fromId, fromName):
         Logger().warning(f"Player invited to party {partyId} by {fromName}")
         Kernel().partyFrame.sendPartyInviteCancel(fromId)

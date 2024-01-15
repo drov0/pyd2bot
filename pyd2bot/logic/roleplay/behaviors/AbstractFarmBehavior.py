@@ -117,7 +117,7 @@ class AbstractFarmBehavior(AbstractBehavior):
                 )
             if code == ChangeMap.LANDED_ON_WRONG_MAP:
                 Logger().warning(f"Player landed on the wrong map while moving to next path Vertex!")
-            elif code in [UseSkill.USE_ERROR, AutoTrip.NO_PATH_FOUND, ChangeMap.INVALID_TRANSITION]:
+            elif code in [UseSkill.USE_ERROR, AutoTrip.NO_PATH_FOUND, ChangeMap.INVALID_TRANSITION, ChangeMap.NEED_QUEST]:
                 Logger().warning(f"Player tried navigating using invalid edge ({error}), edge will be forbiden")
                 self.forbidenEdges.add(self._currEdge)
                 return self.moveToNextStep()

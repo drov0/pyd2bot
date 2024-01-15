@@ -26,6 +26,7 @@ if __name__ == "__main__":
     accountId = accountId
     character = AccountManager.get_character(accountId)
     apikey = AccountManager.get_apikey(accountId)
+    cert = AccountManager.get_cert(accountId)
     bot = Pyd2Bot(character.login)
     session = Session(
         id="test",
@@ -43,7 +44,7 @@ if __name__ == "__main__":
         ]
     )
     bot = Pyd2Bot(character.login)
-    bot.setConfig(apikey, session, CharacterRoleEnum.LEADER, character)
+    bot.setConfig(apikey, session, CharacterRoleEnum.LEADER, character, certId=cert["id"], certHash=cert["hash"])
     bot.start()
     bot.join()
     print(f"Character '{character.login}' shutdowned.")
