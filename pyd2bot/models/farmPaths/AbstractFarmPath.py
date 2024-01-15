@@ -35,9 +35,12 @@ class AbstractFarmPath:
     def outgoingEdges(self) -> Iterator['Edge']:
         raise NotImplementedError()
     
-    def __next__(self, forbidenEdges=None) -> Transition:
+    def __next__(self) -> Transition:
         raise NotImplementedError()
-
+    
+    def getNextVertex(self, forbidenEdges=None, onlyNonRecent=False) -> Vertex:
+        raise NotImplementedError()
+    
     def __in__(self, v: Vertex) -> bool:
         raise NotImplementedError()
 
@@ -53,6 +56,9 @@ class AbstractFarmPath:
     def init(self):
         raise NotImplementedError()
 
+    def findClosestMap(self) -> Vertex:
+        raise NotImplementedError()
+    
     @classmethod
     def from_json(cls, pathJson) -> "AbstractFarmPath":
         raise NotImplementedError()

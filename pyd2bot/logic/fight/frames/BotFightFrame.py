@@ -291,6 +291,32 @@ class BotFightFrame(Frame):
         Logger().info(f"findCellsWithLosToTargets took {perf_counter() - s} seconds")
         return maxRangeFromFighter, hasLosToTargets
 
+    # def findFurthestCellFromTargets(self, targets: list[Target], fighterCell: int, targetsRange=10) -> list[int]:
+    #     hasLosToTargets = dict[int, list[Target]]()
+    #     s = perf_counter()
+    #     maxRangeFromFighter = 0
+    #     for target in targets:
+    #         currSpellZone = Cross(1, targetsRange, DataMapProvider())
+    #         currSpellZone.allDirections = True
+    #         for cell in currSpellZone:
+    #             p = MapPoint.fromCellId(cell)
+    #             line = MapTools.getMpLine(target.pos.cellId, p.cellId)
+    #             los = True
+    #             if len(line) > 1:
+    #                 for mp in line[:-1]:
+    #                     if not DataMapProvider().pointLos(mp.x, mp.y, False):
+    #                         los = False
+    #                         break
+    #             if los:
+    #                 if fighterCell == p.cellId:
+    #                     return 0, {fighterCell: [target]}
+    #                 if p.cellId not in hasLosToTargets:
+    #                     hasLosToTargets[p.cellId] = list[Target]()
+    #                 hasLosToTargets[p.cellId].append(target)
+    #                 maxRangeFromFighter = max(maxRangeFromFighter, target.distFromPlayer)
+    #     Logger().info(f"findCellsWithLosToTargets took {perf_counter() - s} seconds")
+    #     return maxRangeFromFighter, hasLosToTargets
+    
     def findPathToTarget(self, spellw: SpellWrapper, targets: list[Target]) -> Tuple[Target, list[int]]:
         if not targets:
             return None, None

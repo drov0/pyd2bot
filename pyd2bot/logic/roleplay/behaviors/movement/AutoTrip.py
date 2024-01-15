@@ -3,12 +3,18 @@ from time import perf_counter
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import MovementFailError
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import AStar
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import Edge
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import WorldGraph
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
+    KernelEventsManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
+    MovementFailError
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import \
+    AStar
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
+    Edge
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
+    WorldGraph
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
@@ -51,7 +57,7 @@ class AutoTrip(AbstractBehavior):
                 ChangeMap.INVALID_TRANSITION,
                 MovementFailError.CANT_REACH_DEST_CELL,
                 MovementFailError.MAPCHANGE_TIMEOUT,
-                MovementFailError.NOMORE_SCROLL_CELL,
+                MovementFailError.NO_VALID_SCROLL_CELL,
                 MovementFailError.INVALID_TRANSITION,
             ]:
                 Logger().warning(f"Can't reach next step in found path for reason : {code}, {error}")

@@ -21,7 +21,7 @@ if __name__ == "__main__":
             mapId=88082704.0, 
             zoneId=1
         ),
-        subAreaBlacklist=[6, 482] # exclude astrub cimetery, Milicluster
+        subAreaBlacklist=[6, 482, 277] # exclude astrub cimetery, Milicluster, Bwork village
     )
     accountId = accountId
     character = AccountManager.get_character(accountId)

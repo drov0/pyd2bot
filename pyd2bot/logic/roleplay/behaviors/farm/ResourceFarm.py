@@ -4,6 +4,7 @@ from pyd2bot.logic.roleplay.behaviors.AbstractFarmBehavior import \
 from pyd2bot.logic.roleplay.behaviors.farm.CollectableResource import \
     CollectableResource
 from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
+from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
     ItemWrapper
@@ -27,8 +28,6 @@ class ResourceFarm(AbstractFarmBehavior):
         self.path = BotConfig().path
         self.path.init()
         self.currentTarget: CollectableResource = None
-        self.on(KernelEvent.ObjectAdded, self.onObjectAdded)
-        self.on(KernelEvent.ObtainedItem, self.onObtainedItem)
 
     def makeAction(self):
         '''

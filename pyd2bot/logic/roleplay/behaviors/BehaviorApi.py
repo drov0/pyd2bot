@@ -55,14 +55,14 @@ class BehaviorApi:
         if not maxCost:
             maxCost = InventoryManager().inventory.kamas
             Logger().debug(f"Player max teleport cost is {maxCost}")
-            
-        dstZaapMapId = Localizer.findCloseZaapMapId(dstMapId, maxCost, excludeMaps=excludeMaps)
-        if not dstZaapMapId:
+        
+        dstZaapVertex = Localizer.findCloseZaapMapId(dstMapId, maxCost, excludeMaps=excludeMaps)
+        if not dstZaapVertex:
             Logger().warning(f"No src zaap found for cost {maxCost} and map {dstMapId}!")
             return self.autoTrip(dstMapId, dstZoneId, callback=callback)
         
-        if not PlayedCharacterManager().isZaapKnown(dstZaapMapId):
-            Logger().debug(f"Dest zaap at map {dstZaapMapId} is not known ==> will travel to register it.")
+        if not PlayedCharacterManager().isZaapKnown(dstZaapVertex.mapId):
+            Logger().debug(f"Dest zaap at vertex {dstZaapVertex} is not known ==> will travel to register it.")
 
             def onDstZaapTrip(code, err):
                 if err:
@@ -78,15 +78,15 @@ class BehaviorApi:
                 self.autoTrip(dstMapId, dstZoneId, callback=callback)
 
             return self.autotripUseZaap(
-                dstZaapMapId, excludeMaps=excludeMaps + [dstZaapMapId], callback=onDstZaapTrip
+                dstZaapVertex.mapId, dstZaapVertex.zoneId, excludeMaps=excludeMaps + [dstZaapVertex.mapId], callback=onDstZaapTrip
             )
             
-        Logger().debug(f"Autotriping with zaaps to {dstMapId}, dst zaap at {dstZaapMapId}")
+        Logger().debug(f"Autotriping with zaaps to {dstMapId}, dst zaap at {dstZaapVertex}")
         
         AutoTripUseZaap().start(
             dstMapId,
             dstZoneId,
-            dstZaapMapId,
+            dstZaapVertex.mapId,
             withSaveZaap=withSaveZaap,
             maxCost=maxCost,
             callback=callback,
@@ -164,7 +164,7 @@ class BehaviorApi:
             forMapChange=forMapChange,
             mapChangeDirection=mapChangeDirection,
             callback=callback,
-            parent=self,
+            parent=self
         )
 
     def requestMapData(self, mapId=None, callback=None):

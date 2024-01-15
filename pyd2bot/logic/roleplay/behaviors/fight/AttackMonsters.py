@@ -77,7 +77,7 @@ class AttackMonsters(AbstractBehavior):
         if not cellId:
             return self.finish(self.ENTITY_VANISHED, "Entity not more on the map")
         Logger().info(f"[AttackMonsters] Moving to monster {self.entityId} cell {cellId}")
-        MapMove().start(MapPoint.fromCellId(cellId), callback=self.ontargetMonsterReached, parent=self)
+        self.mapMove(MapPoint.fromCellId(cellId), callback=self.ontargetMonsterReached)
 
     def onFightWithEntityTaken(self):
         if MapMove().isRunning():
@@ -87,7 +87,7 @@ class AttackMonsters(AbstractBehavior):
             error = "Entity vanished while attacking it"
         return self.finish(self.ENTITY_VANISHED, error)
 
-    def ontargetMonsterReached(self, status, error):
+    def ontargetMonsterReached(self, status, error, landingcell):
         if error:
             return self.finish(status, error)
         Logger().info(f"[AttackMonsters] Reached monster group cell")

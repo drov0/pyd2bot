@@ -6,36 +6,34 @@ import time
 from typing import cast
 
 import numpy as np
-from prettytable import PrettyTable
 import tensorflow as tf
+from prettytable import PrettyTable
 
 from pyd2bot.logic.managers.BotConfig import BotConfig
-from pyd2bot.logic.roleplay.behaviors.AbstractFarmBehavior import AbstractFarmBehavior
-from pyd2bot.logic.roleplay.behaviors.farm.CollectableResource import (
-    CollectableResource,
-)
+from pyd2bot.logic.roleplay.behaviors.AbstractFarmBehavior import \
+    AbstractFarmBehavior
+from pyd2bot.logic.roleplay.behaviors.farm.CollectableResource import \
+    CollectableResource
 from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.DQNAgent import DQNAgent
-from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.ResourceFarmerState import (
-    ResourceFarmerState,
-)
+from pyd2bot.logic.roleplay.behaviors.farm.DQNAgent.ResourceFarmerState import \
+    ResourceFarmerState
 from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
 from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
 from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pyd2bot.models.farmPaths.RandomAreaFarmPath import RandomAreaFarmPath
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.dofus.datacenter.jobs.Job import Job
-from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import (
-    ItemWrapper,
-)
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
+    ItemWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import (
-    MovementFailError,
-)
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import Edge
-from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import (
-    JobExperience,
-)
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
+    MovementFailError
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
+    Edge
+from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import \
+    JobExperience
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
+    BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -147,7 +145,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
             raise Exception("Something is wrong, can't have a reward lesser than -1M")
         return win
 
-    def onNextVertex(self, code, error):
+    def onNextVertexReached(self, code, error):
         if error:
             Logger().warning(error)
             if code == MovementFailError.PLAYER_IS_DEAD:
@@ -231,7 +229,7 @@ class DQNResourceFarm(AbstractFarmBehavior):
             elem.farm(self.onResourceCollectEnd, self)
         elif isinstance(elem, Edge):
             Logger().debug("Change map action")
-            self.autoTrip(elem.dst.mapId, elem.dst.zoneId, callback=self.onNextVertex)
+            self.autoTrip(elem.dst.mapId, elem.dst.zoneId, callback=self.onNextVertexReached)
         else:
             raise TypeError(f"Invalid action type : {type(elem).__name__}")
 

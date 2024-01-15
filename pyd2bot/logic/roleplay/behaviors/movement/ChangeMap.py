@@ -2,31 +2,21 @@ from typing import Iterable, Tuple
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
-from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
-    RequestMapData
+from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import RequestMapData
 from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
-                                                                     Listener)
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event, Listener
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
 from pydofus2.com.ankamagames.dofus.datacenter.interactives.Interactive import Interactive
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
-    ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
-    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.InteractiveElementData import InteractiveElementData
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
-    MovementFailError
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
-    Edge
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
-    Transition
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import \
-    TransitionTypeEnum
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.ChangeMapMessage import \
-    ChangeMapMessage
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
-    BenchmarkTimer
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import MovementFailError
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import Edge
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import Transition
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import TransitionTypeEnum
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.ChangeMapMessage import ChangeMapMessage
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pydofus2.mapTools import MapTools
@@ -49,8 +39,8 @@ class ChangeMap(AbstractBehavior):
         self.trType = None
         self.mapChangeRequestNbrFails = 0
         self.requestTimeoutCount = 0
-        self.mapChangeListener: 'Listener' = None
-        self.mapChangeRejectListener: 'Listener' = None
+        self.mapChangeListener: "Listener" = None
+        self.mapChangeRejectListener: "Listener" = None
         self.mapChangeIE: InteractiveElementData = None
         self.mapChangeCellId: int = None
         self.iterScrollCells: Iterable[int] = None
@@ -63,8 +53,9 @@ class ChangeMap(AbstractBehavior):
         self.forbidenScrollCells = dict[int, list]()
         self._transitions = None
         self._scrollMapChangeRequestTimer: BenchmarkTimer = None
+        self._tr_fails_details = {}
 
-    def run(self, transition: Transition=None, edge: Edge=None, dstMapId=None):
+    def run(self, transition: Transition = None, edge: Edge = None, dstMapId=None):
         self.on(KernelEvent.ServerTextInfo, self.onServerTextInfo)
         if transition:
             self.dstMapId = dstMapId
@@ -76,7 +67,7 @@ class ChangeMap(AbstractBehavior):
             self.followEdge()
         else:
             self.finish(False, "No transition or edge provided")
-            
+
     def onServerTextInfo(self, event, msgId, msgType, textId, text, params):
         if textId == 4908:
             Logger().error("Need a quest to be completed")
@@ -87,7 +78,7 @@ class ChangeMap(AbstractBehavior):
         if not self._transitions:
             self._transitions = self.transitionsGen()
         return self._transitions
-    
+
     def transitionsGen(self) -> Iterable[Transition]:
         mapAction_trs = []
         scroll_trs = []
@@ -117,10 +108,15 @@ class ChangeMap(AbstractBehavior):
                         Logger().warning(f"Current transition is using a Zaap it must be discarded.")
                         self.transition = next(self.transitions)
                 else:
-                    Logger().error(f"Unable to find transiton IE {self.transition.id}!. {Kernel().interactivesFrame._ie}")
+                    Logger().error(
+                        f"Unable to find transiton IE {self.transition.id}!. {Kernel().interactivesFrame._ie}"
+                    )
                     self.transition = next(self.transitions)
         except StopIteration:
-            return self.finish(self.INVALID_TRANSITION, "No valid transition found!, available transitions: " + str(self.edge.transitions))
+            return self.finish(
+                self.INVALID_TRANSITION,
+                "No valid transition found!, available transitions: " + str(self.edge.transitions),
+            )
         self.followTransition()
 
     def getTransitionIe(self, transition: Transition, callback) -> "InteractiveElementData":
@@ -135,7 +131,7 @@ class ChangeMap(AbstractBehavior):
             return self.finish(True, None)
         self.trType = TransitionTypeEnum(self.transition.type)
         self.askChangeMap()
-    
+
     def askChangeMap(self):
         Logger().info(f"{self.trType.name} map change to {self.dstMapId}")
         self.mapChangeReqSent = False
@@ -149,7 +145,7 @@ class ChangeMap(AbstractBehavior):
             self.actionMapChange()
         else:
             self.finish(self.INVALID_TRANSITION, f"Unsupported transition type {self.trType.name}")
-    
+
     def getScrollCells(self):
         if self.transition.id in self.forbidenScrollCells:
             if self.transition.cell not in self.forbidenScrollCells[self.transition]:
@@ -170,14 +166,17 @@ class ChangeMap(AbstractBehavior):
             self.mapChangeListener.delete()
         if self.mapChangeRejectListener:
             self.mapChangeRejectListener.delete()
+
         def onResult(code, error):
             if error:
                 return self.finish(False, error)
             self.onMapRequestFailed(reason)
+
         RequestMapData().start(callback=onResult, parent=self)
-        
+
     def onMapRequestFailed(self, reason: MovementFailError):
         Logger().warning(f"Request failed for reason: {reason.name}")
+        self._tr_fails_details[self.transition] = f"Change map request failed for reason : {reason.name}"
         self.requestTimeoutCount = 0
         if self.isInteractiveTr():
             self.followEdge()
@@ -194,7 +193,7 @@ class ChangeMap(AbstractBehavior):
                 self.forbidenScrollCells[self.transition] = []
             self.forbidenScrollCells[self.transition].append(self.mapChangeCellId)
             self.askChangeMap()
-            
+
     def onRequestTimeout(self, listener: Listener):
         if not self.running.is_set():
             Logger().warning("Map change request timeout called while behavior not running!")
@@ -218,7 +217,7 @@ class ChangeMap(AbstractBehavior):
     def onDestMapProcessedTimeout(self, listene: Listener):
         listene.delete()
         self.finish(False, "Request Map data timeout")
-        
+
     def onCurrentMap(self, event: Event, mapId: int):
         Logger().info("Map changed!")
         if self.mapChangeRejectListener:
@@ -234,17 +233,14 @@ class ChangeMap(AbstractBehavior):
         if self._scrollMapChangeRequestTimer:
             Logger().warning("Received current map while still didn't send map change request")
             self._scrollMapChangeRequestTimer.cancel()
-            
+
         if mapId == self.dstMapId:
             callback = lambda: self.finish(True, None)
         else:
-            callback = lambda: self.finish(self.LANDED_ON_WRONG_MAP, f"Landed on new map '{mapId}', different from dest '{self.dstMapId}'.")
-        self.onceMapProcessed(
-            callback=callback,
-            mapId=mapId,
-            timeout=20,
-            ontimeout=self.onDestMapProcessedTimeout
-        )
+            callback = lambda: self.finish(
+                self.LANDED_ON_WRONG_MAP, f"Landed on new map '{mapId}', different from dest '{self.dstMapId}'."
+            )
+        self.onceMapProcessed(callback=callback, mapId=mapId, timeout=20, ontimeout=self.onDestMapProcessedTimeout)
 
     def setupMapChangeListener(self):
         if self.mapChangeListener:
@@ -253,49 +249,60 @@ class ChangeMap(AbstractBehavior):
             KernelEvent.CurrentMap,
             self.onCurrentMap,
             timeout=self.MAPCHANGE_TIMEOUT,
-            ontimeout=self.onRequestTimeout, 
+            ontimeout=self.onRequestTimeout,
         )
-    
+
     def setupMapChangeRejectListener(self):
         if self.mapChangeRejectListener:
             self.mapChangeRejectListener.delete()
+
         def onReqReject(event, *args):
             # what about when i receive this when the player confirmed movement but didn't send map request change yet?
             if self.mapChangeReqSent:
                 self.onRequestRejectedByServer(event, self.movementError)
+
         self.mapChangeRejectListener = self.once(
-            self.requestRejectedEvent, 
+            self.requestRejectedEvent,
             onReqReject,
         )
-    
+
     def handleOnsameCellForMapActionCell(self):
         self.currentMPChilds = MapPoint.fromCellId(self.mapChangeCellId).iterChilds(False, True)
         try:
             x, y = next(self.currentMPChilds)
         except StopIteration:
-            return self.finish(self.MAP_ACTION_ALREADY_ONCELL, "Already on map action cell and can't move away from it.")
+            return self.finish(
+                self.MAP_ACTION_ALREADY_ONCELL, "Already on map action cell and can't move away from it."
+            )
+
         def onMapChangedWhileResolving(event: Event, mapId):
             event.listener.delete()
             self.finish(self.MAP_CHANGED_UNEXPECTEDLY, "Map changed unexpectedly while resolving.")
+
         def onWaitForMCAfterResolve(listener: Listener):
             listener.delete()
             self.mapMove(self.mapChangeCellId, self.exactDestination, callback=self.onMoveToMapChangeCell)
+
         def onMoved(code, err):
             if err:
-                try:    
+                try:
                     x, y = next(self.currentMPChilds)
                 except StopIteration:
-                    return self.finish(self.MAP_ACTION_ALREADY_ONCELL, f"Already on map action cell, and can't move away from it for reason : '{err}'.")
+                    return self.finish(
+                        self.MAP_ACTION_ALREADY_ONCELL,
+                        f"Already on map action cell, and can't move away from it for reason : '{err}'.",
+                    )
                 return self.mapMove(MapPoint.fromCoords(x, y).cellId, self.exactDestination, callback=onMoved)
             self.on(
-                KernelEvent.CurrentMap, 
+                KernelEvent.CurrentMap,
                 callback=onMapChangedWhileResolving,
                 timeout=1,
                 ontimeout=onWaitForMCAfterResolve,
             )
+
         return self.mapMove(MapPoint.fromCoords(x, y).cellId, self.exactDestination, callback=onMoved)
 
-    def onMoveToMapChangeCell(self, code, error):
+    def onMoveToMapChangeCell(self, code, error, landingcell):
         if code == MapMove.ALREADY_ONCELL and self.isMapActionTr():
             Logger().debug("Already on map action cell, need to move away from it first")
             return self.handleOnsameCellForMapActionCell()
@@ -306,6 +313,7 @@ class ChangeMap(AbstractBehavior):
                 self.forbidenScrollCells[self.transition].append(self.mapChangeCellId)
                 return self.askChangeMap()
         elif code == MovementFailError.CANT_REACH_DEST_CELL:
+            self._tr_fails_details[self.transition] = f"Can't reach map change cell {self.mapChangeCellId}!"
             if self.edge:
                 return self.followEdge()
         if error:
@@ -330,11 +338,20 @@ class ChangeMap(AbstractBehavior):
         try:
             self.mapChangeCellId = next(self.iterScrollCells)
         except StopIteration:
+            self._tr_fails_details[self.transition] = "No valid scroll cell found!"
             if self.edge:
                 return self.followEdge()
-            return self.finish(MovementFailError.NOMORE_SCROLL_CELL, f"Tryied all scroll map change cells but no one changed map")
+            return self.finish(
+                MovementFailError.NO_VALID_SCROLL_CELL, f"Tryied all scroll map change cells but no one changed map"
+            )
         self.setupMapChangeListener()
-        self.mapMove(self.mapChangeCellId, self.exactDestination, forMapChange=True, mapChangeDirection=self.transition.direction, callback=self.onMoveToMapChangeCell)       
+        self.mapMove(
+            self.mapChangeCellId,
+            self.exactDestination,
+            forMapChange=True,
+            mapChangeDirection=self.transition.direction,
+            callback=self.onMoveToMapChangeCell,
+        )
 
     def onChangeMapIE(self, code, err):
         if err:
@@ -344,20 +361,25 @@ class ChangeMap(AbstractBehavior):
             return self.finish(code, err)
         Logger().debug("Map change IE used")
         self.setupMapChangeRejectListener()
-        
+
     def interactiveMapChange(self):
         self.requestRejectedEvent = KernelEvent.InteractiveUseError
         self.movementError = MovementFailError.INTERACTIVE_USE_ERROR
         self.exactDestination = False
         self.setupMapChangeListener()
-        self.useSkill(elementId=self.transition.id, skilluid=self.transition.skillId, cell=self.transition.cell, callback=self.onChangeMapIE)
+        self.useSkill(
+            elementId=self.transition.id,
+            skilluid=self.transition.skillId,
+            cell=self.transition.cell,
+            callback=self.onChangeMapIE,
+        )
 
     def isScrollTr(self):
         return self.trType in [TransitionTypeEnum.SCROLL, TransitionTypeEnum.SCROLL_ACTION]
-    
+
     def isMapActionTr(self):
         return self.trType == TransitionTypeEnum.MAP_ACTION
-    
+
     def isInteractiveTr(self):
         return self.trType == TransitionTypeEnum.INTERACTIVE
 

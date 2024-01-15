@@ -35,6 +35,9 @@ class UseSkill(AbstractBehavior):
         self.timeoutsCount = 0
         self.ie = None
         self.useErrorListener = None
+        self._curr_skill_mp = None
+        self._reach_skillcell_fails = 0
+        self._move_to_skillcell_landingcell = None
 
     def run(
         self,
@@ -71,23 +74,25 @@ class UseSkill(AbstractBehavior):
         self.exactDistination = exactDistination
         self.waitForSkillUsed = waitForSkillUsed
         self._useSkill()
-
+        
+    def onUseSkillCellReached(self, code, err, landingCell):
+        if err:
+            return self.finish(code, err)
+        self._move_to_skillcell_landingcell = landingCell
+        self.requestActivateSkill()
+        
     def _useSkill(self) -> None:
         if self.targetIe.element.enabledSkills:
             skillId = self.targetIe.element.enabledSkills[0].skillId
             skill = Skill.getSkillById(skillId)
             Logger().debug(f"Using {skill.name}, range {skill.range}, id {skill.id}")
-            mp, send_request = Kernel().interactivesFrame.getNearestCellToIe(self.element, self.elementPosition)
-            if not mp:
+            self._curr_skill_mp, send_request = Kernel().interactivesFrame.getNearestCellToIe(self.element, self.elementPosition)
+            if not self._curr_skill_mp:
                 return self.finish(self.UNREACHABLE_IE, "Unable to find cell close enough to use element", iePosition=self.elementPosition)
-            def onmoved(code, error):
-                if error:
-                    return self.finish(code, error)
-                self.requestActivateSkill()
             if self.waitForSkillUsed:
                 self.on(KernelEvent.IElemBeingUsed, self.onUsingInteractive,)
                 self.on(KernelEvent.InteractiveElementUsed, self.onUsedInteractive)
-            self.mapMove(destCell=mp.cellId, exactDistination=False, callback=onmoved)
+            self.mapMove(destCell=self._curr_skill_mp.cellId, exactDistination=False, callback=self.onUseSkillCellReached)
         else:
             self.finish(self.NO_ENABLED_SKILLS, f"Interactive element has no enabled skills!")
 
@@ -130,12 +135,26 @@ class UseSkill(AbstractBehavior):
             return
         self.finish(self.ELEM_UPDATE_TIMEOUT, "Elem update wait timedout")
 
+    def onMapDataRefreshedAfterUseError(self, code, err, elementId):
+        if err:
+            self.finish(code, err)
+        if self._move_to_skillcell_landingcell.cellId != self._curr_skill_mp.cellId:
+            self._reach_skillcell_fails += 1
+            Logger().warning(f"Player movement to useskill cell didn't actually get executed by server")
+            if self._reach_skillcell_fails > 3:
+                return self.finish(self.USE_ERROR, f"Use Error for element {elementId} - Server refuses to move player to skill cell")
+            Logger().debug(f"retrying for {self._reach_skillcell_fails} time")
+            return self.mapMove(destCell=self._curr_skill_mp.cellId, exactDistination=False, callback=self.onUseSkillCellReached)
+        self.finish(self.USE_ERROR, f"Use Error for element {elementId}!")
+        
     def onUseError(self, event, elementId):
         if not self.running.is_set():
             return
+        
         if MapMove().isRunning():
             MapMove().stop()
-        self.finish(self.USE_ERROR, "Can't use this element, probably not in range")
+        Logger().error(f"Use Error for element {elementId}")
+        self.requestMapData(callback=lambda code, err: self.onMapDataRefreshedAfterUseError(code, err, elementId))
 
     def requestActivateSkill(self) -> None:
         if self.waitForSkillUsed:

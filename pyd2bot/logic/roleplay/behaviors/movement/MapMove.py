@@ -1,6 +1,3 @@
-import threading
-from time import perf_counter
-
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
     RequestMapData
@@ -39,6 +36,7 @@ class MapMove(AbstractBehavior):
 
     def __init__(self) -> None:
         super().__init__()
+        self._landingCell = None
 
     def run(self, destCell, exactDistination=True, forMapChange=False, mapChangeDirection=-1) -> None:
         Logger().info(f"Move from {PlayedCharacterManager().currentCellId} to {destCell} started")
@@ -79,7 +77,7 @@ class MapMove(AbstractBehavior):
         
         if currentCellId == self.dstCell.cellId:
             Logger().info(f"Destination cell {self.dstCell.cellId} is the same as the current player cell")
-            return self.finish(self.ALREADY_ONCELL, None)
+            return self.finish(self.ALREADY_ONCELL, None, self.dstCell)
         
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
             return self.fail(MovementFailError.PLAYER_IS_DEAD)
@@ -92,16 +90,16 @@ class MapMove(AbstractBehavior):
             return self.fail(MovementFailError.CANT_REACH_DEST_CELL)
         
         if len(self.movePath) == 0:
-            return self.finish(True, None)
+            return self.finish(True, None, self.dstCell)
         
         self.requestMovement()
 
     def fail(self, reason: MovementFailError) -> None:
-        self.finish(reason, self.errMsg % reason.name)
+        self.finish(reason, self.errMsg % reason.name, None)
 
     def requestMovement(self) -> None:
         if len(self.movePath) == 0:
-            return self.finish(True, None)
+            return self.finish(True, None, self.dstCell)
         self.once(
             KernelEvent.MovementRequestRejected,
             callback=lambda event: self.onMoveRequestReject(MovementFailError.MOVE_REQUEST_REJECTED),
@@ -131,6 +129,7 @@ class MapMove(AbstractBehavior):
 
     def onPlayerMoving(self, event, clientMovePath: MovementPath):
         Logger().info(f"Move request accepted.")
+        self._landingCell = clientMovePath.end
         if clientMovePath.end.cellId != self.dstCell.cellId:
             Logger().warning(f"Landed on cell {clientMovePath.end.cellId} not dst {self.dstCell.cellId}!")
         self.once(
@@ -139,6 +138,6 @@ class MapMove(AbstractBehavior):
 
     def onMovementCompleted(self, event, success):
         if success:
-            self.finish(success, None)
+            self.finish(success, None, self._landingCell)
         else:
-            self.finish(success, "Player movement was stopped")
+            self.finish(success, "Player movement was stopped", self._landingCell)

@@ -29,6 +29,7 @@ class RequestMapData(AbstractBehavior):
             return self.finish(self.CURRENT_MAP_NOT_FOUND, "Current Map point is None!")
         if not mapId:
             mapId = MapDisplayManager().currentMapPoint.mapId
+        mapId = float(mapId)
         self.mapId = mapId
         Logger().info(f"Requesting data for map {mapId}")
         self.listener = self.onceMapProcessed(

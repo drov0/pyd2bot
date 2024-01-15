@@ -12,6 +12,7 @@ from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterMa
     PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import \
     AStar
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import Vertex
 from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
     WorldGraph
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
@@ -102,12 +103,20 @@ class Localizer:
                 Logger().warning(f"Could not find a candidate zaap for map {mapId}")
                 return None
             Logger().debug(f"Found {len(candidates)} candidates maps for closest zaap to map {mapId}")
-            Logger().debug(f"Searching path to one of the candidates")
-            path = AStar().search(WorldGraph(), startVertex, candidates)
-            if path is None:
-                Logger().warning(f"Could not find a path to any of the candidates!")
-                return None
-            if len(path) == 0:
-                Logger().warning(f"One of the candidates is the start map, returning it as closest zaap")
-                return mapId
-            return path[-1].dst.mapId
+            return cls.findClosestVertexFromVerticies(startVertex, candidates)
+        
+        
+    @classmethod
+    def findClosestVertexFromVerticies(cls, vertex: Vertex, candidates: list[Vertex]):
+        Logger().info(f"Searching closest map from vertex to one of the candidates")
+        if not candidates:
+            Logger().warning(f"No candidates to search path to!")
+            return None
+        path = AStar().search(WorldGraph(), vertex, candidates)
+        if path is None:
+            Logger().warning(f"Could not find a path to any of the candidates!")
+            return None
+        if len(path) == 0:
+            Logger().warning(f"One of the candidates is the start map, returning it as closest zaap")
+            return vertex
+        return path[-1].dst

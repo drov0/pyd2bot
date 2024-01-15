@@ -1,6 +1,7 @@
 import os
 from time import perf_counter
 from typing import Any
+
 from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
@@ -9,24 +10,19 @@ from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.models.farmPaths.RandomAreaFarmPath import NoTransitionFound
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
-from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
-    ItemWrapper
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import ItemWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
-    PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
-    MovementFailError
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import \
-    Vertex
-from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import \
-    JobExperience
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import MovementFailError
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Vertex import Vertex
+from pydofus2.com.ankamagames.dofus.network.types.game.context.roleplay.job.JobExperience import JobExperience
 from pydofus2.com.ankamagames.dofus.uiApi.PlayedCharacterApi import PlayedCharacterApi
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 class AbstractFarmBehavior(AbstractBehavior):
     path: AbstractFarmPath
@@ -37,7 +33,7 @@ class AbstractFarmBehavior(AbstractBehavior):
         self.currentVertex: Vertex = None
         self.forbidenActions = set()
         self.forbidenEdges = set()
-        self._currEdge = None 
+        self._currEdge = None
         super().__init__()
 
     def run(self, *args, **kwargs):
@@ -56,7 +52,7 @@ class AbstractFarmBehavior(AbstractBehavior):
 
     def onJobLevelUp(self, event, jobId, jobName, lastJobLevel, newLevel, podsBonus):
         pass
-    
+
     def onObjectAdded(self, event, iw: ItemWrapper):
         pass
 
@@ -87,22 +83,27 @@ class AbstractFarmBehavior(AbstractBehavior):
     def onInventoryWeightUpdate(self, event, lastWeight, weight, weightMax):
         pass
 
-    def onNextVertex(self, code, error):
+    def onGotBackInsideFarmArea(self, code, error):
+        if error:
+            return self.send(
+                KernelEvent.ClientShutdown,
+                f"Error while moving to farm path [{code}]: %s." % error,
+            )
+        Logger().debug(f"Player got back inside farm area")
+        self.main()
+
+    def onNextVertexReached(self, code, error):
         if error:
             if code == MovementFailError.PLAYER_IS_DEAD:
-                Logger().warning(f"Player is dead.")
-                return self.autoRevive(self.onRevived)
-            if self._currEdge:
-                if code == ChangeMap.LANDED_ON_WRONG_MAP:
-                    Logger().warning(f"Player landed on wrong map!")
-                elif code == ChangeMap.INVALID_TRANSITION:
-                    Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
-                    self.forbidenEdges.add(self._currEdge)
-                    return self.moveToNextStep()
-                elif code in [UseSkill.USE_ERROR, AutoTrip.NO_PATH_FOUND]:
-                    Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
-                    self.forbidenEdges.add(self._currEdge)
-                    return self.moveToNextStep()
+                return self.send(
+                    KernelEvent.ClientShutdown, f"Tried to move to next path vertex while Player is dead!"
+                )
+            if code == ChangeMap.LANDED_ON_WRONG_MAP:
+                Logger().warning(f"Player landed on the wrong map while moving to next path Vertex!")
+            elif code in [UseSkill.USE_ERROR, AutoTrip.NO_PATH_FOUND, ChangeMap.INVALID_TRANSITION]:
+                Logger().warning(f"Player tried navigating using invalid edge ({error}), edge will be forbiden")
+                self.forbidenEdges.add(self._currEdge)
+                return self.moveToNextStep()
             else:
                 return self.send(
                     KernelEvent.ClientShutdown,
@@ -120,21 +121,28 @@ class AbstractFarmBehavior(AbstractBehavior):
         if not self.running.is_set():
             return
         try:
-            self._currEdge = self.path.__next__(self.forbidenEdges)
-        except NoTransitionFound as e:
+            self._currEdge = self.path.getNextVertex(self.forbidenEdges, onlyNonRecent=True)
+        except NoTransitionFound:
+            Logger().error(f"No next vertex found in path, player is stuck!")
+            if PlayedCharacterManager().currVertex in self.path:
+                return KernelEventsManager().send(
+                    KernelEvent.ClientShutdown, "Player is stuck in farm path without next vertex!"
+                )
             return self.onBotOutOfFarmPath()
         self.changeMap(
             edge=self._currEdge,
             dstMapId=self._currEdge.dst.mapId,
-            callback=self.onNextVertex,
+            callback=self.onNextVertexReached,
         )
 
     def onBotOutOfFarmPath(self):
+        Logger().warning(f"Bot is out of farm path, searching path to last vertex...")
+        dst_vertex = self.path.findClosestMap()
         self.autotripUseZaap(
-            self.path.startVertex.mapId,
-            self.path.startVertex.zoneId,
-            withSaveZaap=True,
-            callback=self.onNextVertex,
+            dst_vertex.mapId,
+            dst_vertex.zoneId,
+            withSaveZaap=False,
+            callback=self.onGotBackInsideFarmArea,
         )
 
     def onBotUnloaded(self, code, err):
@@ -175,13 +183,13 @@ class AbstractFarmBehavior(AbstractBehavior):
             True,
             callback=self.main,
         )
-    
+
     def onRevived(self, code, error):
         if error:
-            KernelEventsManager().send(KernelEvent.ClientShutdown, f"Error [{code}] while auto-reviving player: {error}")
-        Logger().debug(
-            f"Bot back on form, autotravelling to last memorized vertex {self.currentVertex}"
-        )
+            KernelEventsManager().send(
+                KernelEvent.ClientShutdown, f"Error [{code}] while auto-reviving player: {error}"
+            )
+        Logger().debug(f"Bot back on form, autotravelling to last memorized vertex {self.currentVertex}")
         if self.initialized:
             self.autotripUseZaap(
                 self.currentVertex.mapId,
@@ -207,12 +215,14 @@ class AbstractFarmBehavior(AbstractBehavior):
     def onRoleplayAfterFight(self, event=None):
         Logger().debug(f"Player ended fight and started roleplay")
         self.inFight = False
+
         def onRolePlayMapLoaded():
             if PlayedCharacterManager().isDead():
                 Logger().warning(f"Player is dead.")
                 return self.autoRevive(callback=self.onRevived)
-            
+
             self.main()
+
         self.onceMapProcessed(onRolePlayMapLoaded)
 
     def main(self, event=None, error=None):
@@ -230,7 +240,11 @@ class AbstractFarmBehavior(AbstractBehavior):
         if PlayedCharacterManager().isDead():
             Logger().warning(f"Player is dead.")
             return self.autoRevive(callback=self.onRevived)
-        if not PlayerManager().isBasicAccount() and PlayedCharacterApi.getMount() and not PlayedCharacterApi.isRiding():
+        if (
+            not PlayerManager().isBasicAccount()
+            and PlayedCharacterApi.getMount()
+            and not PlayedCharacterApi.isRiding()
+        ):
             Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
             KernelEventsManager().once(KernelEvent.MountRiding, self.main)
             return Kernel().mountFrame.mountToggleRidingRequest()
@@ -238,14 +252,18 @@ class AbstractFarmBehavior(AbstractBehavior):
             Logger().warning(f"Inventory is almost full will trigger auto unload ...")
             if PlayedCharacterManager().limitedLevel < 10 and BotConfig().unloadInBank:
                 Logger().warning(f"Player level is too low to unload in bank, ending behavior")
-                return KernelEventsManager().send(KernelEvent.ClientShutdown, message="Player level is too low to unload in bank")
+                return KernelEventsManager().send(
+                    KernelEvent.ClientShutdown, message="Player level is too low to unload in bank"
+                )
             return self.unloadInBank(callback=self.onBotUnloaded)
         if not self.initialized:
             Logger().debug(f"Initializing behavior...")
             self.initialized = True
             if self.currentVertex:
                 Logger().debug(f"Traveling to the memorized current vertex...")
-                return self.autotripUseZaap(self.currentVertex.mapId, self.currentVertex.zoneId, True, callback=self.onReturnToLastvertex)
+                return self.autotripUseZaap(
+                    self.currentVertex.mapId, self.currentVertex.zoneId, True, callback=self.onReturnToLastvertex
+                )
             else:
                 self.currentVertex = self.path.currentVertex
         if PlayedCharacterManager().currVertex not in self.path:
@@ -254,9 +272,9 @@ class AbstractFarmBehavior(AbstractBehavior):
         self.makeAction()
 
     def makeAction(self):
-        '''
+        """
         This method is called each time the main loop is called.
         It should be overriden by subclasses to implement the behavior.
         The default implementation is to collect the nearest resource.
-        '''
+        """
         pass

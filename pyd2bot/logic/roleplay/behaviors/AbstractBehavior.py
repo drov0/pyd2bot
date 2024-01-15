@@ -51,7 +51,7 @@ class AbstractBehavior(BehaviorApi, metaclass=Singleton):
     def onFinish(self, callback):
         self.endListeners.append(callback)
 
-    def finish(self, code: bool, error: str = None, **kwargs) -> None:
+    def finish(self, code: bool, error: str = None, *args, **kwargs) -> None:
         if not self.running.is_set():
             return Logger().warning(f"[{type(self).__name__}] wants to finish but not running!")
         KernelEventsManager().clearAllByOrigin(self)
@@ -66,19 +66,19 @@ class AbstractBehavior(BehaviorApi, metaclass=Singleton):
             self.parent.children.remove(self)
         error = f"[{type(self).__name__}] failed for reason : {error}" if error else None
         if callback is not None:
-            callback(code, error, **kwargs)
+            callback(code, error, *args, **kwargs)
         else:
             Logger().debug(error)
         while self.endListeners:
             callback = self.endListeners.pop()
-            callback(code, error)
+            callback(code, error, *args, **kwargs)
         with RLOCK:
             if not AbstractBehavior.hasRunning():
                 thname = threading.current_thread().name
                 if thname in AbstractBehavior._onEmptyCallbacks:
                     while AbstractBehavior._onEmptyCallbacks[thname]:
                         callback = AbstractBehavior._onEmptyCallbacks[thname].pop()
-                        callback(code, error)
+                        callback(code, error, *args, **kwargs)
                     del AbstractBehavior._onEmptyCallbacks[thname]
             
     @property

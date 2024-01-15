@@ -2,6 +2,7 @@ import collections
 import random
 from time import perf_counter
 from typing import Iterator, Set
+from pyd2bot.misc.Localizer import Localizer
 
 from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 from pyd2bot.thriftServer.pyd2botService.ttypes import Path, TransitionType
@@ -66,14 +67,31 @@ class RandomAreaFarmPath(AbstractFarmPath):
             Logger().error(f"No unvisited vertex found")
         return bestSolution
     
-    def __next__(self, forbidenEdges) -> Edge:
-        outgoingEdges = list(self.outgoingEdges(onlyNonRecentVisited=True))
+    def getNextVertex(self, forbidenEdges=None, onlyNonRecent=False) -> Vertex:
+        outgoingEdges = list(self.outgoingEdges(onlyNonRecentVisited=onlyNonRecent))
+        if forbidenEdges is None:
+            forbidenEdges = []
         outgoingEdges = [e for e in outgoingEdges if e not in forbidenEdges]
         if not outgoingEdges:
             raise NoTransitionFound()
         edge = random.choice(outgoingEdges)
         return edge
     
+    def __next__(self) -> Edge:
+        outgoingEdges = list(self.outgoingEdges())
+        if not outgoingEdges:
+            raise NoTransitionFound()
+        edge = random.choice(outgoingEdges)
+        return edge
+    
+    def findClosestMap(self):
+        Logger().info(f"Searching closest path map from vertex")
+        candidates = []
+        for dst_mapId in self.mapIds:
+            candidates.extend(WorldGraph().getVertices(dst_mapId).values())
+        v = Localizer.findClosestVertexFromVerticies(self.currentVertex, candidates)
+        return v
+        
     def reachableVerticies(self) -> Set[Vertex]:
         queue = collections.deque([self.startVertex])
         verticies = set([self.startVertex])
@@ -122,7 +140,6 @@ class RandomAreaFarmPath(AbstractFarmPath):
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
         ret = []
         for edge in outgoingEdges:
-            sa = SubArea.getSubAreaByMapId(edge.dst.mapId).id
             if edge.dst.mapId in self.mapIds:
                 if self.hasValidTransition(edge):
                     if onlyNonRecentVisited:

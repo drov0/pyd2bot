@@ -7,6 +7,9 @@ from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Session,
                                                         UnloadType)
 from pydofus2.com.ankamagames.jerakine.metaclasses.Singleton import Singleton
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from pyd2bot.models.farmPaths.AbstractFarmPath import AbstractFarmPath
 
 class CharacterRoleEnum(Enum):
     LEADER = 0
@@ -30,7 +33,7 @@ class BotConfig(metaclass=Singleton):
 
     def __init__(self) -> None:
         self.character: Character = None
-        self.path = None
+        self.path: 'AbstractFarmPath' = None
         self.isLeader: bool = None
         self.isSeller = None
         self.isFollower = None

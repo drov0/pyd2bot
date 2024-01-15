@@ -88,7 +88,7 @@ class MuleFighter(AbstractBehavior):
                 if remaining > 0:
                     Kernel().worker.terminated.wait(secondsToWait)
                 return self.joinFight()
-            def onMoved(code, err):
+            def onMoved(code, err, landingCell):
                 if err:
                     try:    
                         x, y = next(currentMPChilds)
@@ -99,7 +99,7 @@ class MuleFighter(AbstractBehavior):
                         return self.joinFight()
                     return MapMove().start(MapPoint.fromCoords(x, y).cellId, callback=onMoved, parent=self)
                 self.joinFight()
-            MapMove().start(MapPoint.fromCoords(x, y).cellId, callback=onMoved, parent=self)
+            self.mapMove(MapPoint.fromCoords(x, y).cellId, callback=onMoved)
                 
     def onceFightStarted(self, event: Event, infos: FightCommonInformations):
         for team in infos.fightTeams:
