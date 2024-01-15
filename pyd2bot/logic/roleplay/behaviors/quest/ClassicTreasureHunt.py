@@ -21,6 +21,7 @@ from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntStepWr
 from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntWrapper import \
     TreasureHuntWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
+from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import \
     InventoryManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
@@ -37,6 +38,7 @@ from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntTypeEnum import \
     TreasureHuntTypeEnum
 from pydofus2.com.ankamagames.dofus.types.enums.TreasureHuntStepTypeEnum import \
     TreasureHuntStepTypeEnum
+from pydofus2.com.ankamagames.dofus.uiApi.PlayedCharacterApi import PlayedCharacterApi
 from pydofus2.com.ankamagames.jerakine.data.I18n import I18n
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import \
@@ -268,12 +270,21 @@ class ClassicTreasureHunt(AbstractBehavior):
                     if transition.direction != -1 and transition.direction == direction:
                         return edge.dst.mapId
 
+    def onPlayerRidingMount(self, event, riding, ignoreSame):
+        if not riding:
+            Logger().error(f"Player dismounted when asked to mount!")
+        self.solveNextStep(ignoreSame)
+        
     def onRevived(self, code, error, ignoreSame=False):
         if error:
             return KernelEventsManager().send(KernelEvent.ClientShutdown, f"Error while auto-reviving player: {error}")
         Logger().debug(
             f"Bot back on form, can continue treasure hunt"
         )
+        if not PlayerManager().isBasicAccount() and PlayedCharacterApi.getMount() and not PlayedCharacterApi.isRiding():
+            Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
+            KernelEventsManager().once(KernelEvent.MountRiding, lambda e, r: self.onPlayerRidingMount(e, r, ignoreSame))
+            return Kernel().mountFrame.mountToggleRidingRequest()
         self.solveNextStep(ignoreSame)
         
     def solveNextStep(self, ignoreSame=False):

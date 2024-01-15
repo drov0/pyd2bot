@@ -1,4 +1,6 @@
+import json
 import math
+import os
 from typing import TYPE_CHECKING
 
 from pyd2bot.misc.Localizer import Localizer
@@ -20,98 +22,132 @@ if TYPE_CHECKING:
     from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
         Transition
 
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+SPECIAL_DESTINATIONS_PATH = os.path.join(__dir__, "special_destinations.json")
+with open(SPECIAL_DESTINATIONS_PATH, "r") as f:
+    SPECIAL_DESTINATIONS = json.load(f)
+
 
 class BehaviorApi:
+    ANKARNAM_AREAID = 45
+    ASTRUB_AREAID = 95
+    SPECIAL_AREA_INFOS_NOT_FOUND_ERROR = 89091
+    PLAYER_IN_FIGHT_ERROR = 89090
+
     def __init__(self) -> None:
         pass
 
-    def autotripUseZaap(
-        self, dstMapId, dstZoneId=1, withSaveZaap=False, maxCost=None, excludeMaps=[], callback=None
-    ):
+    def getSpecialDestination(self, areaId, key=None):
+        if key:
+            info = SPECIAL_DESTINATIONS.get(key)
+            info["replies"] = {int(k): v for k, v in info["replies"].items()}
+            return info
+        for key, info in SPECIAL_DESTINATIONS.items():
+            if areaId == info["dstAreaId"]:
+                info["replies"] = {int(k): v for k, v in info["replies"].items()}
+                return info
+        return None
+
+    def autotripUseZaap(self, dstMapId, dstZoneId=1, withSaveZaap=False, maxCost=None, excludeMaps=[], callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTripUseZaap import \
             AutoTripUseZaap
+
         if not maxCost:
             maxCost = InventoryManager().inventory.kamas
             Logger().debug(f"Player max teleport cost is {maxCost}")
-        currMp = PlayedCharacterManager().currMapPos
-        dstMp = MapPosition.getMapPositionById(dstMapId)
-        dist = math.sqrt((currMp.posX - dstMp.posX) ** 2 + (currMp.posY - dstMp.posY) ** 2)
-        if dist > 12:
-            dstZaapMapId = Localizer.findCloseZaapMapId(dstMapId, maxCost, excludeMaps=excludeMaps)
-            if not dstZaapMapId:
-                Logger().warning(f"No src zaap found for cost {maxCost} and map {dstMapId}!")
-                return self.autoTrip(dstMapId, dstZoneId, callback=callback)
-            if not PlayedCharacterManager().isZaapKnown(dstZaapMapId):
-                Logger().debug(f"Dest zaap at map {dstZaapMapId} is not known ==> will travel to register it.")
+            
+        dstZaapMapId = Localizer.findCloseZaapMapId(dstMapId, maxCost, excludeMaps=excludeMaps)
+        if not dstZaapMapId:
+            Logger().warning(f"No src zaap found for cost {maxCost} and map {dstMapId}!")
+            return self.autoTrip(dstMapId, dstZoneId, callback=callback)
+        
+        if not PlayedCharacterManager().isZaapKnown(dstZaapMapId):
+            Logger().debug(f"Dest zaap at map {dstZaapMapId} is not known ==> will travel to register it.")
 
-                def onDstZaapTrip(code, err):
-                    if err:
-                        return callback(code, err)
-                    if withSaveZaap:
+            def onDstZaapTrip(code, err):
+                if err:
+                    return callback(code, err)
+                if withSaveZaap:
 
-                        def onDstZaapSaved(code, err):
-                            if err:
-                                return callback(code, err)
-                            self.autoTrip(dstMapId, dstZoneId, callback=callback)
+                    def onDstZaapSaved(code, err):
+                        if err:
+                            return callback(code, err)
+                        self.autoTrip(dstMapId, dstZoneId, callback=callback)
 
-                        return self.saveZaap(onDstZaapSaved)
-                    self.autoTrip(dstMapId, dstZoneId, callback=callback)
+                    return self.saveZaap(onDstZaapSaved)
+                self.autoTrip(dstMapId, dstZoneId, callback=callback)
 
-                return self.autotripUseZaap(
-                    dstZaapMapId, excludeMaps=excludeMaps + [dstZaapMapId], callback=onDstZaapTrip
-                )
-            Logger().debug(f"Autotriping with zaaps to {dstMapId}, dst zaap at {dstZaapMapId}")
-            AutoTripUseZaap().start(
-                dstMapId,
-                dstZoneId,
-                dstZaapMapId,
-                withSaveZaap=withSaveZaap,
-                maxCost=maxCost,
-                callback=callback,
-                parent=self,
+            return self.autotripUseZaap(
+                dstZaapMapId, excludeMaps=excludeMaps + [dstZaapMapId], callback=onDstZaapTrip
             )
-        else:
-            Logger().debug(f"Dist is less than 12 steps ==> Autotriping without zaaps to {dstMapId}")
-            self.autoTrip(dstMapId, dstZoneId, callback=callback)
+            
+        Logger().debug(f"Autotriping with zaaps to {dstMapId}, dst zaap at {dstZaapMapId}")
+        
+        AutoTripUseZaap().start(
+            dstMapId,
+            dstZoneId,
+            dstZaapMapId,
+            withSaveZaap=withSaveZaap,
+            maxCost=maxCost,
+            callback=callback,
+            parent=self,
+        )
+
 
     def autoTrip(self, dstMapId, dstZoneId, path: list["Edge"] = None, callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.AutoTrip import AutoTrip
-        from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import \
-            GetOutOfAnkarnam
         from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 
         if Kernel().fightContextFrame:
-            return callback(89090, "Player is in Fight")
-        
+            return callback(self.PLAYER_IN_FIGHT_ERROR, "Player is in Fight")
+
         srcSubArea = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
         srcAreaId = srcSubArea.areaId
         dstSubArea = SubArea.getSubAreaByMapId(dstMapId)
         dstAreaId = dstSubArea.areaId
-        if srcAreaId == GetOutOfAnkarnam.ankarnamAreaId and dstAreaId != GetOutOfAnkarnam.ankarnamAreaId:
-            Logger().info(f"Auto trip to an Area ({dstSubArea._area.name}) out of {srcSubArea._area.name}.")
-
-            def onGotOutOfAnkarnam(code, err):
-                if err:
-                    return callback(code, err)
-                AutoTrip().start(dstMapId, dstZoneId, path, callback=callback, parent=self)
-
-            return self.getOutOfAnkarnam(onGotOutOfAnkarnam)
-
-        if dstAreaId == 1023:
-            # handle OLD_ALBUERA destination
-            replies = {51804: 69540, 51805: 69541}
-
-            def onNpcDialogEnd(code, err):
-                if err:
-                    return callback(code, err)
-                self.onceMapProcessed(
-                    callback=lambda: AutoTrip().start(dstMapId, dstZoneId, path, callback=callback, parent=self),
-                    mapId=223482635,
-                )
-
-            self.npcDialog(88213267.0, -20001, 3, replies, onNpcDialogEnd)
         
+        def onSpecialDestReached(code, err):
+            if err:
+                return callback(code, f"Could not reach special destination {dstSubArea.name} ({dstMapId}) : {err}")
+            self.autoTrip(dstMapId, dstZoneId, callback=callback)
+            
+        if srcAreaId == self.ANKARNAM_AREAID and dstAreaId != self.ANKARNAM_AREAID:
+            Logger().info(f"Auto trip to astrub out of ankarnoob.")
+            infos = self.getSpecialDestination(self.ASTRUB_AREAID)
+            if not infos:
+                Logger().error(f"Could not find astrub special destination infos!")
+                return callback(self.SPECIAL_AREA_INFOS_NOT_FOUND_ERROR, f"Could not find astrub special destination infos!")
+            return self.goToSpecialDestination(
+                infos,
+                callback=onSpecialDestReached,
+                dstSubAreaName=dstSubArea.name,
+            )
+
+        infos = self.getSpecialDestination(dstAreaId)
+        
+        if infos and srcAreaId != dstAreaId:
+            return self.goToSpecialDestination(
+                infos,
+                callback=onSpecialDestReached,
+                dstSubAreaName=dstSubArea.name,
+            )
+
         AutoTrip().start(dstMapId, dstZoneId, path, callback=callback, parent=self)
+
+    def goToSpecialDestination(self, infos, callback=None, dstSubAreaName=""):
+        Logger().info(f"Auto trip to a special destination ({dstSubAreaName}).")
+
+        def onNpcDialogEnd(code, err):
+            if err:
+                return callback(code, err)
+            self.onceMapProcessed(
+                callback=lambda: callback(True, None),
+                mapId=infos["landingMapId"],
+            )
+
+        self.npcDialog(
+            infos["npcMapId"], infos["npcId"], infos["openDialiogActionId"], infos["replies"], onNpcDialogEnd
+        )
 
     def changeMap(self, transition: "Transition" = None, edge: "Edge" = None, dstMapId=None, callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import \
@@ -218,13 +254,14 @@ class BehaviorApi:
 
     def npcDialog(self, npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies, callback=None):
         from pyd2bot.logic.roleplay.behaviors.npc.NpcDialog import NpcDialog
+
         def onNPCMapReached(code, err):
             Logger().info(f"NPC Map reached with error : {err}")
             if err:
                 return callback(code, err)
             NpcDialog().start(npcMapId, npcId, npcOpenDialogId, npcQuestionsReplies, callback=callback, parent=self)
+
         self.autotripUseZaap(npcMapId, dstZoneId=1, callback=onNPCMapReached)
-        
 
     def getOutOfAnkarnam(self, callback=None):
         from pyd2bot.logic.roleplay.behaviors.movement.GetOutOfAnkarnam import \
@@ -318,7 +355,9 @@ class BehaviorApi:
         return KernelEventsManager().hasListener(event_id)
 
     def onEntityMoved(self, entityId, callback, timeout=None, ontimeout=None, once=False):
-        return KernelEventsManager().onEntityMoved(entityId=entityId, callback=callback, timeout=timeout, ontimeout=ontimeout, once=once, originator=self)
-    
+        return KernelEventsManager().onEntityMoved(
+            entityId=entityId, callback=callback, timeout=timeout, ontimeout=ontimeout, once=once, originator=self
+        )
+
     def onceFightSword(self, entityId, entityCell, callback, args=[]):
         return KernelEventsManager().onceFightSword(entityId, entityCell, callback, args=args, originator=self)

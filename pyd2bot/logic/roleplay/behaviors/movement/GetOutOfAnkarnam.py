@@ -5,6 +5,7 @@ from pydofus2.com.ankamagames.berilia.managers.Listener import Listener
 from pydofus2.com.ankamagames.dofus.datacenter.world.SubArea import SubArea
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
+from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 if TYPE_CHECKING:
     pass
@@ -43,7 +44,8 @@ class GetOutOfAnkarnam(AbstractBehavior):
         sa = SubArea.getSubAreaByMapId(PlayedCharacterManager().currentMap.mapId)
         areaId = sa._area.id
         if areaId != self.ankarnamAreaId:
-            return self.finish(True, "Already out of ankarnam area")
+            Logger().debug(f"GetOutOfAnkarnam: Current area is not Ankarnam! (areaId: {areaId})")
+            return self.finish(True, None)
         self.npcDialog(
             self.npcMapId,
             self.npcId,

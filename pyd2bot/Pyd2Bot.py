@@ -113,16 +113,7 @@ class Pyd2Bot(DofusClient):
             Logger().error(err, exc_info=True)
             self.shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, err)
     
-    def onPlayerRidingMount(self, event, riding):
-        self.startSessionMainBehavior()
-    
     def startSessionMainBehavior(self):
-        with PlayedCharacterManager().lock:
-            if not PlayerManager().isBasicAccount() and PlayedCharacterApi.getMount() and not PlayedCharacterApi.isRiding():
-                Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
-                KernelEventsManager().once(KernelEvent.MountRiding, self.onPlayerRidingMount)
-                return Kernel().mountFrame.mountToggleRidingRequest()
-        
         Logger().info(f"Starting main behavior for {self.name}")
         
         if BotConfig().isFarmSession:

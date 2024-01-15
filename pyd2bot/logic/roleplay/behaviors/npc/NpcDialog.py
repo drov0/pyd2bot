@@ -30,6 +30,7 @@ class NpcDialog(AbstractBehavior):
     No_PROGRAMMED_REPLY = 10236
     NOT_IN_MAP = 10237
     MISSING_CONDITION = 10238
+    REPLAY_DOESNT_EXIST = 10239
     
     def __init__(self) -> None:
         super().__init__()
@@ -80,10 +81,21 @@ class NpcDialog(AbstractBehavior):
                 if replyId == rep:
                     replyText = self.decodeText(self.getTextFromkey(replyTextId), self._textParams)
                     Logger().debug(f"Reply : {replyText}")
-                    
+    
+    def findReply(self, messageId:int, visibleReplies:list[int]) -> int:
+        possibleReplies = self.npcQuestionsReplies[messageId]
+        for rep in possibleReplies:
+            if rep in visibleReplies:
+                return rep
+        return None
+    
     def onNpcQuestion(self, event, messageId, dialogParams, visibleReplies):
         if messageId not in self.npcQuestionsReplies:
             return self.finish(self.No_PROGRAMMED_REPLY, f"No programmed reply found for question {messageId}")
+        
+        replyId = self.findReply(messageId, visibleReplies)
+        if not replyId:
+            return self.finish(self.REPLAY_DOESNT_EXIST, f"Reply {self.npcQuestionsReplies[messageId]} not found in npc possible replies")
         
         Logger().info(f"Received NPC question : {messageId}")
         Logger().info(f"Visible replies : {visibleReplies}")
@@ -97,7 +109,7 @@ class NpcDialog(AbstractBehavior):
                     Logger().debug(f"Dialog message : {messagenpc}")
             self.displayReplies(visibleReplies)
         msg = NpcDialogReplyMessage()
-        msg.init(self.npcQuestionsReplies[messageId])
+        msg.init(replyId)
         self.currentNpcQuestionReplyIdx += 1
         self.once(KernelEvent.NpcQuestion, self.onNpcQuestion)
         ConnectionsHandler().send(msg)

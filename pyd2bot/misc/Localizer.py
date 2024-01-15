@@ -97,6 +97,7 @@ class Localizer:
                     else:
                         candidates.extend(WorldGraph().getVertices(hint.mapId).values())
             if not candidates:
+                Logger().warning(f"Could not find a candidate zaap from map {mapId}")
                 return None
             path = AStar().search(WorldGraph(), startVertex, candidates)
             if not path:
