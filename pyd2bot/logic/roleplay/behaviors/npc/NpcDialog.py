@@ -10,7 +10,8 @@ from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
 from pydofus2.com.ankamagames.dofus.datacenter.npcs.Npc import Npc
 from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
     ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
 from pydofus2.com.ankamagames.dofus.misc.utils.ParamsDecoder import \
     ParamsDecoder
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.npc.NpcDialogReplyMessage import \
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
 
 class NpcDialog(AbstractBehavior):
     NO_MORE_REPLIES = 10235
-    No_PROGRAMMED_REPLY = 10236
+    NO_PROGRAMMED_REPLY = 10236
     NOT_IN_MAP = 10237
     MISSING_CONDITION = 10238
     REPLAY_DOESNT_EXIST = 10239
@@ -83,19 +84,19 @@ class NpcDialog(AbstractBehavior):
                     Logger().debug(f"Reply : {replyText}")
     
     def findReply(self, messageId:int, visibleReplies:list[int]) -> int:
-        possibleReplies = self.npcQuestionsReplies[messageId]
+        possibleReplies = self.npcQuestionsReplies.get(messageId)
+        if not possibleReplies:
+            possibleReplies = self.npcQuestionsReplies.get(-1) # wildcard
         for rep in possibleReplies:
             if rep in visibleReplies:
                 return rep
         return None
     
     def onNpcQuestion(self, event, messageId, dialogParams, visibleReplies):
-        if messageId not in self.npcQuestionsReplies:
-            return self.finish(self.No_PROGRAMMED_REPLY, f"No programmed reply found for question {messageId}")
-        
         replyId = self.findReply(messageId, visibleReplies)
+        
         if not replyId:
-            return self.finish(self.REPLAY_DOESNT_EXIST, f"Reply {self.npcQuestionsReplies[messageId]} not found in npc possible replies")
+            return self.finish(self.NO_PROGRAMMED_REPLY, f"Reply {self.npcQuestionsReplies[messageId]} not found in npc possible replies")
         
         Logger().info(f"Received NPC question : {messageId}")
         Logger().info(f"Visible replies : {visibleReplies}")
@@ -108,6 +109,7 @@ class NpcDialog(AbstractBehavior):
                     messagenpc = self.decodeText(self.getTextWithParams(msgTextId, dialogParams, "#"))
                     Logger().debug(f"Dialog message : {messagenpc}")
             self.displayReplies(visibleReplies)
+
         msg = NpcDialogReplyMessage()
         msg.init(replyId)
         self.currentNpcQuestionReplyIdx += 1

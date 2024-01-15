@@ -30,13 +30,12 @@ class OpenBank(AbstractBehavior):
         Logger().debug("Bank infos: %s", self.infos.__dict__)
         self._startMapId = PlayedCharacterManager().currentMap.mapId
         self._startRpZone = PlayedCharacterManager().currentZoneRp
-        NpcDialog().start(
+        self.npcDialog(
             self.infos.npcMapId, 
             self.infos.npcId, 
             self.infos.npcActionId, 
-            [self.infos.openBankReplyId], 
+            self.infos.questionsReplies, 
             callback=self.onBankManDialogEnded,
-            parent=self
         )
 
     def onBankManDialogEnded(self, code, error):

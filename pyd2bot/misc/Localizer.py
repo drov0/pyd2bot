@@ -32,7 +32,7 @@ class BankInfos:
         self.npcActionId = npcActionId
         self.npcId = npcId
         self.npcMapId = npcMapId
-        self.questionsReplies = { 48366: openBankReplyId }
+        self.questionsReplies = { -1: [openBankReplyId] }
 
     def to_json(self):
         return {

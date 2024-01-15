@@ -225,6 +225,9 @@ class ChangeMap(AbstractBehavior):
             self.mapChangeRejectListener.delete()
         if self.mapChangeListener:
             self.mapChangeListener.delete()
+        if MapMove().isRunning():
+            Logger().warning("Received current map while still moving to map change cell")
+            MapMove().stop()
         if UseSkill().isRunning():
             Logger().warning("Received current map while still using skill")
             UseSkill().stop()

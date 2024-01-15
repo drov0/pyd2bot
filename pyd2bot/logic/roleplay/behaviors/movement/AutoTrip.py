@@ -3,18 +3,12 @@ from time import perf_counter
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.ChangeMap import ChangeMap
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
-    PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
-    MovementFailError
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import \
-    AStar
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
-    Edge
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
-    WorldGraph
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import MovementFailError
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.astar.AStar import AStar
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import Edge
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import WorldGraph
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
 
@@ -23,18 +17,20 @@ class AutoTripState(Enum):
     CALCULATING_PATH = 1
     FOLLOWING_EDGE = 2
 
+
 class AutoTrip(AbstractBehavior):
     NO_PATH_FOUND = 2202203
     PLAYER_IN_COMBAT = 89090
-    
+
     def __init__(self):
         super().__init__()
         self.path = None
-        self.state = AutoTripState.IDLE        
+        self.state = AutoTripState.IDLE
         self.dstMapId = None
         self.dstRpZone = None
-        
-    def run(self, dstMapId, dstZoneId, path: list[Edge]=None):
+        self._nbr_follow_edge_fails = 0
+
+    def run(self, dstMapId, dstZoneId, path: list[Edge] = None):
         self.dstMapId = dstMapId
         self.dstRpZone = dstZoneId
         self.path = path
@@ -46,6 +42,37 @@ class AutoTrip(AbstractBehavior):
         for i, step in enumerate(self.path):
             if step.src.UID == v.UID:
                 return i
+
+    def onNextmapProcessed(self, code, error):
+        if error:
+            currentIndex = self.currentEdgeIndex()
+            nextEdge = self.path[currentIndex]
+            if code in [
+                ChangeMap.INVALID_TRANSITION,
+                MovementFailError.CANT_REACH_DEST_CELL,
+                MovementFailError.MAPCHANGE_TIMEOUT,
+                MovementFailError.NOMORE_SCROLL_CELL,
+                MovementFailError.INVALID_TRANSITION,
+            ]:
+                Logger().warning(f"Can't reach next step in found path for reason : {code}, {error}")
+                
+                if self._nbr_follow_edge_fails >= 3:
+                    Logger().debug("Exceeded max number of fails, will ignore this edge.")
+                    AStar().addForbidenEdge(nextEdge)
+                    return self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)
+
+                def retry(code, err):
+                    if err:
+                        return self.finish(code, err)
+                    self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)
+                    
+                self._nbr_follow_edge_fails += 1
+                return self.requestMapData(callback=retry)
+            else:
+                Logger().debug(f"Error while auto travelling : {error}")
+                return self.finish(code, error)
+        self._nbr_follow_edge_fails = 0
+        self.walkToNextStep()
 
     def walkToNextStep(self, event_id=None):
         if PlayedCharacterManager().currentMap is None:
@@ -67,21 +94,11 @@ class AutoTrip(AbstractBehavior):
             Logger().debug(f"\t|- src {nextEdge.src.mapId} -> dst {nextEdge.dst.mapId}")
             for tr in nextEdge.transitions:
                 Logger().debug(f"\t| => {tr}")
-            def onProcessed(code, error):
-                if error:
-                    if code in [MovementFailError.CANT_REACH_DEST_CELL, MovementFailError.MAPCHANGE_TIMEOUT, MovementFailError.NOMORE_SCROLL_CELL, MovementFailError.INVALID_TRANSITION]:
-                        Logger().warning(f"Can't reach next step in found path for reason : {code.name}")
-                        AStar().addForbidenEdge(nextEdge)
-                        return self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)
-                    else:
-                        Logger().debug(f"Error while auto travelling : {error}")
-                        return self.finish(code, error)
-                self.walkToNextStep()
-            self.changeMap(edge=nextEdge, callback=onProcessed)
+            self.changeMap(edge=nextEdge, callback=self.onNextmapProcessed)
         else:
             self.state = AutoTripState.CALCULATING_PATH
             self.findPath(self.dstMapId, self.dstRpZone, self.onPathFindResul)
-    
+
     def onPathFindResul(self, path, error):
         if error:
             return self.finish(path, error)
@@ -94,20 +111,18 @@ class AutoTrip(AbstractBehavior):
                 Logger().debug(f"\t\t|- {tr}")
         self.path = path
         self.walkToNextStep()
-        
+
     def findPath(self, dst: float, linkedZone: int, callback) -> None:
         if linkedZone is None:
             linkedZone = 1
         src = PlayedCharacterManager().currVertex
         if src is None:
             return self.onceMapProcessed(self.findPath, [dst, linkedZone, callback])
-        Logger().info(
-            f"[WoldPathFinder] Start searching path from {src} to destMapId {dst}"
-        )
+        Logger().info(f"[WoldPathFinder] Start searching path from {src} to destMapId {dst}")
         if PlayedCharacterManager().currentMap.mapId == dst:
             return callback([], None)
-        while True:        
-            dstV = WorldGraph().getVertex(dst, linkedZone)            
+        while True:
+            dstV = WorldGraph().getVertex(dst, linkedZone)
             if dstV is None:
                 return callback(self.NO_PATH_FOUND, "Unable to find path to dest map")
             start = perf_counter()

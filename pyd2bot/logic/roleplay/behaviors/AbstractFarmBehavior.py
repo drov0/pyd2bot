@@ -97,7 +97,7 @@ class AbstractFarmBehavior(AbstractBehavior):
                 Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
                 self.forbidenEdges.add(self._currEdge)
                 return self.moveToNextStep()
-            elif code == UseSkill.USE_ERROR:
+            elif code in [UseSkill.USE_ERROR, AutoTrip.NO_PATH_FOUND]:
                 Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
                 self.forbidenEdges.add(self._currEdge)
                 return self.moveToNextStep()
@@ -124,24 +124,12 @@ class AbstractFarmBehavior(AbstractBehavior):
             callback=self.onNextVertex,
         )
 
-    def onFarmPathMapReached(self, code, error):
-        Logger().debug(f"Bot reached farm region")
-        if error:
-            if code == AutoTrip.PLAYER_IN_COMBAT:
-                Logger().warning("Player is in combat")
-                return
-            return self.send(
-                KernelEvent.ClientRestart,
-                f"Go to path first map failed for reason : {error}",
-            )
-        self.main()
-
     def onBotOutOfFarmPath(self):
         self.autotripUseZaap(
             self.path.startVertex.mapId,
             self.path.startVertex.zoneId,
             withSaveZaap=True,
-            callback=self.onFarmPathMapReached,
+            callback=self.onNextVertex,
         )
 
     def onBotUnloaded(self, code, err):
