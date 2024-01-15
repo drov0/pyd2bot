@@ -899,15 +899,17 @@ class Path(object):
      - type
      - startVertex
      - transitionTypeWhitelist
+     - subAreaBlacklist
 
     """
 
 
-    def __init__(self, id=None, type=None, startVertex=None, transitionTypeWhitelist=None,):
+    def __init__(self, id=None, type=None, startVertex=None, transitionTypeWhitelist=None, subAreaBlacklist=None,):
         self.id = id
         self.type = type
         self.startVertex = startVertex
         self.transitionTypeWhitelist = transitionTypeWhitelist
+        self.subAreaBlacklist = subAreaBlacklist
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -944,6 +946,16 @@ class Path(object):
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
+            elif fid == 5:
+                if ftype == TType.LIST:
+                    self.subAreaBlacklist = []
+                    (_etype16, _size13) = iprot.readListBegin()
+                    for _i17 in range(_size13):
+                        _elem18 = iprot.readI32()
+                        self.subAreaBlacklist.append(_elem18)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -969,8 +981,15 @@ class Path(object):
         if self.transitionTypeWhitelist is not None:
             oprot.writeFieldBegin('transitionTypeWhitelist', TType.LIST, 4)
             oprot.writeListBegin(TType.I32, len(self.transitionTypeWhitelist))
-            for iter13 in self.transitionTypeWhitelist:
-                oprot.writeI32(iter13)
+            for iter19 in self.transitionTypeWhitelist:
+                oprot.writeI32(iter19)
+            oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        if self.subAreaBlacklist is not None:
+            oprot.writeFieldBegin('subAreaBlacklist', TType.LIST, 5)
+            oprot.writeListBegin(TType.I32, len(self.subAreaBlacklist))
+            for iter20 in self.subAreaBlacklist:
+                oprot.writeI32(iter20)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -1254,11 +1273,11 @@ class Session(object):
             elif fid == 3:
                 if ftype == TType.LIST:
                     self.followers = []
-                    (_etype17, _size14) = iprot.readListBegin()
-                    for _i18 in range(_size14):
-                        _elem19 = Character()
-                        _elem19.read(iprot)
-                        self.followers.append(_elem19)
+                    (_etype24, _size21) = iprot.readListBegin()
+                    for _i25 in range(_size21):
+                        _elem26 = Character()
+                        _elem26.read(iprot)
+                        self.followers.append(_elem26)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1292,11 +1311,11 @@ class Session(object):
             elif fid == 9:
                 if ftype == TType.LIST:
                     self.jobFilters = []
-                    (_etype23, _size20) = iprot.readListBegin()
-                    for _i24 in range(_size20):
-                        _elem25 = JobFilter()
-                        _elem25.read(iprot)
-                        self.jobFilters.append(_elem25)
+                    (_etype30, _size27) = iprot.readListBegin()
+                    for _i31 in range(_size27):
+                        _elem32 = JobFilter()
+                        _elem32.read(iprot)
+                        self.jobFilters.append(_elem32)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1321,8 +1340,8 @@ class Session(object):
         if self.followers is not None:
             oprot.writeFieldBegin('followers', TType.LIST, 3)
             oprot.writeListBegin(TType.STRUCT, len(self.followers))
-            for iter26 in self.followers:
-                iter26.write(oprot)
+            for iter33 in self.followers:
+                iter33.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.type is not None:
@@ -1348,8 +1367,8 @@ class Session(object):
         if self.jobFilters is not None:
             oprot.writeFieldBegin('jobFilters', TType.LIST, 9)
             oprot.writeListBegin(TType.STRUCT, len(self.jobFilters))
-            for iter27 in self.jobFilters:
-                iter27.write(oprot)
+            for iter34 in self.jobFilters:
+                iter34.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -1524,6 +1543,7 @@ Path.thrift_spec = (
     (2, TType.I32, 'type', None, None, ),  # 2
     (3, TType.STRUCT, 'startVertex', [Vertex, None], None, ),  # 3
     (4, TType.LIST, 'transitionTypeWhitelist', (TType.I32, None, False), None, ),  # 4
+    (5, TType.LIST, 'subAreaBlacklist', (TType.I32, None, False), None, ),  # 5
 )
 all_structs.append(Spell)
 Spell.thrift_spec = (

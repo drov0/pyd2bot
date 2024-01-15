@@ -108,10 +108,12 @@ class AbstractFarmBehavior(AbstractBehavior):
                     KernelEvent.ClientShutdown,
                     "Error while moving to next step: %s." % error,
                 )
+        Logger().debug(f"Player moved to next vertex")
+        if not PlayedCharacterManager().isInFight:
+            self.currentVertex = self.path.currentVertex
         if self._currEdge:
             self.path.lastVisited[self._currEdge] = perf_counter()
         self.forbidenActions = set()
-        self.currentVertex = self.path.currentVertex
         self.main()
 
     def moveToNextStep(self):
@@ -180,39 +182,38 @@ class AbstractFarmBehavior(AbstractBehavior):
         Logger().debug(
             f"Bot back on form, autotravelling to last memorized vertex {self.currentVertex}"
         )
-        if not PlayerManager().isBasicAccount() and PlayedCharacterApi.getMount() and not PlayedCharacterApi.isRiding():
-            Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
-            KernelEventsManager().once(KernelEvent.MountRiding, self.onPlayerRidingMount)
-            return Kernel().mountFrame.mountToggleRidingRequest()
-        self.autotripUseZaap(
-            self.currentVertex.mapId,
-            self.currentVertex.zoneId,
-            True,
-            callback=self.main,
-        )
+        if self.initialized:
+            self.autotripUseZaap(
+                self.currentVertex.mapId,
+                self.currentVertex.zoneId,
+                True,
+                callback=self.ongotBackToLastMap,
+            )
+        else:
+            self.main()
 
     def ongotBackToLastMap(self, code, err):
         if err:
-            if code == MovementFailError.PLAYER_IS_DEAD:
-                Logger().warning(f"Player is dead.")
-                return self.autoRevive(callback=self.onRevived)
-            elif code == AutoTrip.PLAYER_IN_COMBAT:
+            if code == AutoTrip.PLAYER_IN_COMBAT:
                 Logger().error("Player in combat")
                 return
-            return self.finish(code, err)
+            elif AutoTrip.NO_PATH_FOUND:
+                Logger().error("No path found to last map!")
+                return self.onBotOutOfFarmPath()
+            return KernelEventsManager().send(KernelEvent.ClientRestart, err)
         Logger().debug(f"Player got back to last map after combat")
         self.main()
 
     def onRoleplayAfterFight(self, event=None):
         Logger().debug(f"Player ended fight and started roleplay")
         self.inFight = False
-        self.onceMapProcessed(
-            lambda: self.autotripUseZaap(
-                self.currentVertex.mapId,
-                self.currentVertex.zoneId,
-                callback=self.ongotBackToLastMap,
-            )
-        )
+        def onRolePlayMapLoaded():
+            if PlayedCharacterManager().isDead():
+                Logger().warning(f"Player is dead.")
+                return self.autoRevive(callback=self.onRevived)
+            
+            self.main()
+        self.onceMapProcessed(onRolePlayMapLoaded)
 
     def main(self, event=None, error=None):
         Logger().debug(f"Farmer main loop called")
@@ -229,6 +230,10 @@ class AbstractFarmBehavior(AbstractBehavior):
         if PlayedCharacterManager().isDead():
             Logger().warning(f"Player is dead.")
             return self.autoRevive(callback=self.onRevived)
+        if not PlayerManager().isBasicAccount() and PlayedCharacterApi.getMount() and not PlayedCharacterApi.isRiding():
+            Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
+            KernelEventsManager().once(KernelEvent.MountRiding, self.main)
+            return Kernel().mountFrame.mountToggleRidingRequest()
         if PlayedCharacterManager().isPodsFull():
             Logger().warning(f"Inventory is almost full will trigger auto unload ...")
             if PlayedCharacterManager().limitedLevel < 10 and BotConfig().unloadInBank:

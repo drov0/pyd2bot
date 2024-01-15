@@ -32,6 +32,9 @@ class AbstractFarmPath:
     def currentVertex(self) -> Vertex:
         return PlayedCharacterManager().currVertex
 
+    def outgoingEdges(self) -> Iterator['Edge']:
+        raise NotImplementedError()
+    
     def __next__(self, forbidenEdges=None) -> Transition:
         raise NotImplementedError()
 

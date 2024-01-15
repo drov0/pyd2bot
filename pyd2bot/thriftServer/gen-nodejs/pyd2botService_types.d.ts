@@ -127,8 +127,9 @@ declare class Path {
     public type: PathType;
     public startVertex?: Vertex;
     public transitionTypeWhitelist?: TransitionType[];
+    public subAreaBlacklist?: number[];
 
-      constructor(args?: { id: string; type: PathType; startVertex?: Vertex; transitionTypeWhitelist?: TransitionType[]; });
+      constructor(args?: { id: string; type: PathType; startVertex?: Vertex; transitionTypeWhitelist?: TransitionType[]; subAreaBlacklist?: number[]; });
   }
 
 declare class Spell {

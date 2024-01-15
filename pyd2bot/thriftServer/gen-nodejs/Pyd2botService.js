@@ -191,13 +191,13 @@ const Pyd2botService_fetchCharacters_result = class {
         case 0:
         if (ftype == Thrift.Type.LIST) {
           this.success = [];
-          const _rtmp321 = input.readListBegin();
-          const _size20 = _rtmp321.size || 0;
-          for (let _i22 = 0; _i22 < _size20; ++_i22) {
-            let elem23 = null;
-            elem23 = new ttypes.Character();
-            elem23.read(input);
-            this.success.push(elem23);
+          const _rtmp326 = input.readListBegin();
+          const _size25 = _rtmp326.size || 0;
+          for (let _i27 = 0; _i27 < _size25; ++_i27) {
+            let elem28 = null;
+            elem28 = new ttypes.Character();
+            elem28.read(input);
+            this.success.push(elem28);
           }
           input.readListEnd();
         } else {
@@ -226,10 +226,10 @@ const Pyd2botService_fetchCharacters_result = class {
     if (this.success !== null && this.success !== undefined) {
       output.writeFieldBegin('success', Thrift.Type.LIST, 0);
       output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
-      for (let iter24 in this.success) {
-        if (this.success.hasOwnProperty(iter24)) {
-          iter24 = this.success[iter24];
-          iter24.write(output);
+      for (let iter29 in this.success) {
+        if (this.success.hasOwnProperty(iter29)) {
+          iter29 = this.success[iter29];
+          iter29.write(output);
         }
       }
       output.writeListEnd();
@@ -329,13 +329,13 @@ const Pyd2botService_fetchUsedServers_result = class {
         case 0:
         if (ftype == Thrift.Type.LIST) {
           this.success = [];
-          const _rtmp326 = input.readListBegin();
-          const _size25 = _rtmp326.size || 0;
-          for (let _i27 = 0; _i27 < _size25; ++_i27) {
-            let elem28 = null;
-            elem28 = new ttypes.Server();
-            elem28.read(input);
-            this.success.push(elem28);
+          const _rtmp331 = input.readListBegin();
+          const _size30 = _rtmp331.size || 0;
+          for (let _i32 = 0; _i32 < _size30; ++_i32) {
+            let elem33 = null;
+            elem33 = new ttypes.Server();
+            elem33.read(input);
+            this.success.push(elem33);
           }
           input.readListEnd();
         } else {
@@ -364,10 +364,10 @@ const Pyd2botService_fetchUsedServers_result = class {
     if (this.success !== null && this.success !== undefined) {
       output.writeFieldBegin('success', Thrift.Type.LIST, 0);
       output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
-      for (let iter29 in this.success) {
-        if (this.success.hasOwnProperty(iter29)) {
-          iter29 = this.success[iter29];
-          iter29.write(output);
+      for (let iter34 in this.success) {
+        if (this.success.hasOwnProperty(iter34)) {
+          iter34 = this.success[iter34];
+          iter34.write(output);
         }
       }
       output.writeListEnd();
@@ -590,13 +590,13 @@ const Pyd2botService_fetchBreedSpells_result = class {
         case 0:
         if (ftype == Thrift.Type.LIST) {
           this.success = [];
-          const _rtmp331 = input.readListBegin();
-          const _size30 = _rtmp331.size || 0;
-          for (let _i32 = 0; _i32 < _size30; ++_i32) {
-            let elem33 = null;
-            elem33 = new ttypes.Spell();
-            elem33.read(input);
-            this.success.push(elem33);
+          const _rtmp336 = input.readListBegin();
+          const _size35 = _rtmp336.size || 0;
+          for (let _i37 = 0; _i37 < _size35; ++_i37) {
+            let elem38 = null;
+            elem38 = new ttypes.Spell();
+            elem38.read(input);
+            this.success.push(elem38);
           }
           input.readListEnd();
         } else {
@@ -625,10 +625,10 @@ const Pyd2botService_fetchBreedSpells_result = class {
     if (this.success !== null && this.success !== undefined) {
       output.writeFieldBegin('success', Thrift.Type.LIST, 0);
       output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
-      for (let iter34 in this.success) {
-        if (this.success.hasOwnProperty(iter34)) {
-          iter34 = this.success[iter34];
-          iter34.write(output);
+      for (let iter39 in this.success) {
+        if (this.success.hasOwnProperty(iter39)) {
+          iter39 = this.success[iter39];
+          iter39.write(output);
         }
       }
       output.writeListEnd();
@@ -1151,13 +1151,13 @@ const Pyd2botService_getBreeds_result = class {
         case 0:
         if (ftype == Thrift.Type.LIST) {
           this.success = [];
-          const _rtmp336 = input.readListBegin();
-          const _size35 = _rtmp336.size || 0;
-          for (let _i37 = 0; _i37 < _size35; ++_i37) {
-            let elem38 = null;
-            elem38 = new ttypes.Breed();
-            elem38.read(input);
-            this.success.push(elem38);
+          const _rtmp341 = input.readListBegin();
+          const _size40 = _rtmp341.size || 0;
+          for (let _i42 = 0; _i42 < _size40; ++_i42) {
+            let elem43 = null;
+            elem43 = new ttypes.Breed();
+            elem43.read(input);
+            this.success.push(elem43);
           }
           input.readListEnd();
         } else {
@@ -1186,10 +1186,10 @@ const Pyd2botService_getBreeds_result = class {
     if (this.success !== null && this.success !== undefined) {
       output.writeFieldBegin('success', Thrift.Type.LIST, 0);
       output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
-      for (let iter39 in this.success) {
-        if (this.success.hasOwnProperty(iter39)) {
-          iter39 = this.success[iter39];
-          iter39.write(output);
+      for (let iter44 in this.success) {
+        if (this.success.hasOwnProperty(iter44)) {
+          iter44 = this.success[iter44];
+          iter44.write(output);
         }
       }
       output.writeListEnd();
@@ -1289,13 +1289,13 @@ const Pyd2botService_getServers_result = class {
         case 0:
         if (ftype == Thrift.Type.LIST) {
           this.success = [];
-          const _rtmp341 = input.readListBegin();
-          const _size40 = _rtmp341.size || 0;
-          for (let _i42 = 0; _i42 < _size40; ++_i42) {
-            let elem43 = null;
-            elem43 = new ttypes.Server();
-            elem43.read(input);
-            this.success.push(elem43);
+          const _rtmp346 = input.readListBegin();
+          const _size45 = _rtmp346.size || 0;
+          for (let _i47 = 0; _i47 < _size45; ++_i47) {
+            let elem48 = null;
+            elem48 = new ttypes.Server();
+            elem48.read(input);
+            this.success.push(elem48);
           }
           input.readListEnd();
         } else {
@@ -1324,10 +1324,10 @@ const Pyd2botService_getServers_result = class {
     if (this.success !== null && this.success !== undefined) {
       output.writeFieldBegin('success', Thrift.Type.LIST, 0);
       output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
-      for (let iter44 in this.success) {
-        if (this.success.hasOwnProperty(iter44)) {
-          iter44 = this.success[iter44];
-          iter44.write(output);
+      for (let iter49 in this.success) {
+        if (this.success.hasOwnProperty(iter49)) {
+          iter49 = this.success[iter49];
+          iter49.write(output);
         }
       }
       output.writeListEnd();
@@ -1922,13 +1922,13 @@ const Pyd2botService_getRunSummary_result = class {
         case 0:
         if (ftype == Thrift.Type.LIST) {
           this.success = [];
-          const _rtmp346 = input.readListBegin();
-          const _size45 = _rtmp346.size || 0;
-          for (let _i47 = 0; _i47 < _size45; ++_i47) {
-            let elem48 = null;
-            elem48 = new ttypes.RunSummary();
-            elem48.read(input);
-            this.success.push(elem48);
+          const _rtmp351 = input.readListBegin();
+          const _size50 = _rtmp351.size || 0;
+          for (let _i52 = 0; _i52 < _size50; ++_i52) {
+            let elem53 = null;
+            elem53 = new ttypes.RunSummary();
+            elem53.read(input);
+            this.success.push(elem53);
           }
           input.readListEnd();
         } else {
@@ -1957,10 +1957,10 @@ const Pyd2botService_getRunSummary_result = class {
     if (this.success !== null && this.success !== undefined) {
       output.writeFieldBegin('success', Thrift.Type.LIST, 0);
       output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
-      for (let iter49 in this.success) {
-        if (this.success.hasOwnProperty(iter49)) {
-          iter49 = this.success[iter49];
-          iter49.write(output);
+      for (let iter54 in this.success) {
+        if (this.success.hasOwnProperty(iter54)) {
+          iter54 = this.success[iter54];
+          iter54.write(output);
         }
       }
       output.writeListEnd();
@@ -2183,13 +2183,13 @@ const Pyd2botService_getSessionRunSummary_result = class {
         case 0:
         if (ftype == Thrift.Type.LIST) {
           this.success = [];
-          const _rtmp351 = input.readListBegin();
-          const _size50 = _rtmp351.size || 0;
-          for (let _i52 = 0; _i52 < _size50; ++_i52) {
-            let elem53 = null;
-            elem53 = new ttypes.RunSummary();
-            elem53.read(input);
-            this.success.push(elem53);
+          const _rtmp356 = input.readListBegin();
+          const _size55 = _rtmp356.size || 0;
+          for (let _i57 = 0; _i57 < _size55; ++_i57) {
+            let elem58 = null;
+            elem58 = new ttypes.RunSummary();
+            elem58.read(input);
+            this.success.push(elem58);
           }
           input.readListEnd();
         } else {
@@ -2218,10 +2218,10 @@ const Pyd2botService_getSessionRunSummary_result = class {
     if (this.success !== null && this.success !== undefined) {
       output.writeFieldBegin('success', Thrift.Type.LIST, 0);
       output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
-      for (let iter54 in this.success) {
-        if (this.success.hasOwnProperty(iter54)) {
-          iter54 = this.success[iter54];
-          iter54.write(output);
+      for (let iter59 in this.success) {
+        if (this.success.hasOwnProperty(iter59)) {
+          iter59 = this.success[iter59];
+          iter59.write(output);
         }
       }
       output.writeListEnd();

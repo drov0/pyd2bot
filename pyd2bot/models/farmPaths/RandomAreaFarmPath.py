@@ -30,11 +30,13 @@ class RandomAreaFarmPath(AbstractFarmPath):
         name: str,
         startVertex: Vertex,
         transitionTypeWhitelist: list = None,
+        subAreaBlacklist: list = None,
     ) -> None:
         super().__init__()
         self.name = name
         self.startVertex = startVertex
         self.transitionTypeWhitelist: list[TransitionTypeEnum] = transitionTypeWhitelist
+        self.subAreaBlacklist = subAreaBlacklist if subAreaBlacklist is not None else []
 
         self.area = SubArea.getSubAreaByMapId(startVertex.mapId).area
         self.subAreas = self.getAllSubAreas()
@@ -118,7 +120,8 @@ class RandomAreaFarmPath(AbstractFarmPath):
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
         ret = []
         for edge in outgoingEdges:
-            if edge.dst.mapId in self.mapIds:
+            sa = SubArea.getSubAreaByMapId(edge.dst.mapId).id
+            if int(sa) not in self.subAreaBlacklist and edge.dst.mapId in self.mapIds:
                 if self.hasValidTransition(edge):
                     if onlyNonRecentVisited:
                         if edge.dst in self.lastVisited:
@@ -160,6 +163,8 @@ class RandomAreaFarmPath(AbstractFarmPath):
                 "mapId": self.startVertex.mapId,
                 "mapRpZone": self.startVertex.zoneId,
             },
+            "transitionTypeWhitelist": self.transitionTypeWhitelist,
+            "subAreaBlacklist": self.subAreaBlacklist,
         }
 
     @classmethod
@@ -183,4 +188,5 @@ class RandomAreaFarmPath(AbstractFarmPath):
                     twl.append(TransitionTypeEnum.MAP_EVENT)
                 elif e == TransitionType.MAP_OBSTACLE:
                     twl.append(TransitionTypeEnum.MAP_OBSTACLE)
-        return cls(path.id, startVertex, twl)
+        
+        return cls(path.id, startVertex, twl, path.subAreaBlacklist)

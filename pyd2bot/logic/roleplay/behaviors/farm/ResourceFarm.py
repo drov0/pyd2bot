@@ -34,6 +34,12 @@ class ResourceFarm(AbstractFarmBehavior):
         It will select the next resource to farm and move to it.
         '''
         available_resources = self.getAvailableResources()
+        possibleoutgoingEdges = [e for e in self.path.outgoingEdges() if e not in self.forbidenActions]
+        if len(available_resources) == 0 and len(possibleoutgoingEdges) == 1:
+            Logger().warning("Farmer found dead end")
+            self.forbidenActions.add(self._currEdge)
+            self.moveToNextStep()
+            return
         farmable_resources = [r for r in available_resources if r.canFarm(self.jobFilter)]
         nonForbidenResources = [r for r in farmable_resources if r.uid not in self.forbidenActions]
         nonForbidenResources.sort(key=lambda r: r.distance)

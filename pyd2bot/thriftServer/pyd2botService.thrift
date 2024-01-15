@@ -106,6 +106,7 @@ struct Path {
     2: PathType type,
     3: optional Vertex startVertex,
     4: optional list<TransitionType> transitionTypeWhitelist,
+    5: optional list<int> subAreaBlacklist,
 }
 
 struct Spell {

@@ -951,6 +951,7 @@ const Path = module.exports.Path = class {
     this.type = null;
     this.startVertex = null;
     this.transitionTypeWhitelist = null;
+    this.subAreaBlacklist = null;
     if (args) {
       if (args.id !== undefined && args.id !== null) {
         this.id = args.id;
@@ -963,6 +964,9 @@ const Path = module.exports.Path = class {
       }
       if (args.transitionTypeWhitelist !== undefined && args.transitionTypeWhitelist !== null) {
         this.transitionTypeWhitelist = Thrift.copyList(args.transitionTypeWhitelist, [null]);
+      }
+      if (args.subAreaBlacklist !== undefined && args.subAreaBlacklist !== null) {
+        this.subAreaBlacklist = Thrift.copyList(args.subAreaBlacklist, [null]);
       }
     }
   }
@@ -1014,6 +1018,21 @@ const Path = module.exports.Path = class {
           input.skip(ftype);
         }
         break;
+        case 5:
+        if (ftype == Thrift.Type.LIST) {
+          this.subAreaBlacklist = [];
+          const _rtmp310 = input.readListBegin();
+          const _size9 = _rtmp310.size || 0;
+          for (let _i11 = 0; _i11 < _size9; ++_i11) {
+            let elem12 = null;
+            elem12 = input.readI32();
+            this.subAreaBlacklist.push(elem12);
+          }
+          input.readListEnd();
+        } else {
+          input.skip(ftype);
+        }
+        break;
         default:
           input.skip(ftype);
       }
@@ -1043,10 +1062,22 @@ const Path = module.exports.Path = class {
     if (this.transitionTypeWhitelist !== null && this.transitionTypeWhitelist !== undefined) {
       output.writeFieldBegin('transitionTypeWhitelist', Thrift.Type.LIST, 4);
       output.writeListBegin(Thrift.Type.I32, this.transitionTypeWhitelist.length);
-      for (let iter9 in this.transitionTypeWhitelist) {
-        if (this.transitionTypeWhitelist.hasOwnProperty(iter9)) {
-          iter9 = this.transitionTypeWhitelist[iter9];
-          output.writeI32(iter9);
+      for (let iter13 in this.transitionTypeWhitelist) {
+        if (this.transitionTypeWhitelist.hasOwnProperty(iter13)) {
+          iter13 = this.transitionTypeWhitelist[iter13];
+          output.writeI32(iter13);
+        }
+      }
+      output.writeListEnd();
+      output.writeFieldEnd();
+    }
+    if (this.subAreaBlacklist !== null && this.subAreaBlacklist !== undefined) {
+      output.writeFieldBegin('subAreaBlacklist', Thrift.Type.LIST, 5);
+      output.writeListBegin(Thrift.Type.I32, this.subAreaBlacklist.length);
+      for (let iter14 in this.subAreaBlacklist) {
+        if (this.subAreaBlacklist.hasOwnProperty(iter14)) {
+          iter14 = this.subAreaBlacklist[iter14];
+          output.writeI32(iter14);
         }
       }
       output.writeListEnd();
@@ -1370,13 +1401,13 @@ const Session = module.exports.Session = class {
         case 3:
         if (ftype == Thrift.Type.LIST) {
           this.followers = [];
-          const _rtmp311 = input.readListBegin();
-          const _size10 = _rtmp311.size || 0;
-          for (let _i12 = 0; _i12 < _size10; ++_i12) {
-            let elem13 = null;
-            elem13 = new ttypes.Character();
-            elem13.read(input);
-            this.followers.push(elem13);
+          const _rtmp316 = input.readListBegin();
+          const _size15 = _rtmp316.size || 0;
+          for (let _i17 = 0; _i17 < _size15; ++_i17) {
+            let elem18 = null;
+            elem18 = new ttypes.Character();
+            elem18.read(input);
+            this.followers.push(elem18);
           }
           input.readListEnd();
         } else {
@@ -1423,13 +1454,13 @@ const Session = module.exports.Session = class {
         case 9:
         if (ftype == Thrift.Type.LIST) {
           this.jobFilters = [];
-          const _rtmp315 = input.readListBegin();
-          const _size14 = _rtmp315.size || 0;
-          for (let _i16 = 0; _i16 < _size14; ++_i16) {
-            let elem17 = null;
-            elem17 = new ttypes.JobFilter();
-            elem17.read(input);
-            this.jobFilters.push(elem17);
+          const _rtmp320 = input.readListBegin();
+          const _size19 = _rtmp320.size || 0;
+          for (let _i21 = 0; _i21 < _size19; ++_i21) {
+            let elem22 = null;
+            elem22 = new ttypes.JobFilter();
+            elem22.read(input);
+            this.jobFilters.push(elem22);
           }
           input.readListEnd();
         } else {
@@ -1460,10 +1491,10 @@ const Session = module.exports.Session = class {
     if (this.followers !== null && this.followers !== undefined) {
       output.writeFieldBegin('followers', Thrift.Type.LIST, 3);
       output.writeListBegin(Thrift.Type.STRUCT, this.followers.length);
-      for (let iter18 in this.followers) {
-        if (this.followers.hasOwnProperty(iter18)) {
-          iter18 = this.followers[iter18];
-          iter18.write(output);
+      for (let iter23 in this.followers) {
+        if (this.followers.hasOwnProperty(iter23)) {
+          iter23 = this.followers[iter23];
+          iter23.write(output);
         }
       }
       output.writeListEnd();
@@ -1497,10 +1528,10 @@ const Session = module.exports.Session = class {
     if (this.jobFilters !== null && this.jobFilters !== undefined) {
       output.writeFieldBegin('jobFilters', Thrift.Type.LIST, 9);
       output.writeListBegin(Thrift.Type.STRUCT, this.jobFilters.length);
-      for (let iter19 in this.jobFilters) {
-        if (this.jobFilters.hasOwnProperty(iter19)) {
-          iter19 = this.jobFilters[iter19];
-          iter19.write(output);
+      for (let iter24 in this.jobFilters) {
+        if (this.jobFilters.hasOwnProperty(iter24)) {
+          iter24 = this.jobFilters[iter24];
+          iter24.write(output);
         }
       }
       output.writeListEnd();
