@@ -327,6 +327,8 @@ class ChangeMap(AbstractBehavior):
         try:
             self.mapChangeCellId = next(self.iterScrollCells)
         except StopIteration:
+            if self.edge:
+                return self.followEdge()
             return self.finish(MovementFailError.NOMORE_SCROLL_CELL, f"Tryied all scroll map change cells but no one changed map")
         self.setupMapChangeListener()
         self.mapMove(self.mapChangeCellId, self.exactDestination, forMapChange=True, mapChangeDirection=self.transition.direction, callback=self.onMoveToMapChangeCell)       
