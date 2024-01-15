@@ -78,7 +78,7 @@ class ResourceFarm(AbstractFarmBehavior):
             ]:
                 Logger().warning(f"Error while collecting resource: {error}, not a fatal error, restarting.")
                 self.forbidenActions.add(self.currentTarget.uid)
-                return self.requestMapData(callback=self.main)
+                return self.main()
             return self.send(KernelEvent.ClientShutdown, message=error)
         BenchmarkTimer(0.2, self.main).start()
         
