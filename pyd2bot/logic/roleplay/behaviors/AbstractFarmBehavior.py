@@ -37,6 +37,7 @@ class AbstractFarmBehavior(AbstractBehavior):
         self.currentVertex: Vertex = None
         self.forbidenActions = set()
         self.forbidenEdges = set()
+        self._currEdge = None 
         super().__init__()
 
     def run(self, *args, **kwargs):
@@ -91,22 +92,24 @@ class AbstractFarmBehavior(AbstractBehavior):
             if code == MovementFailError.PLAYER_IS_DEAD:
                 Logger().warning(f"Player is dead.")
                 return self.autoRevive(self.onRevived)
-            elif code == ChangeMap.LANDED_ON_WRONG_MAP:
-                Logger().warning(f"Player landed on wrong map!")
-            elif code == ChangeMap.INVALID_TRANSITION:
-                Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
-                self.forbidenEdges.add(self._currEdge)
-                return self.moveToNextStep()
-            elif code in [UseSkill.USE_ERROR, AutoTrip.NO_PATH_FOUND]:
-                Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
-                self.forbidenEdges.add(self._currEdge)
-                return self.moveToNextStep()
+            if self._currEdge:
+                if code == ChangeMap.LANDED_ON_WRONG_MAP:
+                    Logger().warning(f"Player landed on wrong map!")
+                elif code == ChangeMap.INVALID_TRANSITION:
+                    Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
+                    self.forbidenEdges.add(self._currEdge)
+                    return self.moveToNextStep()
+                elif code in [UseSkill.USE_ERROR, AutoTrip.NO_PATH_FOUND]:
+                    Logger().warning(f"Player trying navigating using invalid edge, will be forbiden")
+                    self.forbidenEdges.add(self._currEdge)
+                    return self.moveToNextStep()
             else:
                 return self.send(
                     KernelEvent.ClientShutdown,
                     "Error while moving to next step: %s." % error,
                 )
-        self.path.lastVisited[self._currEdge] = perf_counter()
+        if self._currEdge:
+            self.path.lastVisited[self._currEdge] = perf_counter()
         self.forbidenActions = set()
         self.currentVertex = self.path.currentVertex
         self.main()
