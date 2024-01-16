@@ -91,15 +91,12 @@ class AutoTripUseZaap(AbstractBehavior):
             self.enterHavenBag(lambda event: self.onSrcZaapTrip(True, None))
 
     def findSrcZaap(self):
-        self.srcZaapMapId = Localizer.findCloseZaapMapId(
+        self.srcZaapVertex, self.srcZaapDist = Localizer.findCloseZaapMapId(
             self.currMapId, self.maxCost, self.dstZaapMapId
         )
-        if not self.srcZaapMapId:
+        if not self.srcZaapVertex:
             Logger().warning(f"No associated zaap found for map {self.dstMapId}.")
             return False
-        self.srcZaapVertex, self.srcZaapDist = self.findDistFrom(
-            PlayedCharacterManager().currVertex, self.srcZaapMapId
-        )
         Logger().debug(f"Found src zaap at {self.srcZaapDist} maps from current pos.")
         return True
 

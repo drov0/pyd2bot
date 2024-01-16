@@ -104,6 +104,7 @@ class Localizer:
                 return None
             Logger().debug(f"Found {len(candidates)} candidates maps for closest zaap to map {mapId}")
             return cls.findClosestVertexFromVerticies(startVertex, candidates)
+        return None, float("inf")
         
         
     @classmethod
@@ -111,12 +112,12 @@ class Localizer:
         Logger().info(f"Searching closest map from vertex to one of the candidates")
         if not candidates:
             Logger().warning(f"No candidates to search path to!")
-            return None
+            return None, float("inf")
         path = AStar().search(WorldGraph(), vertex, candidates)
         if path is None:
             Logger().warning(f"Could not find a path to any of the candidates!")
-            return None
+            return None, None
         if len(path) == 0:
             Logger().warning(f"One of the candidates is the start map, returning it as closest zaap")
-            return vertex
-        return path[-1].dst
+            return vertex, float("inf")
+        return path[-1].dst, len(path)

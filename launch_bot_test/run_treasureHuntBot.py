@@ -1,8 +1,8 @@
 import os
 import sys
 
-from PyQt5 import QtGui, QtWidgets
 from launch_bot_test.system_tray import SystemTrayIcon
+from PyQt5 import QtGui, QtWidgets
 
 from pyd2bot.logic.managers.AccountManager import AccountManager
 from pyd2bot.logic.managers.BotConfig import CharacterRoleEnum
@@ -15,7 +15,7 @@ __dir__ = os.path.dirname(os.path.abspath(__file__))
 app = QtWidgets.QApplication(sys.argv)
 app.setQuitOnLastWindowClosed(False)
 
-accountId = "244588168071629885"
+accountId = "244588168088949842"
 character = AccountManager.get_character(accountId)
 apikey = AccountManager.get_apikey(accountId)
 bot = Pyd2Bot(character.login)

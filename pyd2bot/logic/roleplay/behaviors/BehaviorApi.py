@@ -56,7 +56,7 @@ class BehaviorApi:
             maxCost = InventoryManager().inventory.kamas
             Logger().debug(f"Player max teleport cost is {maxCost}")
         
-        dstZaapVertex = Localizer.findCloseZaapMapId(dstMapId, maxCost, excludeMaps=excludeMaps)
+        dstZaapVertex, dist = Localizer.findCloseZaapMapId(dstMapId, maxCost, excludeMaps=excludeMaps)
         if not dstZaapVertex:
             Logger().warning(f"No src zaap found for cost {maxCost} and map {dstMapId}!")
             return self.autoTrip(dstMapId, dstZoneId, callback=callback)
