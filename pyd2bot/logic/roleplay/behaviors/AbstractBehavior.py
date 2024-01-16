@@ -73,8 +73,8 @@ class AbstractBehavior(BehaviorApi, metaclass=Singleton):
             callback = self.endListeners.pop()
             callback(code, error, *args, **kwargs)
         with RLOCK:
-            if not AbstractBehavior.hasRunning():
-                thname = threading.current_thread().name
+            thname = threading.current_thread().name
+            if not AbstractBehavior.hasRunning(thname):
                 if thname in AbstractBehavior._onEmptyCallbacks:
                     while AbstractBehavior._onEmptyCallbacks[thname]:
                         callback = AbstractBehavior._onEmptyCallbacks[thname].pop()
@@ -93,8 +93,8 @@ class AbstractBehavior(BehaviorApi, metaclass=Singleton):
         return AbstractBehaviorState.RUNNING.name if self.isRunning() else AbstractBehaviorState.IDLE.name
 
     @classmethod
-    def hasRunning(cls):
-        for behavior in AbstractBehavior.getSubs():
+    def hasRunning(clsn, name):
+        for behavior in AbstractBehavior.getSubs(name):
             if behavior.isRunning():
                 return True
     

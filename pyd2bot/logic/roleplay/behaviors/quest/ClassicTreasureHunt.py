@@ -4,50 +4,35 @@ from time import sleep
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.quest.FindHintNpc import FindHintNpc
-from pyd2bot.logic.roleplay.behaviors.teleport.UseTeleportItem import \
-    UseTeleportItem
+from pyd2bot.logic.roleplay.behaviors.teleport.UseTeleportItem import UseTeleportItem
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import \
-    KernelEventsManager
+from pydofus2.com.ankamagames.berilia.managers.KernelEventsManager import KernelEventsManager
 from pydofus2.com.ankamagames.dofus.datacenter.npcs.Npc import Npc
-from pydofus2.com.ankamagames.dofus.datacenter.quest.treasureHunt.PointOfInterest import \
-    PointOfInterest
-from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import \
-    MapPosition
-from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import \
-    ItemWrapper
-from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntStepWrapper import \
-    TreasureHuntStepWrapper
-from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntWrapper import \
-    TreasureHuntWrapper
+from pydofus2.com.ankamagames.dofus.datacenter.quest.treasureHunt.PointOfInterest import PointOfInterest
+from pydofus2.com.ankamagames.dofus.datacenter.world.MapPosition import MapPosition
+from pydofus2.com.ankamagames.dofus.internalDatacenter.items.ItemWrapper import ItemWrapper
+from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntStepWrapper import TreasureHuntStepWrapper
+from pydofus2.com.ankamagames.dofus.internalDatacenter.quests.TreasureHuntWrapper import TreasureHuntWrapper
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
 from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import PlayerManager
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import \
-    InventoryManager
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
-    PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import \
-    WorldGraph
-from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntFlagRequestEnum import \
-    TreasureHuntFlagRequestEnum
-from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntFlagStateEnum import \
-    TreasureHuntFlagStateEnum
-from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntRequestEnum import \
-    TreasureHuntRequestEnum
-from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntTypeEnum import \
-    TreasureHuntTypeEnum
-from pydofus2.com.ankamagames.dofus.types.enums.TreasureHuntStepTypeEnum import \
-    TreasureHuntStepTypeEnum
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.InventoryManager import InventoryManager
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.WorldGraph import WorldGraph
+from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntFlagRequestEnum import TreasureHuntFlagRequestEnum
+from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntFlagStateEnum import TreasureHuntFlagStateEnum
+from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntRequestEnum import TreasureHuntRequestEnum
+from pydofus2.com.ankamagames.dofus.network.enums.TreasureHuntTypeEnum import TreasureHuntTypeEnum
+from pydofus2.com.ankamagames.dofus.types.enums.TreasureHuntStepTypeEnum import TreasureHuntStepTypeEnum
 from pydofus2.com.ankamagames.dofus.uiApi.PlayedCharacterApi import PlayedCharacterApi
 from pydofus2.com.ankamagames.jerakine.data.I18n import I18n
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
-from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import \
-    DirectionsEnum
+from pydofus2.com.ankamagames.jerakine.types.enums.DirectionsEnum import DirectionsEnum
 from pydofus2.mapTools import MapTools
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 HINTS_FILE = os.path.join(CURR_DIR, "hints.json")
 WRONG_ANSWERS_FILE = os.path.join(CURR_DIR, "wrongAnswers.json")
+
 
 class ClassicTreasureHunt(AbstractBehavior):
     UNABLE_TO_FIND_HINT = 475556
@@ -56,12 +41,12 @@ class ClassicTreasureHunt(AbstractBehavior):
     TREASURE_HUNT_ATM_IEID = 484993
     TREASURE_HUNT_ATM_SKILLUID = 152643320
     RAPPEL_POTION_GUID = 548
-    CHESTS_GUID = [15260, 15248, 15261]
+    CHESTS_GUID = [15260, 15248, 15261, 15262]
     ZAAP_HUNT_MAP = 142087694
 
     with open(HINTS_FILE, "r") as fp:
         hint_db = json.load(fp)
-    
+
     with open(WRONG_ANSWERS_FILE, "r") as fp:
         json_content = json.load(fp)
         wrongAnswers: set = set([tuple(_) for _ in json_content["recordedWrongAnswers"]])
@@ -70,7 +55,7 @@ class ClassicTreasureHunt(AbstractBehavior):
     def saveHints(cls):
         with open(HINTS_FILE, "w") as fp:
             json.dump(cls.hint_db, fp, indent=2)
-            
+
     def __init__(self) -> None:
         super().__init__()
         self.infos: TreasureHuntWrapper = None
@@ -80,8 +65,12 @@ class ClassicTreasureHunt(AbstractBehavior):
         self.guessedAnswers = []
 
     def submitet_flag_maps(self):
-        return [_.mapId for _ in self.infos.stepList if _.flagState == TreasureHuntFlagStateEnum.TREASURE_HUNT_FLAG_STATE_UNKNOWN]
-    
+        return [
+            _.mapId
+            for _ in self.infos.stepList
+            if _.flagState == TreasureHuntFlagStateEnum.TREASURE_HUNT_FLAG_STATE_UNKNOWN
+        ]
+
     def getCurrentStepIndex(self):
         i = 1
         while i < len(self.infos.stepList):
@@ -103,7 +92,7 @@ class ClassicTreasureHunt(AbstractBehavior):
 
     def onDigAnswer(self, event, questType, result, text):
         pass
-    
+
     def onFlagRequestAnswer(self, event, result, err):
         if result == TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_OK:
             pass
@@ -114,18 +103,18 @@ class ClassicTreasureHunt(AbstractBehavior):
                 self.guessedAnswers.remove(answer)
             self.wrongAnswers.add(answer)
             with open(WRONG_ANSWERS_FILE, "w") as fp:
-                json.dump({
-                    "recordedWrongAnswers": list(self.wrongAnswers)
-                }, fp)
+                json.dump({"recordedWrongAnswers": list(self.wrongAnswers)}, fp)
             self.solveNextStep(True)
         elif result in [
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_ERROR_UNDEFINED,
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_TOO_MANY,
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_ERROR_IMPOSSIBLE,
             TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_WRONG_INDEX,
-            TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_SAME_MAP
+            TreasureHuntFlagRequestEnum.TREASURE_HUNT_FLAG_SAME_MAP,
         ]:
-            KernelEventsManager().send(KernelEvent.ClientShutdown, f"Treasure hunt flag request error : {result} {err}")
+            KernelEventsManager().send(
+                KernelEvent.ClientShutdown, f"Treasure hunt flag request error : {result} {err}"
+            )
 
     def onTelportToDistributorNearestZaap(self, code, err):
         if code == UseTeleportItem.CANT_USE_ITEM_IN_MAP:
@@ -159,7 +148,7 @@ class ClassicTreasureHunt(AbstractBehavior):
 
     def onObjectAdded(self, event, iw: ItemWrapper):
         Logger().info(f"{iw.name}, gid {iw.objectGID}, uid {iw.objectUID}, {iw.description} added to inventory")
-        if iw.objectGID in self.CHESTS_GUID or "coffre" in iw.name.lower():
+        if iw.objectGID in self.CHESTS_GUID:
             Kernel().inventoryManagementFrame.useItem(iw)
             sleep(1)
 
@@ -201,7 +190,7 @@ class ClassicTreasureHunt(AbstractBehavior):
     @property
     def currentMapId(self):
         return PlayedCharacterManager().currentMap.mapId
-    
+
     @classmethod
     def memorizeHint(cls, mapId, poiId):
         mp = MapPosition.getMapPositionById(mapId)
@@ -274,23 +263,29 @@ class ClassicTreasureHunt(AbstractBehavior):
         if not riding:
             Logger().error(f"Player dismounted when asked to mount!")
         self.solveNextStep(ignoreSame)
-        
+
     def onRevived(self, code, error, ignoreSame=False):
         if error:
             return KernelEventsManager().send(KernelEvent.ClientShutdown, f"Error while auto-reviving player: {error}")
-        Logger().debug(
-            f"Bot back on form, can continue treasure hunt"
-        )
-        if not PlayerManager().isBasicAccount() and PlayedCharacterApi.getMount() and not PlayedCharacterApi.isRiding():
+        Logger().debug(f"Bot back on form, can continue treasure hunt")
+        if (
+            not PlayerManager().isBasicAccount()
+            and PlayedCharacterApi.getMount()
+            and not PlayedCharacterApi.isRiding()
+        ):
             Logger().info(f"Mounting {PlayedCharacterManager().mount.name}")
-            KernelEventsManager().once(KernelEvent.MountRiding, lambda e, r: self.onPlayerRidingMount(e, r, ignoreSame))
+            KernelEventsManager().once(
+                KernelEvent.MountRiding, lambda e, r: self.onPlayerRidingMount(e, r, ignoreSame)
+            )
             return Kernel().mountFrame.mountToggleRidingRequest()
         self.solveNextStep(ignoreSame)
-        
+
     def solveNextStep(self, ignoreSame=False):
         if Kernel().fightContextFrame:
             Logger().debug(f"Waiting for fight to end")
-            return self.once(KernelEvent.RoleplayStarted, lambda e: self.solveNextStep(ignoreSame))
+            return self.once(
+                KernelEvent.RoleplayStarted, lambda e: self.onceMapProcessed(lambda: self.solveNextStep(ignoreSame))
+            )
         if PlayedCharacterManager().isDead():
             Logger().warning(f"Player is dead.")
             return self.autoRevive(callback=lambda code, err: self.onRevived(code, err, ignoreSame))
@@ -313,10 +308,10 @@ class ClassicTreasureHunt(AbstractBehavior):
 
     def digTreasure(self):
         Kernel().questFrame.treasureHuntDigRequest(self.infos.questType)
-    
+
     def puFlag(self):
         Kernel().questFrame.treasureHuntFlagRequest(self.infos.questType, self.currentStep.index)
-        
+
     def onNextHintMapReached(self, code, err):
         if err:
             if code == FindHintNpc.UNABLE_TO_FIND_HINT:
@@ -347,12 +342,16 @@ class ClassicTreasureHunt(AbstractBehavior):
             nextMapId = self.getNextHintMap()
             if not nextMapId:
                 mp = MapPosition.getMapPositionById(self.startMapId)
-                Logger().error(f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.startMapId}:({mp.posX}, {mp.posY})!")
+                Logger().error(
+                    f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.startMapId}:({mp.posX}, {mp.posY})!"
+                )
                 self.guessMode = True
                 nextMapId = self.getNextHintMap()
                 if not nextMapId:
                     self.guessMode = False
-                    Logger().error(f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.startMapId} in guess mode!")
+                    Logger().error(
+                        f"Unable to find Map of poi {self.currentStep.poiLabel} from start map {self.startMapId} in guess mode!"
+                    )
                     return self.digTreasure()
             self.autotripUseZaap(nextMapId, maxCost=self.maxCost, callback=self.onNextHintMapReached)
         elif self.currentStep.type == TreasureHuntStepTypeEnum.DIRECTION_TO_HINT:

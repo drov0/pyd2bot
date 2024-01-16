@@ -151,7 +151,7 @@ class Pyd2Bot(DofusClient):
     def onShutdown(self, event, message, reason=""):
         super().onShutdown(event, message, reason)
         for callback in self._shutDownListeners:
-            callback()
+            callback(message, reason)
         
     def run(self):
         self.startTime = time.time()
@@ -179,6 +179,6 @@ class Pyd2Bot(DofusClient):
             return SessionStatus.LOADING_MAP
         elif not Kernel.getInstance(self.name).roleplayEntitiesFrame.mcidm_processed:
             return SessionStatus.PROCESSING_MAP
-        if AbstractBehavior.hasRunning():
+        if AbstractBehavior.hasRunning(self.name):
             return SessionStatus.ROLEPLAYING
         return SessionStatus.IDLE
