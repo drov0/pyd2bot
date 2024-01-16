@@ -39,7 +39,7 @@ class UseSkill(AbstractBehavior):
         self._curr_skill_mp = None
         self._reach_skillcell_fails = 0
         self._move_to_skillcell_landingcell = None
-        self._reach_with_cellid_tried = False
+        self._cells_blacklist = []
 
     def run(
         self,
@@ -102,9 +102,9 @@ class UseSkill(AbstractBehavior):
     def onUsingInteractive(self, event, entityId, usingElementId):
         if self.elementId == usingElementId:
             if MapMove().isRunning():
-                Logger().debug(f"Someone else is using this element, while we are moving to it, stopping map move")
                 MapMove().stop()
             if entityId != PlayedCharacterManager().id:
+                Logger().error(f"Someone else is using this element, while we are moving to it, stopping map move")
                 self.finish(self.ELEM_BEING_USED, "Someone else is using this element")
 
     def onUsedInteractive(self, event, entityId, usedElementId):
@@ -142,17 +142,14 @@ class UseSkill(AbstractBehavior):
     def onMapDataRefreshedAfterUseError(self, code, err, elementId):
         if err:
             self.finish(code, err)
-        if self._move_to_skillcell_landingcell.cellId != self._curr_skill_mp.cellId:
+        if self._move_to_skillcell_landingcell.cellId != PlayedCharacterManager().playerMapPoint.cellId:
+            self._cells_blacklist.append(self._move_to_skillcell_landingcell.cellId)
             self._reach_skillcell_fails += 1
             Logger().warning(f"Player movement to useskill cell didn't actually get executed by server")
             if self._reach_skillcell_fails > 3:
                 return self.finish(self.USE_ERROR, f"Use Error for element {elementId} - Server refuses to move player to skill cell")
             Logger().debug(f"retrying for {self._reach_skillcell_fails} time")
-            return self.mapMove(destCell=self._curr_skill_mp.cellId, exactDistination=False, callback=self.onUseSkillCellReached)
-        elif not self._reach_with_cellid_tried:
-            # try with cellid path finding cell
-            self._reach_with_cellid_tried = True        
-            return self.mapMove(destCell=self.elementPosition.cellId, exactDistination=False, callback=self.onUseSkillCellReached)
+            return self.mapMove(destCell=self._curr_skill_mp.cellId, exactDistination=False, callback=self.onUseSkillCellReached, cellsblacklist=self._cells_blacklist)
         self.finish(self.USE_ERROR, f"Use Error for element {elementId}!")
         
     def onUseError(self, event, elementId):

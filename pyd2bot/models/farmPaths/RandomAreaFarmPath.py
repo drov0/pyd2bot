@@ -88,7 +88,9 @@ class RandomAreaFarmPath(AbstractFarmPath):
         Logger().info(f"Searching closest path map from vertex")
         candidates = []
         for dst_mapId in self.mapIds:
-            candidates.extend(WorldGraph().getVertices(dst_mapId).values())
+            verticies = WorldGraph().getVertices(dst_mapId)
+            if verticies:
+                candidates.extend(verticies.values())
         v = Localizer.findClosestVertexFromVerticies(self.currentVertex, candidates)
         return v
         

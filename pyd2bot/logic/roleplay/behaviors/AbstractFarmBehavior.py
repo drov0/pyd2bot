@@ -143,7 +143,7 @@ class AbstractFarmBehavior(AbstractBehavior):
             Logger().error(f"No next vertex found in path, player is stuck!")
             if PlayedCharacterManager().currVertex in self.path:
                 return KernelEventsManager().send(
-                    KernelEvent.ClientShutdown, "Player is stuck in farm path without next vertex!"
+                    KernelEvent.ClientRestart, "Player is stuck in farm path without next vertex!"
                 )
             return self.onBotOutOfFarmPath()
         self.changeMap(

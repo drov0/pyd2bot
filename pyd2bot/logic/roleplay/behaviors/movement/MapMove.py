@@ -38,11 +38,12 @@ class MapMove(AbstractBehavior):
         super().__init__()
         self._landingCell = None
 
-    def run(self, destCell, exactDistination=True, forMapChange=False, mapChangeDirection=-1) -> None:
+    def run(self, destCell, exactDistination=True, forMapChange=False, mapChangeDirection=-1, cellsblacklist=[]) -> None:
         Logger().info(f"Move from {PlayedCharacterManager().currentCellId} to {destCell} started")
         self.forMapChange = forMapChange
         self.mapChangeDirection = mapChangeDirection
         self.exactDestination = exactDistination
+        self.cellsblacklist = cellsblacklist
         if isinstance(destCell, int):
             self.dstCell = MapPoint.fromCellId(destCell)
         elif isinstance(destCell, MapPoint):
@@ -84,7 +85,7 @@ class MapMove(AbstractBehavior):
         if PlayerLifeStatusEnum(PlayedCharacterManager().state) == PlayerLifeStatusEnum.STATUS_TOMBSTONE:
             return self.fail(MovementFailError.PLAYER_IS_DEAD)
         
-        self.movePath = Pathfinding().findPath(playerEntity.position, self.dstCell)
+        self.movePath = Pathfinding().findPath(playerEntity.position, self.dstCell, cellsBlacklist=self.cellsblacklist)
         if self.movePath is None:
             return self.fail(MovementFailError.NO_PATH_FOUND)
         
@@ -130,7 +131,7 @@ class MapMove(AbstractBehavior):
         Logger().info(f"Requested move from {PlayedCharacterManager().currentCellId} to {self.dstCell.cellId}")
 
     def onPlayerMoving(self, event, clientMovePath: MovementPath):
-        Logger().info(f"Move request accepted.")
+        Logger().info(f"Move request accepted : len={len(clientMovePath)}")
         self._landingCell = clientMovePath.end
         if clientMovePath.end.cellId != self.dstCell.cellId:
             Logger().warning(f"Landed on cell {clientMovePath.end.cellId} not dst {self.dstCell.cellId}!")

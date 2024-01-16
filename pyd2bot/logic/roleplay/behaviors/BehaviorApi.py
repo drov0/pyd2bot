@@ -155,7 +155,7 @@ class BehaviorApi:
 
         ChangeMap().start(transition, edge, dstMapId, callback=callback, parent=self)
 
-    def mapMove(self, destCell, exactDistination=True, forMapChange=False, mapChangeDirection=-1, callback=None):
+    def mapMove(self, destCell, exactDistination=True, forMapChange=False, mapChangeDirection=-1, callback=None, cellsblacklist=[]):
         from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
 
         MapMove().start(
@@ -164,6 +164,7 @@ class BehaviorApi:
             forMapChange=forMapChange,
             mapChangeDirection=mapChangeDirection,
             callback=callback,
+            cellsblacklist=cellsblacklist,
             parent=self
         )
 

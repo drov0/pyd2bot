@@ -15,6 +15,8 @@ from pyd2bot.logic.roleplay.behaviors.fight.FarmFights import FarmFights
 from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
 from pyd2bot.logic.roleplay.behaviors.fight.SoloFarmFights import \
     SoloFarmFights
+from pyd2bot.logic.roleplay.behaviors.misc.TestBehavior import Test
+from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
 from pyd2bot.logic.roleplay.behaviors.quest.ClassicTreasureHunt import \
     ClassicTreasureHunt
 from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Session,
@@ -112,10 +114,12 @@ class Pyd2Bot(DofusClient):
         if err:
             Logger().error(err, exc_info=True)
             self.shutdown(DisconnectionReasonEnum.EXCEPTION_THROWN, err)
+        else:
+            self.shutdown(DisconnectionReasonEnum.WANTED_SHUTDOWN, "main behavior ended successfully")
     
     def startSessionMainBehavior(self):
         Logger().info(f"Starting main behavior for {self.name}")
-        
+    
         if BotConfig().isFarmSession:
             Logger().info(f"Starting farm behavior for {self.name}")
             ResourceFarm().start()
