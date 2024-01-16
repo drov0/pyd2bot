@@ -92,7 +92,7 @@ class ClassicTreasureHunt(AbstractBehavior):
 
     def run(self):
         self.on(KernelEvent.TreasureHuntUpdate, self.onUpdate)
-        self.on(KernelEvent.TreasureHuntFinished, self.onFinished)
+        self.on(KernelEvent.TreasureHuntFinished, self.onHuntFinished)
         self.on(KernelEvent.ObjectAdded, self.onObjectAdded)
         self.on(KernelEvent.TreasureHuntFlagRequestAnswer, self.onFlagRequestAnswer)
         self.on(KernelEvent.TreasureHuntDigAnswer, self.onDigAnswer)
@@ -163,12 +163,11 @@ class ClassicTreasureHunt(AbstractBehavior):
             Kernel().inventoryManagementFrame.useItem(iw)
             sleep(1)
 
-    def onFinished(self, event, questType):
+    def onHuntFinished(self, event, questType):
+        Logger().debug(f"Treasure hunt finished")
         if not Kernel().roleplayContextFrame:
-            return self.onceFramePushed("RoleplayContextFrame", lambda: self.onFinished(event, questType))
-        if PlayedCharacterManager().entity is None:
-            Logger().debug(f"Waiting for player to appear on map")
-            return self.once(KernelEvent.PlayerAddedToSceene, lambda evt, player: self.onFinished(event, questType))
+            Logger().debug(f"Waiting for roleplay to start")
+            return self.onceMapProcessed(lambda: self.onHuntFinished(event, questType))
         if self.guessedAnswers:
             for startMapId, poiId, answerMapId in self.guessedAnswers:
                 Logger().debug(f"Will memorise guessed answers : {self.guessedAnswers}")
