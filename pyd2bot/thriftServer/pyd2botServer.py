@@ -102,12 +102,8 @@ class Pyd2botServer:
 
     @sendTrace
     def fetchCharacters(self, token: str) -> list[Character]:
-        from pydofus2.com.ankamagames.dofus.internalDatacenter.connection.BasicCharacterWrapper import \
-            BasicCharacterWrapper
         from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import \
             PlayerManager
-        from pydofus2.com.ankamagames.dofus.network.types.connection.GameServerInformations import \
-            GameServerInformations
 
         instanceName = "fetchCharactersThread"
         result = list()
@@ -116,19 +112,22 @@ class Pyd2botServer:
         client._serverId = 0
         client.start()
         KernelEventsManager.WaitThreadRegister(instanceName, 25)
-        servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance(instanceName).wait(
+        KernelEventsManager.getInstance(instanceName).wait(
             KernelEvent.ServersList, 60
         )
         first = True
-        for server in servers.get("used", []):
+        serversUsedList = Kernel.getInstance(instanceName).serverSelectionFrame._serversUsedList
+        for server in serversUsedList:
             if first:
                 first = False
                 Kernel.getInstance(instanceName).worker.process(ServerSelectionAction.create(server.id))
             else:
                 Kernel.getInstance(instanceName).worker.process(ChangeServerAction.create(server.id))
-            charactersList: list[BasicCharacterWrapper] = KernelEventsManager.getInstance(instanceName).wait(
+            KernelEventsManager.getInstance(instanceName).wait(
                 KernelEvent.CharactersList, 60
             )
+            charactersList = PlayerManager.getInstance(instanceName).charactersList
+            Logger().info(f"List characters: {charactersList}")
             result += [
                 Character(
                     character.name,

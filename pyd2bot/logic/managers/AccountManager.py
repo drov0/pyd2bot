@@ -11,8 +11,14 @@ accounts_jsonfile = os.path.join(persistence_dir, "accounts.json")
 
 class AccountManager:
     
-    with open(accounts_jsonfile, 'r') as fp:
-        accounts : dict = json.load(fp)
+    if not os.path.exists(persistence_dir):
+        os.makedirs(persistence_dir)
+    
+    if not os.path.exists(accounts_jsonfile):
+        accounts = {}
+    else:
+        with open(accounts_jsonfile, 'r') as fp:
+            accounts : dict = json.load(fp)
 
     @classmethod
     def get_cert(cls, accountId):
