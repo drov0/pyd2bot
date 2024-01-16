@@ -29,6 +29,10 @@ class AccountManager:
         return cls.accounts[accountId]
 
     @classmethod
+    def getAccounts(cls):
+        return cls.accounts
+    
+    @classmethod
     def get_character(cls, accountId, charId=None):
         characterJson = None
         if charId is None:

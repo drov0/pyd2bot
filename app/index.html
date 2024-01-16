@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Account Interface</title>
+    <!-- Add CSS and JavaScript as needed -->
+</head>
+<body>
+    <ul>
+        {% for account in accounts %}
+        <li>
+            {{ account['login'] }}
+            <button onclick="toggleCharacters('{{ account['id'] }}')">↓</button>
+            <ul id="chars-{{ account['id'] }}" style="display:none;">
+                {% for character in account['characters'] %}
+                <li>
+                    {{ character['name'] }}
+                    <button onclick="runCommand('{{ character['id'] }}', 'farm')">Run Farm</button>
+                    <button onclick="runCommand('{{ character['id'] }}', 'treasurehunt')">Run Treasure Hunt</button>
+                    <button onclick="runCommand('{{ character['id'] }}', 'fight')">Run Fight</button>
+                </li>
+                {% endfor %}
+            </ul>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        function toggleCharacters(accountId) {
+            var element = document.getElementById('chars-' + accountId);
+            element.style.display = element.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function runCommand(characterId, command) {
+            // Implement AJAX call to send command
+            alert(`Command ${command} for ${characterId}`);
+        }
+    </script>
+</body>
+</html>

@@ -2,21 +2,33 @@ from typing import Iterable, Tuple
 
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
-from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import RequestMapData
+from pyd2bot.logic.roleplay.behaviors.movement.RequestMapData import \
+    RequestMapData
 from pyd2bot.logic.roleplay.behaviors.skill.UseSkill import UseSkill
-from pydofus2.com.ankamagames.berilia.managers.EventsHandler import Event, Listener
+from pydofus2.com.ankamagames.berilia.managers.EventsHandler import (Event,
+                                                                     Listener)
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
-from pydofus2.com.ankamagames.dofus.datacenter.interactives.Interactive import Interactive
+from pydofus2.com.ankamagames.dofus.datacenter.interactives.Interactive import \
+    Interactive
 from pydofus2.com.ankamagames.dofus.kernel.Kernel import Kernel
-from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import ConnectionsHandler
-from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.InteractiveElementData import InteractiveElementData
-from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import MovementFailError
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import Edge
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import Transition
-from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import TransitionTypeEnum
-from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.ChangeMapMessage import ChangeMapMessage
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import BenchmarkTimer
+from pydofus2.com.ankamagames.dofus.kernel.net.ConnectionsHandler import \
+    ConnectionsHandler
+from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
+    PlayedCharacterManager
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.frames.InteractiveElementData import \
+    InteractiveElementData
+from pydofus2.com.ankamagames.dofus.logic.game.roleplay.types.MovementFailError import \
+    MovementFailError
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Edge import \
+    Edge
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.Transition import \
+    Transition
+from pydofus2.com.ankamagames.dofus.modules.utils.pathFinding.world.TransitionTypeEnum import \
+    TransitionTypeEnum
+from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.ChangeMapMessage import \
+    ChangeMapMessage
+from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
+    BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.ankamagames.jerakine.types.positions.MapPoint import MapPoint
 from pydofus2.mapTools import MapTools
@@ -115,7 +127,7 @@ class ChangeMap(AbstractBehavior):
         except StopIteration:
             return self.finish(
                 self.INVALID_TRANSITION,
-                "No valid transition found!, available transitions: " + str(self.edge.transitions),
+                "No valid transition found!, available transitions: " + str(self._tr_fails_details),
             )
         self.followTransition()
 

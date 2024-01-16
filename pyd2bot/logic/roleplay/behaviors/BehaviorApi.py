@@ -66,7 +66,8 @@ class BehaviorApi:
 
             def onDstZaapTrip(code, err):
                 if err:
-                    return callback(code, err)
+                    Logger().error(f"Can't not reach dst zaap at {dstZaapVertex} : {err}")
+                    return self.autoTrip(dstMapId, dstZoneId, callback=callback)
                 if withSaveZaap:
 
                     def onDstZaapSaved(code, err):
