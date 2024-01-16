@@ -78,7 +78,6 @@ class AutoTripUseZaap(AbstractBehavior):
             f"Walking dist = {self.distFromTarget}, walking to src zap + walking to dst from dst Zaap = {self.srcZaapDist + self.dstZaapDist}"
         )
         if self.distFromTarget <= self.srcZaapDist + self.dstZaapDist:
-            Logger().debug(f"Will auto trip on feet to dest")
             self.goToDestinationOnFeet()
         elif PlayerManager().isBasicAccount() or teleportCostFromCurrToDstMap > maxCost:
             Logger().debug(f"Auto travelling to src zaap on feet")

@@ -120,7 +120,7 @@ class Pyd2botServer:
             KernelEvent.ServersList, 60
         )
         first = True
-        for server in servers["used"]:
+        for server in servers.get("used", []):
             if first:
                 first = False
                 Kernel.getInstance(instanceName).worker.process(ServerSelectionAction.create(server.id))

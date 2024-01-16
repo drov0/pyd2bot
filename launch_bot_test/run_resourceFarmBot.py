@@ -28,8 +28,10 @@ if __name__ == "__main__":
         startVertex=Vertex(mapId=88082704.0, zoneId=1),
         subAreaBlacklist=[6, 482, 276, 277], # exclude astrub cimetery, Milicluster, Bwork village
     )
+    
     app = QtWidgets.QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
+    
     accountId = accountId
     character = AccountManager.get_character(accountId)
     apikey = AccountManager.get_apikey(accountId)
