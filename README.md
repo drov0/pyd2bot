@@ -89,18 +89,17 @@ python app.py
 ## Importing Account and Character Data
 
 1. **Obtain Your HAAPI API Key**:
- - Use a local proxy like mitmproxy and configure your Windows to route requests through it.
- - Log in to your Ankama account via the Launcher.
- - Find the API key in the request header to `https://haapi.ankama.com/json/Ankama/v5/Account/CreateToken`.
+  - Add your account to ankama launcher
+  - Clone launcherd2 projetct into your botdev folder : ```git clone https://github.com/hadamrd/launcherd2```
+  - ```cd launcherd2```
+  - install deps : ```npm install```
+  - Extract cets and apikeys data : ```node getAllStoredCertifs.js```
+  - Import it to pyd2bot account manager : ```python exportAccountsToPyd2bot.py```
 
-2. **Update the Script with Your API Key**:
- - Navigate to `<pyd2bot_dir>/launch_bot_test`.
- - In `fetch_account_data.py`, replace `api_key` with your API key.
- - Running the script will store your account data in `accounts.json`.
 
-3. **Configure and Run the Bot Example**:
- - Edit `run_resourceFarmBot.py`.
- - Replace `accountId` with your account ID.
+3. **Configure and Run the treasure hunt farm Bot Example**:
+ - Edit `run_treasureHuntBot.py`.
+ - Replace `accountId` with your account ID. The account ID is the key of the account in the pyd2bot/persistence/accounts.json file.
  - Start the script to see the bot in action.
 
 Follow these steps to successfully set up and run Pyd2bot on your Windows system.
