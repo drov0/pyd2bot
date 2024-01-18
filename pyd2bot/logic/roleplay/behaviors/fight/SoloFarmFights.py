@@ -25,6 +25,7 @@ class SoloFarmFights(AbstractFarmBehavior):
     
     def init(self):
         self.path = BotConfig().path
+        self.path.init()
         Logger().debug(f"Solo farm fights started")
         return True
 

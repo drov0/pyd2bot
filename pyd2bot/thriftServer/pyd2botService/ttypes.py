@@ -6,13 +6,14 @@
 #  options string: py
 #
 
-from thrift.Thrift import TType, TMessageType, TFrozenDict, TException, TApplicationException
-from thrift.protocol.TProtocol import TProtocolException
-from thrift.TRecursive import fix_spec
-
 import sys
 
+from thrift.protocol.TProtocol import TProtocolException
+from thrift.Thrift import (TApplicationException, TException, TFrozenDict,
+                           TMessageType, TType)
 from thrift.transport import TTransport
+from thrift.TRecursive import fix_spec
+
 all_structs = []
 
 
@@ -64,6 +65,7 @@ class SessionType(object):
     SELL = 3
     TREASURE_HUNT = 4
     MIXED = 5
+    MULE_FIGHT = 6
 
     _VALUES_TO_NAMES = {
         0: "FIGHT",
@@ -71,6 +73,7 @@ class SessionType(object):
         3: "SELL",
         4: "TREASURE_HUNT",
         5: "MIXED",
+        6: "MULE_FIGHT",
     }
 
     _NAMES_TO_VALUES = {
@@ -79,6 +82,7 @@ class SessionType(object):
         "SELL": 3,
         "TREASURE_HUNT": 4,
         "MIXED": 5,
+        "MULE_FIGHT": 6,
     }
 
 
@@ -1223,6 +1227,74 @@ class Character(object):
         return not (self == other)
 
 
+class Certificate(object):
+    """
+    Attributes:
+     - id
+     - hash
+
+    """
+
+
+    def __init__(self, id=None, hash=None,):
+        self.id = id
+        self.hash = hash
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.id = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.STRING:
+                    self.hash = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('Certificate')
+        if self.id is not None:
+            oprot.writeFieldBegin('id', TType.I32, 1)
+            oprot.writeI32(self.id)
+            oprot.writeFieldEnd()
+        if self.hash is not None:
+            oprot.writeFieldBegin('hash', TType.STRING, 2)
+            oprot.writeString(self.hash.encode('utf-8') if sys.version_info[0] == 2 else self.hash)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
 class Session(object):
     """
     Attributes:
@@ -1235,11 +1307,14 @@ class Session(object):
      - path
      - monsterLvlCoefDiff
      - jobFilters
+     - apikey
+     - character
+     - cert
 
     """
 
 
-    def __init__(self, id=None, leader=None, followers=None, type=None, unloadType=None, seller=None, path=None, monsterLvlCoefDiff=None, jobFilters=None,):
+    def __init__(self, id=None, leader=None, followers=None, type=None, unloadType=None, seller=None, path=None, monsterLvlCoefDiff=None, jobFilters=None, apikey=None, character=None, cert=None,):
         self.id = id
         self.leader = leader
         self.followers = followers
@@ -1249,6 +1324,9 @@ class Session(object):
         self.path = path
         self.monsterLvlCoefDiff = monsterLvlCoefDiff
         self.jobFilters = jobFilters
+        self.apikey = apikey
+        self.character = character
+        self.cert = cert
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1319,6 +1397,23 @@ class Session(object):
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
+            elif fid == 10:
+                if ftype == TType.STRING:
+                    self.apikey = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 11:
+                if ftype == TType.STRUCT:
+                    self.character = Character()
+                    self.character.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            elif fid == 12:
+                if ftype == TType.STRUCT:
+                    self.cert = Certificate()
+                    self.cert.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1371,6 +1466,18 @@ class Session(object):
                 iter34.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
+        if self.apikey is not None:
+            oprot.writeFieldBegin('apikey', TType.STRING, 10)
+            oprot.writeString(self.apikey.encode('utf-8') if sys.version_info[0] == 2 else self.apikey)
+            oprot.writeFieldEnd()
+        if self.character is not None:
+            oprot.writeFieldBegin('character', TType.STRUCT, 11)
+            self.character.write(oprot)
+            oprot.writeFieldEnd()
+        if self.cert is not None:
+            oprot.writeFieldBegin('cert', TType.STRUCT, 12)
+            self.cert.write(oprot)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
@@ -1389,7 +1496,7 @@ class Session(object):
         return not (self == other)
 
 
-class DofusError(TException):
+class D2BotError(TException):
     """
     Attributes:
      - code
@@ -1399,8 +1506,8 @@ class DofusError(TException):
 
 
     def __init__(self, code=None, message=None,):
-        super(DofusError, self).__setattr__('code', code)
-        super(DofusError, self).__setattr__('message', message)
+        super(D2BotError, self).__setattr__('code', code)
+        super(D2BotError, self).__setattr__('message', message)
 
     def __setattr__(self, *args):
         raise TypeError("can't modify immutable instance")
@@ -1564,6 +1671,12 @@ Character.thrift_spec = (
     (8, TType.STRING, 'login', 'UTF8', None, ),  # 8
     (9, TType.I32, 'accountId', None, None, ),  # 9
 )
+all_structs.append(Certificate)
+Certificate.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'id', None, None, ),  # 1
+    (2, TType.STRING, 'hash', 'UTF8', None, ),  # 2
+)
 all_structs.append(Session)
 Session.thrift_spec = (
     None,  # 0
@@ -1576,9 +1689,12 @@ Session.thrift_spec = (
     (7, TType.STRUCT, 'path', [Path, None], None, ),  # 7
     (8, TType.DOUBLE, 'monsterLvlCoefDiff', None, None, ),  # 8
     (9, TType.LIST, 'jobFilters', (TType.STRUCT, [JobFilter, None], False), None, ),  # 9
+    (10, TType.STRING, 'apikey', 'UTF8', None, ),  # 10
+    (11, TType.STRUCT, 'character', [Character, None], None, ),  # 11
+    (12, TType.STRUCT, 'cert', [Certificate, None], None, ),  # 12
 )
-all_structs.append(DofusError)
-DofusError.thrift_spec = (
+all_structs.append(D2BotError)
+D2BotError.thrift_spec = (
     None,  # 0
     (1, TType.I32, 'code', None, None, ),  # 1
     (2, TType.STRING, 'message', 'UTF8', None, ),  # 2

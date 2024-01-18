@@ -2,9 +2,8 @@ import json
 import os
 import time
 
-from pyd2bot.logic.managers.BotConfig import CharacterRoleEnum
 from pyd2bot.Pyd2Bot import Pyd2Bot
-from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, DofusError,
+from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, D2BotError,
                                                         RunSummary, Session,
                                                         SessionStatus,
                                                         SessionType,
@@ -43,15 +42,15 @@ class SessionCtrl:
         if not crash:
             del self._running[login]
 
-    def startCharacter(self, character: Character, role: CharacterRoleEnum, session: Session):
-        if character.login in self._running:
-            Logger().warning(f"Character {character.login} is already running")
+    def startCharacter(self, session: Session):
+        if session.character.login in self._running:
+            Logger().warning(f"Character {session.character.login} is already running")
             return
-        login = character.login
+        login = session.character.login
         if login not in self.certificates:
-            raise DofusError(403, f"No certificate found for login {login}!")
+            raise D2BotError(403, f"No certificate found for login {login}!")
         if login not in self.apikeys:
-            raise DofusError(403, f"No apikey found for login {login}!")
+            raise D2BotError(403, f"No apikey found for login {login}!")
         cert = self.certificates[login]
         key = self.apikeys[login]["key"]
         bot = Pyd2Bot(login)
@@ -59,11 +58,10 @@ class SessionCtrl:
             Logger().warning(f"Character {login} shutdowned")
             if bot._crashed and session.type == SessionType.FIGHT:
                 return self.stopFightSession(
-                    session, f"Character {login} crached for reason : {bot._crashMessage}", True
+                    session, f"Character {login} crached for reason : {bot._shutDownMessage}", True
                 )
             self.stopCharacter(login, bot._shutDownReason)
         bot.addShutDownListener(onShutDown)
-        bot.setConfig(key, cert["id"], cert["hash"], session, role, character)
         bot.start()
         self._running[login] = bot
 
@@ -80,7 +78,7 @@ class SessionCtrl:
         elif session.type == SessionType.FARM:
             self.startFarmSession(session)
         else:
-            raise DofusError(self.INVALID_SESSION_TYPE, f"Invalid session type {session.type}")
+            raise D2BotError(self.INVALID_SESSION_TYPE, f"Invalid session type {session.type}")
         return True
 
     def startFarmSession(self, session: Session):
@@ -121,12 +119,12 @@ class SessionCtrl:
             self.removeSession(session.id)
 
     def stopFarmSession(self, session: Session):
-        raise DofusError(401, "Internal error : stop farm sessions not implemented yet")
+        raise D2BotError(401, "Internal error : stop farm sessions not implemented yet")
 
     def stopSession(self, sessionId, reason="N/A", crash=False):
         session = self.getSession(sessionId)
         if not session:
-            raise DofusError(403, f"No session with id {sessionId} found")
+            raise D2BotError(403, f"No session with id {sessionId} found")
         if session.type == SessionType.FIGHT:
             self.stopFightSession(session, reason, crash)
         elif session.type == SessionType.FARM:
@@ -136,7 +134,7 @@ class SessionCtrl:
     def getRunningCharacter(self, login) -> Pyd2Bot:
         if login in self._running:
             return self._running[login]
-        raise DofusError(404, f"Character {login} is not running")
+        raise D2BotError(404, f"Character {login} is not running")
 
     def getCharacterRunSummary(self, login) -> RunSummary:
         bot = self.getRunningCharacter(login)
@@ -148,7 +146,7 @@ class SessionCtrl:
         status = bot.getState()
         status_reason = "N/A"
         if status == SessionStatus.CRASHED:
-            status_reason = bot._crashMessage
+            status_reason = bot._shutDownMessage
         run_summary = RunSummary(
             login=str(login),
             startTime=float(bot.startTime),
@@ -179,9 +177,9 @@ class SessionCtrl:
     def getSessionRunSummary(self, sessionId) -> list[RunSummary]:
         session = self.getSession(sessionId)
         if not session:
-            raise DofusError(404, "Session not found")
+            raise D2BotError(404, "Session not found")
         if session.type == SessionType.FARM:
-            raise DofusError(403, "Get farm session run summary not implemented yet")
+            raise D2BotError(403, "Get farm session run summary not implemented yet")
         run_summaries = list[RunSummary]()
         if session.type == SessionType.FIGHT:
             run_summary = self.getCharacterRunSummary(session.leader.login)

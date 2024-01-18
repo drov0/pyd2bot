@@ -154,7 +154,8 @@ class AbstractFarmBehavior(AbstractBehavior):
 
     def onBotOutOfFarmPath(self):
         Logger().warning(f"Bot is out of farm path, searching path to last vertex...")
-        dst_vertex = self.path.findClosestMap()
+        dst_vertex, dist = self.path.findClosestMap()
+        Logger().debug(f"Found closest map {dst_vertex} at distance {dist} from current map")
         self.autotripUseZaap(
             dst_vertex.mapId,
             dst_vertex.zoneId,

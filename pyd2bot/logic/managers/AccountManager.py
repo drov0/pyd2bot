@@ -2,7 +2,7 @@ import json
 import os
 
 from pyd2bot.thriftServer.pyd2botServer import Pyd2botServer
-from pyd2bot.thriftServer.pyd2botService.ttypes import Character
+from pyd2bot.thriftServer.pyd2botService.ttypes import Certificate, Character
 from pydofus2.com.ankamagames.atouin.Haapi import Haapi
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
@@ -23,7 +23,7 @@ class AccountManager:
     @classmethod
     def get_cert(cls, accountId):
         account = cls.get_account(accountId)
-        return {"id": account.get("certid", ""), "hash": account.get("certhash", "")}
+        return Certificate(id=account.get("certid", ""), hash=account.get("certhash", ""))
 
     @classmethod
     def get_account(cls, accountId) -> dict:
@@ -43,14 +43,26 @@ class AccountManager:
         raise Exception(f"Account {accountId} not found")
 
     @classmethod
+    def get_credentials(cls, accountId, characterId=None):
+        character = cls.get_character(accountId, characterId)
+        apikey = cls.get_apikey(accountId)
+        cert = cls.get_cert(accountId)
+        return {
+            "apikey": apikey,
+            "cert": cert,
+            "character": character,
+        }
+    
+    @classmethod
     def get_character(cls, accountId, charId=None):
         account = cls.get_account(accountId)
+        if "characters" not in account:
+            return None
         characterJson = None
         if charId is None:
             characterJson = account["characters"][0]
         else:
             characters = account.get("characters", [])
-            print(characters)
             for ch in characters:
                 if ch["id"] == int(charId):
                     characterJson = ch
@@ -76,7 +88,7 @@ class AccountManager:
     @classmethod
     def fetch_account(cls, game, apikey, certid="", certhash=""):
         import asyncio
-
+    
         r = asyncio.run(Haapi.signOnWithApikey(game, apikey))
         accountId = r["id"]
         cls.accounts[accountId] = r["account"]
@@ -114,3 +126,8 @@ class AccountManager:
     def save(cls):
         with open(accounts_jsonfile, "w") as fp:
             json.dump(cls.accounts, fp, indent=4)
+            
+    @classmethod
+    def clear(cls):
+        cls.accounts = {}
+        cls.save()

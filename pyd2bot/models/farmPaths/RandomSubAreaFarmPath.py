@@ -31,9 +31,16 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         self.name = name
         self.startVertex = startVertex
         self.transitionTypeWhitelist = transitionTypeWhitelist
+        self._subArea = None
     
-    def ini(self):
-        self.subArea = SubArea.getSubAreaByMapId(self.startVertex.mapId)
+    @property
+    def mapIds(self) -> Set[int]:
+        if not self._subArea:
+            self._subArea = SubArea.getSubAreaByMapId(self.startVertex.mapId)
+        return self._subArea.mapIds
+    
+    def init(self):
+        self._subArea = SubArea.getSubAreaByMapId(self.startVertex.mapId)
         self.verticies = self.reachableVerticies()
         Logger().info(f"RandomSubAreaFarmPath {self.name} initialized with {len(self.verticies)} verticies")
 
@@ -64,7 +71,7 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         outgoingEdges = WorldGraph().getOutgoingEdgesFromVertex(vertex)
         ret = []
         for edge in outgoingEdges:
-            if edge.dst.mapId in self.subArea.mapIds:
+            if edge.dst.mapId in self._subArea.mapIds:
                 if self.hasValidTransition(edge):
                     if onlyNonRecentVisited:
                         if edge.dst in self.lastVisited:
@@ -98,7 +105,7 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
         return {
             "type": self.__class__.__name__,
             "name": self.name,
-            "subAreaId": self.subArea.id,
+            "subAreaId": self._subArea.id,
             "startVertex": {
                 "mapId": self.startVertex.mapId,
                 "mapRpZone": self.startVertex.zoneId,
@@ -153,4 +160,14 @@ class RandomSubAreaFarmPath(AbstractFarmPath):
                 return criterion.isRespected
             valid = True
         return valid
+    
+    def getNextVertex(self, forbidenEdges=None, onlyNonRecent=False) -> Vertex:
+        outgoingEdges = list(self.outgoingEdges(onlyNonRecentVisited=onlyNonRecent))
+        if forbidenEdges is None:
+            forbidenEdges = []
+        outgoingEdges = [e for e in outgoingEdges if e not in forbidenEdges]
+        if not outgoingEdges:
+            raise NoTransitionFound()
+        edge = random.choice(outgoingEdges)
+        return edge
     

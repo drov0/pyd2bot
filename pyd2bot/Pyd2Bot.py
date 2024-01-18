@@ -8,19 +8,17 @@ from pyd2bot.logic.common.frames.BotWorkflowFrame import BotWorkflowFrame
 from pyd2bot.logic.common.rpcMessages.PlayerConnectedMessage import \
     PlayerConnectedMessage
 from pyd2bot.logic.fight.frames.BotFightFrame import BotFightFrame
-from pyd2bot.logic.managers.BotConfig import BotConfig, CharacterRoleEnum
+from pyd2bot.logic.managers.BotConfig import BotConfig
 from pyd2bot.logic.roleplay.behaviors.AbstractBehavior import AbstractBehavior
 from pyd2bot.logic.roleplay.behaviors.farm.ResourceFarm import ResourceFarm
 from pyd2bot.logic.roleplay.behaviors.fight.FarmFights import FarmFights
 from pyd2bot.logic.roleplay.behaviors.fight.MuleFighter import MuleFighter
 from pyd2bot.logic.roleplay.behaviors.fight.SoloFarmFights import \
     SoloFarmFights
-from pyd2bot.logic.roleplay.behaviors.misc.TestBehavior import Test
-from pyd2bot.logic.roleplay.behaviors.movement.MapMove import MapMove
 from pyd2bot.logic.roleplay.behaviors.quest.ClassicTreasureHunt import \
     ClassicTreasureHunt
-from pyd2bot.thriftServer.pyd2botService.ttypes import (Character, Session,
-                                                        SessionStatus)
+from pyd2bot.thriftServer.pyd2botService.ttypes import (Session,
+                                                        SessionStatus, SessionType)
 from pydofus2.com.ankamagames.atouin.managers.MapDisplayManager import \
     MapDisplayManager
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
@@ -37,42 +35,28 @@ from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import \
     PlayerManager
 from pydofus2.com.ankamagames.dofus.logic.game.common.managers.PlayedCharacterManager import \
     PlayedCharacterManager
-from pydofus2.com.ankamagames.dofus.uiApi.PlayedCharacterApi import \
-    PlayedCharacterApi
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 from pydofus2.com.DofusClient import DofusClient
 
 
 class Pyd2Bot(DofusClient):
 
-    def __init__(self, name="unknown"):
-        super().__init__(name)
-
-    def setConfig(
-        self,
-        apiKey: str,
-        session: Session,
-        role: CharacterRoleEnum,
-        character: Character,
-        mitmMode=False,
-        certId='',
-        certHash='',
-    ):
-        self._apiKey = apiKey
-        self._certId = certId
-        self._certHash = certHash
+    def __init__(self, session: Session):
+        super().__init__(session.character.login)
+        self._apiKey = session.apikey
         self._session = session
-        self._role = role
-        self._character = character
-        self._serverId = character.serverId
-        self._characterId = character.id
+        self._character = session.character
+        self._serverId = session.character.serverId
+        self._characterId = session.character.id
+        self._certId = session.cert.id if session.cert else ''
+        self._certHash = session.cert.hash if session.cert else ''
         self.earnedKamas = 0
         self._totalKamas = None
         self.earnedLevels = 0
         self.nbrFightsDone = 0
         self.startTime = None
-        self.mule = role != CharacterRoleEnum.LEADER
-        self.mitm = mitmMode
+        self.mule = (session.type == SessionType.MULE_FIGHT)
+        self._shutDownListeners = []
 
     def onRestart(self, event, message):
         self.onReconnect(event, message)
@@ -85,15 +69,14 @@ class Pyd2Bot(DofusClient):
     
     def onInGame(self):
         Logger().info(f"Character {self.name} is now in game.")
-        if self._role == CharacterRoleEnum.SELLER:
+        if self._session.type == SessionType.SELL:
             BotConfig.SELLER_VACANT.set()
         for instId, inst in Kernel.getInstances():
             if instId != self.name:
                 inst.worker.process(PlayerConnectedMessage(self.name))
         KernelEventsManager().on(KernelEvent.KamasUpdate, self.onKamasUpdate)
         KernelEventsManager().on(KernelEvent.PlayerLeveledUp, self.onLvlUp)
-        if not Kernel().mitm:
-            self.startSessionMainBehavior()
+        self.startSessionMainBehavior()
 
     def onKamasUpdate(self, event, totalKamas):
         Logger().debug(f"Player kamas : {totalKamas}")
@@ -145,17 +128,9 @@ class Pyd2Bot(DofusClient):
     def switchActivity(self, code, err):
         self.onReconnect(None, f"Fake disconnect and take nap", random.random() * 60 * 3)
 
-    def addShutDownListener(self, callback):
-        self._shutDownListeners.append(callback)
-
-    def onShutdown(self, event, message, reason=""):
-        super().onShutdown(event, message, reason)
-        for callback in self._shutDownListeners:
-            callback(message, reason)
-        
     def run(self):
         self.startTime = time.time()
-        BotConfig().initFromSession(self._session, self._role, self._character)
+        BotConfig().initFromSession(self._session)
         self.registerInitFrame(BotWorkflowFrame)
         self.registerInitFrame(BotRPCFrame)
         self.registerGameStartFrame(BotCharacterUpdatesFrame)
@@ -163,9 +138,10 @@ class Pyd2Bot(DofusClient):
 
     def getState(self):
         if self.terminated.is_set():
-            return SessionStatus.TERMINATED
-        if self._crashed:
-            return SessionStatus.CRASHED
+            if self._crashed:
+                return SessionStatus.CRASHED
+            else:
+                return SessionStatus.TERMINATED
         if not ConnectionsHandler.getInstance(self.name) or \
             ConnectionsHandler.getInstance(self.name).connectionType == ConnectionType.DISCONNECTED:
             return SessionStatus.DISCONNECTED

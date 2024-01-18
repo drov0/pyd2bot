@@ -29,6 +29,7 @@ declare enum SessionType {
   SELL = 3,
   TREASURE_HUNT = 4,
   MIXED = 5,
+  MULE_FIGHT = 6,
 }
 
 declare enum TransitionType {
@@ -153,9 +154,16 @@ declare class Character {
       constructor(args?: { name: string; id: number; level: number; breedId: number; breedName: string; serverId: number; serverName: string; login?: string; accountId?: number; });
   }
 
+declare class Certificate {
+    public id: number;
+    public hash: string;
+
+      constructor(args?: { id: number; hash: string; });
+  }
+
 declare class Session {
     public id: string;
-    public leader: Character;
+    public leader?: Character;
     public followers?: Character[];
     public type: SessionType;
     public unloadType: UnloadType;
@@ -163,8 +171,11 @@ declare class Session {
     public path?: Path;
     public monsterLvlCoefDiff?: number;
     public jobFilters?: JobFilter[];
+    public apikey: string;
+    public character: Character;
+    public cert?: Certificate;
 
-      constructor(args?: { id: string; leader: Character; followers?: Character[]; type: SessionType; unloadType: UnloadType; seller?: Character; path?: Path; monsterLvlCoefDiff?: number; jobFilters?: JobFilter[]; });
+      constructor(args?: { id: string; leader?: Character; followers?: Character[]; type: SessionType; unloadType: UnloadType; seller?: Character; path?: Path; monsterLvlCoefDiff?: number; jobFilters?: JobFilter[]; apikey: string; character: Character; cert?: Certificate; });
   }
 
 declare class DofusError extends Thrift.TException {

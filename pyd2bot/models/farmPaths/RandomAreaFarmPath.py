@@ -42,9 +42,14 @@ class RandomAreaFarmPath(AbstractFarmPath):
     def init(self):
         self.area = SubArea.getSubAreaByMapId(self.startVertex.mapId).area
         self.subAreas = self.getAllSubAreas()
-        self.mapIds = self.getAllMapsIds()
         self.verticies = self.reachableVerticies()
         Logger().info(f"RandomAreaFarmPath {self.name} initialized with {len(self.verticies)} verticies")
+
+    @property
+    def mapIds(self) -> Set[int]:
+        if not self._mapIds:
+            self._mapIds = self.getAllMapsIds()
+        return self._mapIds
 
     @property
     def pourcentExplored(self):
@@ -83,16 +88,6 @@ class RandomAreaFarmPath(AbstractFarmPath):
             raise NoTransitionFound()
         edge = random.choice(outgoingEdges)
         return edge
-    
-    def findClosestMap(self):
-        Logger().info(f"Searching closest path map from vertex")
-        candidates = []
-        for dst_mapId in self.mapIds:
-            verticies = WorldGraph().getVertices(dst_mapId)
-            if verticies:
-                candidates.extend(verticies.values())
-        v = Localizer.findClosestVertexFromVerticies(self.currentVertex, candidates)
-        return v
         
     def reachableVerticies(self) -> Set[Vertex]:
         queue = collections.deque([self.startVertex])
@@ -211,4 +206,4 @@ class RandomAreaFarmPath(AbstractFarmPath):
                 elif e == TransitionType.MAP_OBSTACLE:
                     twl.append(TransitionTypeEnum.MAP_OBSTACLE)
         
-        return cls(path.id, startVertex, twl, path.subAreaBlacklist)
+        return RandomAreaFarmPath(path.id, startVertex, twl, path.subAreaBlacklist)

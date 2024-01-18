@@ -14,7 +14,7 @@ from pyd2bot.logic.roleplay.behaviors.start.DeleteCharacter import \
 from pyd2bot.SessionCtrl import SessionCtrl
 from pyd2bot.thriftServer.pyd2botService.ttypes import (Breed, Character,
                                                         CharacterDetails,
-                                                        DofusError, RunSummary,
+                                                        D2BotError, RunSummary,
                                                         Server, Session, Spell,
                                                         Vertex)
 from pydofus2.com.ankamagames.berilia.managers.KernelEvent import KernelEvent
@@ -48,17 +48,20 @@ def getTrace(e):
 
 lock = threading.Lock()
 
+
 def sendTrace(func):
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            if not isinstance(e, DofusError):
-                raise DofusError(401, getTrace(e))
+            if not isinstance(e, D2BotError):
+                raise D2BotError(401, getTrace(e))
             else:
                 raise e
+
     return wrapped
+
 
 class Pyd2botServer:
     def __init__(self, id: str):
@@ -79,7 +82,7 @@ class Pyd2botServer:
         client._serverId = 0
         result = None
         client.start()
-        KernelEventsManager.WaitThreadRegister("fetchServersThread", 25)
+        KernelEventsManager.waitThreadRegister("fetchServersThread", 25)
         servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance("fetchServersThread").wait(
             KernelEvent.ServersList, 60
         )
@@ -108,26 +111,22 @@ class Pyd2botServer:
         instanceName = "fetchCharactersThread"
         result = list()
         client = DofusClient(instanceName)
-        client._loginToken = token
-        client._serverId = 0
+        client.setLoginToken(token)
         client.start()
-        KernelEventsManager.WaitThreadRegister(instanceName, 25)
-        KernelEventsManager.getInstance(instanceName).wait(
-            KernelEvent.ServersList, 60
-        )
+        evtsManager = KernelEventsManager.waitThreadRegister(instanceName, 25)
+        evtsManager.wait(KernelEvent.ServersList, 60)
         first = True
-        serversUsedList = Kernel.getInstance(instanceName).serverSelectionFrame._serversUsedList
-        for server in serversUsedList:
+        kernel = Kernel.waitThreadRegister(instanceName, 25)
+        playerManager = PlayerManager.waitThreadRegister(instanceName, 25)
+        for server in kernel.serverSelectionFrame.usedServers:
             if first:
                 first = False
-                Kernel.getInstance(instanceName).worker.process(ServerSelectionAction.create(server.id))
+                kernel.worker.process(ServerSelectionAction.create(server.id))
             else:
-                Kernel.getInstance(instanceName).worker.process(ChangeServerAction.create(server.id))
-            KernelEventsManager.getInstance(instanceName).wait(
-                KernelEvent.CharactersList, 60
-            )
-            charactersList = PlayerManager.getInstance(instanceName).charactersList
-            Logger().info(f"List characters: {charactersList}")
+                playerManager.charactersList.clear()
+                kernel.worker.process(ChangeServerAction.create(server.id))
+            evtsManager.wait(KernelEvent.CharactersList, 60)
+            Logger().info(f"Server : {server.id}, List characters received")
             result += [
                 Character(
                     character.name,
@@ -135,10 +134,10 @@ class Pyd2botServer:
                     character.level,
                     character.breedId,
                     character.breed.name,
-                    PlayerManager.getInstance(instanceName).server.id,
-                    PlayerManager.getInstance(instanceName).server.name,
+                    playerManager.server.id,
+                    playerManager.server.name,
                 )
-                for character in charactersList
+                for character in playerManager.charactersList
             ]
         client.shutdown()
         return result
@@ -150,14 +149,16 @@ class Pyd2botServer:
         client._serverId = serverId
         client.start()
         stop = threading.Event()
-        KernelEventsManager.WaitThreadRegister(token, 25)
+        KernelEventsManager.waitThreadRegister(token, 25)
+
         def onCharacterDeleted(code, error):
             if error:
                 stop.set()
-                raise DofusError(code, error)
+                raise D2BotError(code, error)
             else:
                 Logger().info("character deleted successfully")
                 stop.set()
+
         def onCharactersList(event, return_value: list[BasicCharacterWrapper]):
             Logger().info("characters list received")
             if len(return_value) > 0 and any(c.id == characterId for c in return_value):
@@ -165,38 +166,42 @@ class Pyd2botServer:
             else:
                 stop.set()
                 client.shutdown()
-                raise DofusError(0, "Character not found")
+                raise D2BotError(0, "Character not found")
+
         KernelEventsManager.getInstance(token).once(KernelEvent.CharactersList, onCharactersList)
         stop.wait(220)
         client.shutdown()
         return True
-    
+
     def createCharacter(self, token, serverId, name, breedId, sex, moveOutOfIncarnam) -> Character:
         client = DofusClient(token)
         client._loginToken = token
         client._serverId = serverId
         client.start()
         result = [None]
-        KernelEventsManager.WaitThreadRegister(token, 25)
+        KernelEventsManager.waitThreadRegister(token, 25)
         Logger().info("kernel event manager instance created")
         stop = threading.Event()
+
         def onCrash(evt, message="unknown", reason=None):
             client.shutdown(reason, message)
             stop.set()
-            result[0] = DofusError(1002, "Internal error")
+            result[0] = D2BotError(1002, "Internal error")
+
         def onGetOutOfIncarnamEnded(code, error):
-            if error:            
+            if error:
                 client.shutdown()
                 stop.set()
-                result[0] = DofusError(code, error)
+                result[0] = D2BotError(code, error)
             else:
                 Logger().info("Character now is in astrub")
-        def onNewCharacterEnded(code, error, character: BasicCharacterWrapper=None):
+
+        def onNewCharacterEnded(code, error, character: BasicCharacterWrapper = None):
             if error:
                 Logger().error("Character cration failed for reason : " + str(error))
                 client.shutdown()
                 stop.set()
-                result[0] = DofusError(code, error)
+                result[0] = D2BotError(code, error)
             else:
                 Logger().info("character created successfully")
                 result[0] = Character(
@@ -213,16 +218,18 @@ class Pyd2botServer:
                 else:
                     client.shutdown()
                     stop.set()
+
         def onCharactersList(event, return_value):
             Logger().info("characters list received")
             CreateNewCharacter().start(breedId, name, sex, callback=onNewCharacterEnded)
+
         KernelEventsManager.getInstance(token).once(KernelEvent.CharactersList, onCharactersList)
         KernelEventsManager.getInstance(token).once(KernelEvent.ClientCrashed, onCrash)
         Logger().info(f"Initialized account {token}")
         if not stop.wait(60):
             client.shutdown()
-            raise DofusError(403, "Request timedout")
-        if isinstance(result[0], DofusError):
+            raise D2BotError(403, "Request timedout")
+        if isinstance(result[0], D2BotError):
             raise result[0]
         return result[0]
 
@@ -247,10 +254,12 @@ class Pyd2botServer:
         stop = threading.Event()
         client.start()
         result = [None]
+
         def onCrash(evt, message="unknown", reason=None):
             client.shutdown(reason, message)
-            result[0] = DofusError(code=1002, message="Internal error")
+            result[0] = D2BotError(code=1002, message="Internal error")
             stop.set()
+
         def onMapProcessed():
             playerManager = PlayedCharacterManager.getInstance(token)
             inventory = InventoryManager.getInstance(token)
@@ -271,15 +280,16 @@ class Pyd2botServer:
             )
             client.shutdown()
             stop.set()
-        KernelEventsManager.WaitThreadRegister(token, 25)
+
+        KernelEventsManager.waitThreadRegister(token, 25)
         KernelEventsManager.getInstance(token).onceMapProcessed(onMapProcessed)
         KernelEventsManager.getInstance(token).once(KernelEvent.ClientCrashed, onCrash)
         if not stop.wait(30):
             client.shutdown()
-            raise DofusError(1003, "Request timed out")
+            raise D2BotError(1003, "Request timed out")
         if client._crashed:
-            raise DofusError(403, client._crashMessage)
-        if isinstance(result[0], DofusError):
+            raise D2BotError(403, client._shutDownMessage)
+        if isinstance(result[0], D2BotError):
             raise result[0]
         return result[0]
 
@@ -296,7 +306,7 @@ class Pyd2botServer:
         client._serverId = 0
         result = None
         client.start()
-        KernelEventsManager.WaitThreadRegister(token, 25)
+        KernelEventsManager.waitThreadRegister(token, 25)
         servers: dict[str, list[GameServerInformations]] = KernelEventsManager.getInstance(token).wait(
             KernelEvent.ServersList, 60
         )
@@ -317,7 +327,7 @@ class Pyd2botServer:
         ]
         client.shutdown()
         return result
-    
+
     def fetchBreedSpells(self, breedId: int) -> list["Spell"]:
         from pydofus2.com.ankamagames.dofus.datacenter.breeds.Breed import \
             Breed
@@ -352,27 +362,27 @@ class Pyd2botServer:
                 if gr not in res[skill.parentJobId]["gatheredRessources"]:
                     res[skill.parentJobId]["gatheredRessources"].append(gr)
         return json.dumps(res)
-    
-    def addSession(self, session:Session) -> bool:
+
+    def addSession(self, session: Session) -> bool:
         return self.sessionsCtrl.addSession(session)
-    
-    @sendTrace    
+
+    @sendTrace
     def startSession(self, session: Session) -> bool:
         return self.sessionsCtrl.startSession(session)
-    
+
     def stopSession(self, sessionId) -> bool:
         return self.sessionsCtrl.stopSession(sessionId)
-    
+
     @sendTrace
     def getRunSummary(self) -> list[RunSummary]:
         return self.sessionsCtrl.getRunSummary()
-    
+
     def getCharacterRunSummary(self, login) -> RunSummary:
         return self.sessionsCtrl.getCharacterRunSummary(login)
 
     @sendTrace
     def getSessionRunSummary(self, sessionId) -> list[RunSummary]:
         return self.sessionsCtrl.getSessionRunSummary(sessionId)
-    
+
     def ping(self) -> str:
         return "pong"

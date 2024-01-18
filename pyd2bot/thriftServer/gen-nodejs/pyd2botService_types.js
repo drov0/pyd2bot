@@ -43,7 +43,9 @@ ttypes.SessionType = {
   '4' : 'TREASURE_HUNT',
   'TREASURE_HUNT' : 4,
   '5' : 'MIXED',
-  'MIXED' : 5
+  'MIXED' : 5,
+  '6' : 'MULE_FIGHT',
+  'MULE_FIGHT' : 6
 };
 ttypes.TransitionType = {
   '1' : 'SCROLL',
@@ -1331,6 +1333,71 @@ const Character = module.exports.Character = class {
   }
 
 };
+const Certificate = module.exports.Certificate = class {
+  constructor(args) {
+    this.id = null;
+    this.hash = null;
+    if (args) {
+      if (args.id !== undefined && args.id !== null) {
+        this.id = args.id;
+      }
+      if (args.hash !== undefined && args.hash !== null) {
+        this.hash = args.hash;
+      }
+    }
+  }
+
+  read (input) {
+    input.readStructBegin();
+    while (true) {
+      const ret = input.readFieldBegin();
+      const ftype = ret.ftype;
+      const fid = ret.fid;
+      if (ftype == Thrift.Type.STOP) {
+        break;
+      }
+      switch (fid) {
+        case 1:
+        if (ftype == Thrift.Type.I32) {
+          this.id = input.readI32();
+        } else {
+          input.skip(ftype);
+        }
+        break;
+        case 2:
+        if (ftype == Thrift.Type.STRING) {
+          this.hash = input.readString();
+        } else {
+          input.skip(ftype);
+        }
+        break;
+        default:
+          input.skip(ftype);
+      }
+      input.readFieldEnd();
+    }
+    input.readStructEnd();
+    return;
+  }
+
+  write (output) {
+    output.writeStructBegin('Certificate');
+    if (this.id !== null && this.id !== undefined) {
+      output.writeFieldBegin('id', Thrift.Type.I32, 1);
+      output.writeI32(this.id);
+      output.writeFieldEnd();
+    }
+    if (this.hash !== null && this.hash !== undefined) {
+      output.writeFieldBegin('hash', Thrift.Type.STRING, 2);
+      output.writeString(this.hash);
+      output.writeFieldEnd();
+    }
+    output.writeFieldStop();
+    output.writeStructEnd();
+    return;
+  }
+
+};
 const Session = module.exports.Session = class {
   constructor(args) {
     this.id = null;
@@ -1342,6 +1409,9 @@ const Session = module.exports.Session = class {
     this.path = null;
     this.monsterLvlCoefDiff = null;
     this.jobFilters = null;
+    this.apikey = null;
+    this.character = null;
+    this.cert = null;
     if (args) {
       if (args.id !== undefined && args.id !== null) {
         this.id = args.id;
@@ -1369,6 +1439,15 @@ const Session = module.exports.Session = class {
       }
       if (args.jobFilters !== undefined && args.jobFilters !== null) {
         this.jobFilters = Thrift.copyList(args.jobFilters, [ttypes.JobFilter]);
+      }
+      if (args.apikey !== undefined && args.apikey !== null) {
+        this.apikey = args.apikey;
+      }
+      if (args.character !== undefined && args.character !== null) {
+        this.character = new ttypes.Character(args.character);
+      }
+      if (args.cert !== undefined && args.cert !== null) {
+        this.cert = new ttypes.Certificate(args.cert);
       }
     }
   }
@@ -1467,6 +1546,29 @@ const Session = module.exports.Session = class {
           input.skip(ftype);
         }
         break;
+        case 10:
+        if (ftype == Thrift.Type.STRING) {
+          this.apikey = input.readString();
+        } else {
+          input.skip(ftype);
+        }
+        break;
+        case 11:
+        if (ftype == Thrift.Type.STRUCT) {
+          this.character = new ttypes.Character();
+          this.character.read(input);
+        } else {
+          input.skip(ftype);
+        }
+        break;
+        case 12:
+        if (ftype == Thrift.Type.STRUCT) {
+          this.cert = new ttypes.Certificate();
+          this.cert.read(input);
+        } else {
+          input.skip(ftype);
+        }
+        break;
         default:
           input.skip(ftype);
       }
@@ -1535,6 +1637,21 @@ const Session = module.exports.Session = class {
         }
       }
       output.writeListEnd();
+      output.writeFieldEnd();
+    }
+    if (this.apikey !== null && this.apikey !== undefined) {
+      output.writeFieldBegin('apikey', Thrift.Type.STRING, 10);
+      output.writeString(this.apikey);
+      output.writeFieldEnd();
+    }
+    if (this.character !== null && this.character !== undefined) {
+      output.writeFieldBegin('character', Thrift.Type.STRUCT, 11);
+      this.character.write(output);
+      output.writeFieldEnd();
+    }
+    if (this.cert !== null && this.cert !== undefined) {
+      output.writeFieldBegin('cert', Thrift.Type.STRUCT, 12);
+      this.cert.write(output);
       output.writeFieldEnd();
     }
     output.writeFieldStop();

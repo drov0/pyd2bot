@@ -6,15 +6,17 @@
 #  options string: py
 #
 
-from thrift.Thrift import TType, TMessageType, TFrozenDict, TException, TApplicationException
+import logging
+import sys
+
 from thrift.protocol.TProtocol import TProtocolException
+from thrift.Thrift import (TApplicationException, TException, TFrozenDict,
+                           TMessageType, TProcessor, TType)
+from thrift.transport import TTransport
 from thrift.TRecursive import fix_spec
 
-import sys
-import logging
 from .ttypes import *
-from thrift.Thrift import TProcessor
-from thrift.transport import TTransport
+
 all_structs = []
 
 
@@ -779,7 +781,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -805,7 +807,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -831,7 +833,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -857,7 +859,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -883,7 +885,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -909,7 +911,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -935,7 +937,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -961,7 +963,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -987,7 +989,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -1013,7 +1015,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -1039,7 +1041,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -1065,7 +1067,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -1091,7 +1093,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -1117,7 +1119,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -1143,7 +1145,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -1169,7 +1171,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -1195,7 +1197,7 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
-        except DofusError as error:
+        except D2BotError as error:
             msg_type = TMessageType.REPLY
             result.error = error
         except TApplicationException as ex:
@@ -1286,7 +1288,7 @@ class ping_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -1326,7 +1328,7 @@ class ping_result(object):
 all_structs.append(ping_result)
 ping_result.thrift_spec = (
     (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -1427,7 +1429,7 @@ class fetchCharacters_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -1470,7 +1472,7 @@ class fetchCharacters_result(object):
 all_structs.append(fetchCharacters_result)
 fetchCharacters_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [Character, None], False), None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -1571,7 +1573,7 @@ class fetchUsedServers_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -1614,7 +1616,7 @@ class fetchUsedServers_result(object):
 all_structs.append(fetchUsedServers_result)
 fetchUsedServers_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [Server, None], False), None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -1719,7 +1721,7 @@ class runSession_result(object):
                 break
             if fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -1755,7 +1757,7 @@ class runSession_result(object):
 all_structs.append(runSession_result)
 runSession_result.thrift_spec = (
     None,  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -1856,7 +1858,7 @@ class fetchBreedSpells_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -1899,7 +1901,7 @@ class fetchBreedSpells_result(object):
 all_structs.append(fetchBreedSpells_result)
 fetchBreedSpells_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [Spell, None], False), None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -1975,7 +1977,7 @@ class fetchJobsInfosJson_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -2015,7 +2017,7 @@ class fetchJobsInfosJson_result(object):
 all_structs.append(fetchJobsInfosJson_result)
 fetchJobsInfosJson_result.thrift_spec = (
     (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -2134,7 +2136,7 @@ class deleteCharacter_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -2174,7 +2176,7 @@ class deleteCharacter_result(object):
 all_structs.append(deleteCharacter_result)
 deleteCharacter_result.thrift_spec = (
     (0, TType.BOOL, 'success', None, None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -2330,7 +2332,7 @@ class createCharacter_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -2370,7 +2372,7 @@ class createCharacter_result(object):
 all_structs.append(createCharacter_result)
 createCharacter_result.thrift_spec = (
     (0, TType.STRUCT, 'success', [Character, None], None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -2452,7 +2454,7 @@ class getBreeds_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -2495,7 +2497,7 @@ class getBreeds_result(object):
 all_structs.append(getBreeds_result)
 getBreeds_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [Breed, None], False), None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -2596,7 +2598,7 @@ class getServers_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -2639,7 +2641,7 @@ class getServers_result(object):
 all_structs.append(getServers_result)
 getServers_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [Server, None], False), None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -2759,7 +2761,7 @@ class fetchCharacterDetails_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -2799,7 +2801,7 @@ class fetchCharacterDetails_result(object):
 all_structs.append(fetchCharacterDetails_result)
 fetchCharacterDetails_result.thrift_spec = (
     (0, TType.STRUCT, 'success', [CharacterDetails, None], None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -2895,7 +2897,7 @@ class addSession_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -2935,7 +2937,7 @@ class addSession_result(object):
 all_structs.append(addSession_result)
 addSession_result.thrift_spec = (
     (0, TType.BOOL, 'success', None, None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -3031,7 +3033,7 @@ class startSession_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -3071,7 +3073,7 @@ class startSession_result(object):
 all_structs.append(startSession_result)
 startSession_result.thrift_spec = (
     (0, TType.BOOL, 'success', None, None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -3166,7 +3168,7 @@ class stopSession_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -3206,7 +3208,7 @@ class stopSession_result(object):
 all_structs.append(stopSession_result)
 stopSession_result.thrift_spec = (
     (0, TType.BOOL, 'success', None, None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -3288,7 +3290,7 @@ class getRunSummary_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -3331,7 +3333,7 @@ class getRunSummary_result(object):
 all_structs.append(getRunSummary_result)
 getRunSummary_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [RunSummary, None], False), None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -3427,7 +3429,7 @@ class getCharacterRunSummary_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -3467,7 +3469,7 @@ class getCharacterRunSummary_result(object):
 all_structs.append(getCharacterRunSummary_result)
 getCharacterRunSummary_result.thrift_spec = (
     (0, TType.STRUCT, 'success', [RunSummary, None], None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 
 
@@ -3568,7 +3570,7 @@ class getSessionRunSummary_result(object):
                     iprot.skip(ftype)
             elif fid == 1:
                 if ftype == TType.STRUCT:
-                    self.error = DofusError.read(iprot)
+                    self.error = D2BotError.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -3611,7 +3613,7 @@ class getSessionRunSummary_result(object):
 all_structs.append(getSessionRunSummary_result)
 getSessionRunSummary_result.thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT, [RunSummary, None], False), None, ),  # 0
-    (1, TType.STRUCT, 'error', [DofusError, None], None, ),  # 1
+    (1, TType.STRUCT, 'error', [D2BotError, None], None, ),  # 1
 )
 fix_spec(all_structs)
 del all_structs

@@ -1,5 +1,5 @@
 if __name__ == "__main__":
-    from pyd2bot.thriftServer.pyd2botService.ttypes import DofusError
+    from pyd2bot.thriftServer.pyd2botService.ttypes import D2BotError
     try:
         import argparse
         import traceback
@@ -26,12 +26,12 @@ if __name__ == "__main__":
         serverTransport.httpd.RequestHandlerClass = getReqHandler(serverTransport)
         Logger().info(f"[Server - {args.id}] Started serving on {args.host}:{args.port}")
         serverTransport.serve()
-    except DofusError as e:
+    except D2BotError as e:
         e.message = f"START_OF_ERROR\n{e.message}\nEND_OF_ERROR"
         raise e
     except Exception as e:
         tb = traceback.format_exc(limit=11)
         stack_trace = "".join(tb)
         err_message = f"START_OF_ERROR\n{str(e)}\n{stack_trace}\nEND_OF_ERROR"
-        client_error = DofusError(401, err_message)
+        client_error = D2BotError(401, err_message)
         raise client_error

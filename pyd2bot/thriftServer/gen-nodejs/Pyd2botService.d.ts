@@ -25,6 +25,7 @@ import Breed = ttypes.Breed
 import Path = ttypes.Path
 import Spell = ttypes.Spell
 import Character = ttypes.Character
+import Certificate = ttypes.Certificate
 import Session = ttypes.Session
 
 declare class Client {

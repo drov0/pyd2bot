@@ -24,8 +24,6 @@ from pydofus2.com.ankamagames.dofus.network.messages.game.character.creation.Cha
     CharacterNameSuggestionRequestMessage
 from pydofus2.com.ankamagames.dofus.network.messages.game.context.roleplay.quest.GuidedModeQuitRequestMessage import \
     GuidedModeQuitRequestMessage
-from pydofus2.com.ankamagames.jerakine.benchmark.BenchmarkTimer import \
-    BenchmarkTimer
 from pydofus2.com.ankamagames.jerakine.data.I18n import I18n
 from pydofus2.com.ankamagames.jerakine.logger.Logger import Logger
 
@@ -91,15 +89,15 @@ class CreateNewCharacter(AbstractBehavior):
     def onNewCharacterResult(self, event, result, reason):
         if result > 0:
             if result == CharacterCreationResultEnum.ERR_INVALID_NAME:
-                errorMsg = I18n.getUiText("ui.charcrea.invalidNameReason" + str(reason))
+                errorMsg = "Invalid Name : " + I18n.getUiText("ui.charcrea.invalidNameReason" + str(reason))
             elif result == CharacterCreationResultEnum.ERR_NOT_ALLOWED:
-                errorMsg = I18n.getUiText("ui.popup.charcrea.notSubscriber")
+                errorMsg = "You need to subscribed : " + I18n.getUiText("ui.popup.charcrea.notSubscriber")
             elif result == CharacterCreationResultEnum.ERR_TOO_MANY_CHARACTERS:
-                errorMsg = I18n.getUiText("ui.popup.charcrea.tooManyCharacters")
+                errorMsg = "No character slots available : " + I18n.getUiText("ui.popup.charcrea.tooManyCharacters")
             elif result == CharacterCreationResultEnum.ERR_NO_REASON:
-                errorMsg = I18n.getUiText("ui.popup.charcrea.noReason")
+                errorMsg = "Unexpected reason : " + I18n.getUiText("ui.popup.charcrea.noReason")
             elif result == CharacterCreationResultEnum.ERR_RESTRICTED_ZONE:
-                errorMsg = I18n.getUiText("ui.charSel.deletionErrorUnsecureMode")
+                errorMsg = "Charactezr deletion in unsecure mode : " + I18n.getUiText("ui.charSel.deletionErrorUnsecureMode")
             self.finish(self.CHARACTER_CREATION_FAILED, f"Create character error : {errorMsg}")
         else:
             KernelEventsManager().once(KernelEvent.CharactersList, self.onCharacterList, originator=self)

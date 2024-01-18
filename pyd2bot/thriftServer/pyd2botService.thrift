@@ -76,7 +76,8 @@ enum SessionType {
     FARM = 1,
     SELL = 3,
     TREASURE_HUNT = 4,
-    MIXED = 5
+    MIXED = 5,
+    MULE_FIGHT = 6
 }
 
 enum TransitionType {
@@ -126,16 +127,24 @@ struct Character {
     9: optional int accountId,
 }
 
+struct Certificate {
+    1: int id,
+    2: string hash,
+}
+
 struct Session {
     1: string id,
-    2: Character leader,
+    2: optional Character leader,
     3: optional list<Character> followers,
     4: SessionType type,
     5: UnloadType unloadType,
     6: optional Character seller,
     7: optional Path path,
     8: optional double monsterLvlCoefDiff,
-    9: optional list<JobFilter> jobFilters
+    9: optional list<JobFilter> jobFilters,
+    10: string apikey,
+    11: Character character,
+    12: optional Certificate cert,
 }
 
 exception DofusError {

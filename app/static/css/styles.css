@@ -1,0 +1,234 @@
+.container {
+    width: 80%;
+    margin: auto;
+    padding: 20px;
+    background-color: #f3f3f3;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.account-list li {
+    background-color: #fff;
+    margin-bottom: 10px;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+    transition: box-shadow 0.3s;
+}
+
+.account-list li:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.account-list button {
+    padding: 6px 12px;
+    margin-right: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.account-list button:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+.account-list button:active {
+    transform: translateY(1px);
+}
+
+.account-list {
+    font-family: Arial, sans-serif;
+    max-width: 800px; /* Adjust as needed */
+    margin: 20px auto;
+    padding: 10px;
+}
+
+.account-list h2 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.account-list li {
+    font-size: 0.95em;
+    margin-bottom: 20px; /* More space between accounts */
+    border-bottom: 1px solid #e0e0e0; /* Adds a border at the bottom of each account */
+    background-color: #ffffff; /* White background for accounts */
+}
+
+.account-list > li { /* Direct child selector for account list items */
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.account-list ul[id^="chars-"] li {
+    font-weight: normal;
+    font-size: 0.95em;
+    padding: 10px;
+}
+
+.account-list ul[id^="chars-"] {
+    padding-left: 20px;
+    margin-top: 15px; /* More space above character lists */
+    background-color: #f9f9f9; /* Slightly off-white for characters */
+    border-left: 3px solid #007bff;
+    padding: 10px;
+    border-radius: 4px;
+    border-bottom: 1px solid #f0f0f0; /* Adds a border at the bottom of each character */
+}
+
+.account-list li:hover {
+    background-color: #f9f9f9;
+}
+
+.account-list ul[id^="chars-"] li:hover {
+    background-color: #f0f0f0;
+}
+
+.account-list ul[id^="chars-"] li:last-child {
+    border-bottom: none; /* Removes border from the last character */
+}
+
+.bot-list {
+    margin-bottom: 20px;
+}
+
+.account-list ul,
+.bot-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.bot-list li {
+    background-color: #fff;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
+}
+
+button {
+    padding: 5px 10px;
+    margin-right: 5px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+ul[id^="chars-"] {
+    padding-left: 20px;
+    margin-top: 10px;
+}
+
+h2 {
+    color: #333;
+}
+
+.bot-list {
+    margin-left: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.bot-list h2 {
+    color: #333;
+    font-size: 1.2em;
+}
+
+#runningBots {
+    list-style-type: none;
+    padding: 0;
+}
+
+#runningBotsTable th,
+#runningBotsTable td {
+    padding: 8px;
+    /* Adjust as needed */
+    text-align: left;
+    /* Align text to left; modify as per design needs */
+    border-bottom: 1px solid #ddd;
+    /* Consistent border for both */
+    overflow: hidden;
+    /* Ensures content doesn't overflow */
+    text-overflow: ellipsis;
+    /* Adds an ellipsis to overflowing content */
+    white-space: nowrap;
+    /* Keeps content in a single line */
+}
+
+#runningBotsTable th {
+    background-color: #f3f3f3;
+    /* Optional: different background for headers */
+    font-weight: bold;
+    /* Optional: makes header text bold */
+}
+
+#runningBots li {
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9em;
+    color: #555;
+}
+
+#runningBots li:last-child {
+    border-bottom: none;
+}
+
+#runningBotsTable {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0, 0, 0);
+    background-color: rgba(0, 0, 0, 0.4);
+    padding-top: 60px;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
