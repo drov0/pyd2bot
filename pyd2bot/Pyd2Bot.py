@@ -150,7 +150,7 @@ class Pyd2Bot(DofusClient):
             return SessionStatus.DISCONNECTED
         elif ConnectionsHandler.getInstance(self.name).connectionType == ConnectionType.TO_LOGIN_SERVER:
             return SessionStatus.AUTHENTICATING
-        if PlayedCharacterManager.getInstance(self.name).isInFight:
+        if Kernel.getInstance(self.name).fightContextFrame:
             return SessionStatus.FIGHTING
         elif not Kernel.getInstance(self.name).roleplayEntitiesFrame:
             return SessionStatus.OUT_OF_ROLEPLAY
