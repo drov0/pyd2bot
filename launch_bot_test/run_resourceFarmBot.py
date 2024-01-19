@@ -30,19 +30,17 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
 
-    accountId = "244588168071629885"
-    character = AccountManager.get_character(accountId)
-    apikey = AccountManager.get_apikey(accountId)
-    cert = AccountManager.get_cert(accountId)
+    account_key = "244588168071629885"
+    creds = AccountManager.get_credentials(account_key)
     session = Session(
         id="test",
-        character=character,
+        character=creds['character'],
         unloadType=UnloadType.BANK,
         type=SessionType.FARM,
         path=Path(
-            id="test_path",
+            id="coin_bouftou",
             type=PathType.RandomAreaFarmPath,
-            startVertex=Vertex(mapId=88082704.0, zoneId=1),
+            startVertex=Vertex(mapId=88082704.0, zoneId=1), # Ankama coin bouftou 
             subAreaBlacklist=[6, 482, 276, 277],  # exclude astrub cimetery, Milicluster, Bwork village
         ),
         jobFilters=[
@@ -53,11 +51,8 @@ if __name__ == "__main__":
             JobFilter(1, [311]),  # Base : eau
             JobFilter(24, []),  # Miner
         ],
-        apikey=apikey,
-        cert=Certificate(
-            id=cert["id"],
-            hash=cert["hash"],
-        ),
+        apikey=creds['apikey'],
+        cert=creds['cert'],
     )
     bot = Pyd2Bot(session)
     bot.start()

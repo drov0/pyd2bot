@@ -18,23 +18,21 @@ from pyd2bot.thriftServer.pyd2botService.ttypes import (
 
 if __name__ == "_main__":
     account_key = "244588168071629885"
-    character = AccountManager.get_character(account_key)
-    apikey = AccountManager.get_apikey(account_key)
-    cert = AccountManager.get_cert(account_key)
+    creds = AccountManager.get_credentials(account_key)
     session = Session(
         id="test_fight_solo",
-        character=character,
+        character=creds['character'],
         unloadType=UnloadType.BANK,
         type=SessionType.FIGHT,
         path=Path(
-            id="test_path",
+            id="ankarnam",
             type=PathType.RandomSubAreaFarmPath,
             startVertex=Vertex(mapId=154010883.0, zoneId=1),
             transitionTypeWhitelist=[TransitionType.SCROLL, TransitionType.SCROLL_ACTION],
         ),
         monsterLvlCoefDiff=1.4,
-        apikey=apikey,
-        cert=cert,
+        apikey=creds['apikey'],
+        cert=creds['cert'],
     )
     bot = Pyd2Bot(session)
     bot.start()

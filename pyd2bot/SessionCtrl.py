@@ -139,7 +139,7 @@ class SessionCtrl:
     def getCharacterRunSummary(self, login) -> RunSummary:
         bot = self.getRunningCharacter(login)
         current_time = int(time.time())
-        total_run_time = current_time - bot.startTime
+        total_run_time = current_time - bot._startTime
         session_id = bot._session.id
         leader_login = bot._session.leader.login if bot._session.leader else None
         number_of_restarts = len(bot._reconnectRecord)
@@ -149,16 +149,16 @@ class SessionCtrl:
             status_reason = bot._shutDownMessage
         run_summary = RunSummary(
             login=str(login),
-            startTime=float(bot.startTime),
+            startTime=float(bot._startTime),
             totalRunTime=float(total_run_time),
             sessionId=str(session_id),
             leaderLogin=str(leader_login),
             numberOfRestarts=int(number_of_restarts),
             status=str(status),
             statusReason=str(status_reason),
-            earnedKamas=int(bot.earnedKamas),
-            nbrFightsDone=int(bot.nbrFightsDone),
-            earnedLevels=int(bot.earnedLevels)
+            earnedKamas=int(bot._earnedKamas),
+            nbrFightsDone=int(bot._nbrFightsDone),
+            earnedLevels=int(bot._earnedLevels)
         )
         return run_summary
 

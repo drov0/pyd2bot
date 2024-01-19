@@ -1,8 +1,10 @@
 import json
 import os
+from ankalauncher.pythonversion.CryptoHelper import CryptoHelper
 
 from pyd2bot.thriftServer.pyd2botServer import Pyd2botServer
-from pyd2bot.thriftServer.pyd2botService.ttypes import Certificate, Character
+from pyd2bot.thriftServer.pyd2botService.ttypes import Certificate, Character, D2BotError
+from pydofus2.com.ankamagames.atouin.BrowserRequests import HttpError
 from pydofus2.com.ankamagames.atouin.Haapi import Haapi
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
@@ -131,3 +133,26 @@ class AccountManager:
     def clear(cls):
         cls.accounts = {}
         cls.save()
+
+    @classmethod
+    def import_launcher_accounts(cls):
+        apikeys = CryptoHelper.get_all_stored_apikeys()
+        certs = CryptoHelper.get_all_stored_certificates()
+        for apikey_details in apikeys:
+            keydata = apikey_details['apikey']
+            apikey = keydata['key']
+            certid = ""
+            certhash = ""
+            if 'certificate' in keydata:
+                certid = keydata['certificate']['id']
+                for cert in certs:
+                    certdata = cert['cert']
+                    if certdata['id'] == certid:
+                        certhash = cert['hash']
+                        break
+            try:
+                AccountManager.fetch_account(1, apikey, certid, certhash)
+            except HttpError as e:
+                print(f"Failed to get login token for reason: {e.body}")
+            except D2BotError as e:
+                print(f"Failed to fetch characters from game server:\n{e.message}")
