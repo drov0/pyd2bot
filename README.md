@@ -19,11 +19,11 @@ Pyd2bot utilizes the Pydofus2 client as a background to automate tasks in Dofus.
 - **Clone Repositories**:
   - Clone the `pydofus2` repository inside botdev folder:
     ```bash
-    git clone https://github.com/kmajdoub/pydofus2.git
+    git clone https://github.com/hadamrd/pydofus2.git
     ```
   - Clone the `pyd2bot` repository inside botdev folder:
     ```bash
-    git clone https://github.com/kmajdoub/pyd2bot.git
+    git clone https://github.com/hadamrd/pyd2bot.git
     ```
 - **Create a Virtual Environment**:
   - Within the `botdev` folder, create a new fresh python virtual environement:
