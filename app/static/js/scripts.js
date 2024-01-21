@@ -10,11 +10,30 @@ function runCharacterAction(accountId, characterId, action) {
         .catch(error => console.error('Error:', error));
 }
 
-function stopCharacterAction(accountId, characterId) {
-    fetch(`/stop/${accountId}/${characterId}`)
+function stopBot(botName) {
+    fetch(`/stop/${botName}`)
         .then(response => response.json())
         .then(data => alert(data.message))
         .catch(error => console.error('Error:', error));
+}
+
+// JavaScript function to handle the import accounts action
+function importAccounts() {
+    fetch('/import_accounts')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json(); // or .text() if the response is not JSON
+    })
+    .then(data => {
+        console.log('Import successful:', data);
+        // You can refresh the page or update the UI here
+        location.reload(); // Refreshes the page to update the accounts list
+    })
+    .catch(error => {
+        console.error('Import failed:', error);
+    });
 }
 
 let lastUpdate = [];
@@ -33,7 +52,10 @@ function updateRunningBots() {
                         <td>${bot.activity}</td>
                         <td>${bot.runTime}</td>
                         <td>${bot.status}</td>
-                        <td><button onclick="fetchLog('${bot.name}')">Show Log</button></td>
+                        <td>
+                            <button onclick="fetchLog('${bot.name}')">Log</button>                             
+                            <button onclick="stopBot('${bot.name}')">Stop</button>
+                        </td>
                     </tr>
                 `).join('');
             }

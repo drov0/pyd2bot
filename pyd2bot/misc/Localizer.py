@@ -92,13 +92,14 @@ class Localizer:
                 if hint.mapId in excludeMaps:
                     continue
                 if hint.gfx == cls.ZAAP_GFX:
-                    if dstZaapMapId:
-                        cmp = MapPosition.getMapPositionById(hint.mapId)
-                        cost = 10 * int(math.sqrt((dmp.posX - cmp.posX)**2 + (dmp.posY - cmp.posY)**2))
-                        if cost <= maxCost:
+                    if PlayedCharacterManager().isZaapKnown(hint.mapId):
+                        if dstZaapMapId:
+                            cmp = MapPosition.getMapPositionById(hint.mapId)
+                            cost = 10 * int(math.sqrt((dmp.posX - cmp.posX)**2 + (dmp.posY - cmp.posY)**2))
+                            if cost <= maxCost:
+                                candidates.extend(WorldGraph().getVertices(hint.mapId).values())
+                        else:
                             candidates.extend(WorldGraph().getVertices(hint.mapId).values())
-                    else:
-                        candidates.extend(WorldGraph().getVertices(hint.mapId).values())
             if not candidates:
                 Logger().warning(f"Could not find a candidate zaap for map {mapId}")
                 return None

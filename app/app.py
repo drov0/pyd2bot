@@ -1,4 +1,5 @@
 import time
+import traceback
 
 from flask import Flask, jsonify, render_template
 
@@ -56,6 +57,7 @@ class BotManagerApp:
                 character = AccountManager.get_character(accountkey, character_id)
                 apikey = AccountManager.get_apikey(accountkey)
                 cert = AccountManager.get_cert(accountkey)
+                
                 session = Session(
                     id=account_id,
                     character=character,
@@ -63,6 +65,7 @@ class BotManagerApp:
                     apikey=apikey,
                     cert=cert,
                 )
+                
                 if action == "treasurehunt":
                     session.type = SessionType.TREASURE_HUNT
 
@@ -71,7 +74,7 @@ class BotManagerApp:
                     session.path = Path(
                         id="astrub",
                         type=PathType.RandomSubAreaFarmPath,
-                        startVertex=Vertex(mapId=154010883.0, zoneId=1),
+                        startVertex=Vertex(mapId=191106048.0, zoneId=1),
                         transitionTypeWhitelist=[TransitionType.SCROLL, TransitionType.SCROLL_ACTION],
                     )
                     session.monsterLvlCoefDiff = 1.4
@@ -81,7 +84,7 @@ class BotManagerApp:
                     session.path = Path(
                         id="amakna",
                         type=PathType.RandomAreaFarmPath,
-                        startVertex=Vertex(mapId=88082704.0, zoneId=1),
+                        startVertex=Vertex(mapId=191106048.0, zoneId=1),
                         subAreaBlacklist=[6, 482, 276, 277],  # exclude astrub cimetery, Milicluster, Bwork village
                     )
                     session.jobFilters = [
@@ -92,8 +95,10 @@ class BotManagerApp:
                         JobFilter(1, [311]),  # Base : eau
                         JobFilter(24, []),  # Miner
                     ]
+                    
                 else:
                     return jsonify({"status": "error", "message": f"Unknown action {action}"})
+                
                 bot = Pyd2Bot(session)
                 bot.addShutDownListener(self.on_bot_shutdown)
                 self._running_bots[character.login] = {
@@ -103,8 +108,10 @@ class BotManagerApp:
                     "activity": action,
                 }
                 bot.start()
+                
             except Exception as e:
                 return jsonify({"status": "error", "message": f"Error while running {action} : {e}"})
+            
             return jsonify(
                 {
                     "status": "success",
@@ -112,13 +119,13 @@ class BotManagerApp:
                 }
             )
 
-        @self.app.route("/stop/<account_id>/<character_id>")
-        def stop_action(account_id, character_id):
-            bot_data = self._running_bots.get(account_id)
+        @self.app.route("/stop/<botname>")
+        def stop_action(botname):
+            bot_data = self._running_bots.get(botname)
             if bot_data:
                 bot = bot_data["obj"]
                 bot.shutdown(DisconnectionReasonEnum.WANTED_SHUTDOWN, "User wanted to stop bot")
-            return jsonify({"status": "success", "message": f"Stopped account {account_id}, character {character_id}"})
+            return jsonify({"status": "success", "message": f"Stopped bot {botname}"})
 
         @self.app.route("/get_running_bots")
         def get_running_bots():
@@ -141,9 +148,23 @@ class BotManagerApp:
             if not botlogger:
                 return f"Bot {name} logger instance not found", 404
             filep = Logger.getInstance(name).outputFile
-            log_data = tail(filep, 500)
+            log_data = tail(filep, 1000)
             return log_data, 200, {"Content-Type": "text/plain"}
+        
+        @self.app.route('/import_accounts', methods=['GET'])
+        def import_accounts():
+            try:
+                import pythoncom
 
+                pythoncom.CoInitialize()
+                AccountManager.clear()
+                AccountManager.import_launcher_accounts()
+            except Exception as e:
+                traceback.print_exc()
+                print(f"Error while importing accounts: {e}")
+                return jsonify({"message": f"Error while importing accounts: {e}"})
+            return jsonify({"message": "Accounts imported successfully"})
+        
     def on_bot_shutdown(self, login, message, reason):
         print(f"Bot {login} shutdown: {reason}\n{message}")
         # self._running_bots.pop(login)

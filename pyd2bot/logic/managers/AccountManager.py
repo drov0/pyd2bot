@@ -90,8 +90,9 @@ class AccountManager:
     @classmethod
     def fetch_account(cls, game, apikey, certid="", certhash=""):
         import asyncio
-    
-        r = asyncio.run(Haapi.signOnWithApikey(game, apikey))
+        print(f"Fetching account for game {game}, apikey {apikey}, certid {certid}, certhash {certhash}")
+        r = asyncio.run(Haapi.signOnWithApikeyCloudScraper(game, apikey))
+        print(f"Got account {r}")
         accountId = r["id"]
         cls.accounts[accountId] = r["account"]
         cls.accounts[accountId]["apikey"] = apikey
@@ -105,6 +106,7 @@ class AccountManager:
         apikey = acc["apikey"]
         token = Haapi.getLoginTokenCloudScraper(1, apikey, certid, certhash)
         srv = Pyd2botServer("test")
+        print(f"Fetching characters for token {token}")
         chars = srv.fetchCharacters(token)
         chars_json = [
             {
@@ -120,6 +122,7 @@ class AccountManager:
             }
             for ch in chars
         ]
+        print(f"Got characters {chars_json}")
         cls.accounts[accountId]["characters"] = chars_json
         cls.save()
         return chars_json
@@ -138,6 +141,7 @@ class AccountManager:
     def import_launcher_accounts(cls):
         apikeys = CryptoHelper.get_all_stored_apikeys()
         certs = CryptoHelper.get_all_stored_certificates()
+        print(f"Found {len(apikeys)} apikeys and {len(certs)} certificates")
         for apikey_details in apikeys:
             keydata = apikey_details['apikey']
             apikey = keydata['key']
@@ -153,6 +157,7 @@ class AccountManager:
             try:
                 AccountManager.fetch_account(1, apikey, certid, certhash)
             except HttpError as e:
-                print(f"Failed to get login token for reason: {e.body}")
+                raise Exception(f"Failed to get login token for reason: {e.body}")
             except D2BotError as e:
-                print(f"Failed to fetch characters from game server:\n{e.message}")
+                raise Exception(f"Failed to fetch characters from game server:\n{e.message}")
+        return cls.accounts

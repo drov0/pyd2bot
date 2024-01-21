@@ -16,8 +16,8 @@ from pyd2bot.thriftServer.pyd2botService.ttypes import (
 # ankama coin bouftou 88082704
 # Lac cania - pleines rocheuses : 156240386
 
-if __name__ == "_main__":
-    account_key = "244588168071629885"
+if __name__ == "__main__":
+    account_key = "244588168098991483"
     creds = AccountManager.get_credentials(account_key)
     session = Session(
         id="test_fight_solo",
@@ -27,7 +27,7 @@ if __name__ == "_main__":
         path=Path(
             id="ankarnam",
             type=PathType.RandomSubAreaFarmPath,
-            startVertex=Vertex(mapId=154010883.0, zoneId=1),
+            startVertex=Vertex(mapId=191106048.0, zoneId=1),
             transitionTypeWhitelist=[TransitionType.SCROLL, TransitionType.SCROLL_ACTION],
         ),
         monsterLvlCoefDiff=1.4,

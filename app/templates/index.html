@@ -13,6 +13,7 @@
     <div class="container">
         <div class="account-list">
             <h2>Accounts</h2>
+            <button onclick="importAccounts()">Import Accounts</button>
             <ul>
                 {% for account in accounts %}
                 <li>
@@ -29,8 +30,6 @@
                                 Treasure Hunt</button>
                             <button onclick="runCharacterAction('{{ account.id }}', '{{ character.id }}', 'fight')">Run
                                 Fight</button>
-                            <button
-                                onclick="stopCharacterAction('{{ account.id }}', '{{ character.id }}')">Stop</button>
                         </li>
                         {% endfor %}
                     </ul>
