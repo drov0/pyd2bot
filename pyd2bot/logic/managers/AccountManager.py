@@ -1,9 +1,11 @@
 import json
 import os
+
 from ankalauncher.pythonversion.CryptoHelper import CryptoHelper
 
 from pyd2bot.thriftServer.pyd2botServer import Pyd2botServer
-from pyd2bot.thriftServer.pyd2botService.ttypes import Certificate, Character, D2BotError
+from pyd2bot.thriftServer.pyd2botService.ttypes import (Certificate, Character,
+                                                        D2BotError)
 from pydofus2.com.ankamagames.atouin.BrowserRequests import HttpError
 from pydofus2.com.ankamagames.atouin.Haapi import Haapi
 
@@ -21,7 +23,10 @@ class AccountManager:
     else:
         with open(accounts_jsonfile, "r") as fp:
             accounts: dict = json.load(fp)
-
+    
+    _haapi_client = None
+    _session_id = None
+            
     @classmethod
     def get_cert(cls, accountId):
         account = cls.get_account(accountId)
@@ -88,23 +93,33 @@ class AccountManager:
         return acc["apikey"]
 
     @classmethod
-    def fetch_account(cls, game, apikey, certid="", certhash=""):
-        import asyncio
+    def fetch_account(cls, game, apikey, certid="", certhash="", with_characters_fetch=True):
         print(f"Fetching account for game {game}, apikey {apikey}, certid {certid}, certhash {certhash}")
-        r = asyncio.run(Haapi.signOnWithApikeyCloudScraper(game, apikey))
+        if not cls._haapi_client:
+            cls._haapi_client = Haapi(apikey)
+        r = cls._haapi_client.signOnWithApikey(game)
         print(f"Got account {r}")
         accountId = r["id"]
         cls.accounts[accountId] = r["account"]
         cls.accounts[accountId]["apikey"] = apikey
         cls.accounts[accountId]["certid"] = certid
         cls.accounts[accountId]["certhash"] = certhash
-        return cls.fetch_characters(accountId, certid, certhash)
+        if with_characters_fetch:
+            cls.fetch_characters(accountId, certid, certhash)
+        cls.save()
+        return cls.accounts[accountId]
+        
 
     @classmethod
     def fetch_characters(cls, accountId, certid, certhash):
         acc = cls.get_account(accountId)
         apikey = acc["apikey"]
-        token = Haapi.getLoginTokenCloudScraper(1, apikey, certid, certhash)
+        if not cls._haapi_client:
+            cls._haapi_client = Haapi(apikey)
+        if not cls._session_id:
+            cls._session_id = cls._haapi_client.startSessionWithApiKey(accountId)
+            print(f"Got session id {cls._session_id}")
+        token = cls._haapi_client.getLoginToken(1, certid, certhash)
         srv = Pyd2botServer("test")
         print(f"Fetching characters for token {token}")
         chars = srv.fetchCharacters(token)
@@ -124,7 +139,6 @@ class AccountManager:
         ]
         print(f"Got characters {chars_json}")
         cls.accounts[accountId]["characters"] = chars_json
-        cls.save()
         return chars_json
 
     @classmethod
@@ -138,7 +152,7 @@ class AccountManager:
         cls.save()
 
     @classmethod
-    def import_launcher_accounts(cls):
+    def import_launcher_accounts(cls, with_characters_fetch=True):
         apikeys = CryptoHelper.get_all_stored_apikeys()
         certs = CryptoHelper.get_all_stored_certificates()
         print(f"Found {len(apikeys)} apikeys and {len(certs)} certificates")
@@ -155,7 +169,7 @@ class AccountManager:
                         certhash = cert['hash']
                         break
             try:
-                AccountManager.fetch_account(1, apikey, certid, certhash)
+                AccountManager.fetch_account(1, apikey, certid, certhash, with_characters_fetch)
             except HttpError as e:
                 raise Exception(f"Failed to get login token for reason: {e.body}")
             except D2BotError as e:
