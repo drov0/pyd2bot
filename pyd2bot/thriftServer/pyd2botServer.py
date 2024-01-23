@@ -104,7 +104,7 @@ class Pyd2botServer:
         return result
 
     @sendTrace
-    def fetchCharacters(self, token: str) -> list[Character]:
+    def fetchCharacters(self, token: str, session_id=None) -> list[Character]:
         from pydofus2.com.ankamagames.dofus.logic.common.managers.PlayerManager import \
             PlayerManager
 
@@ -112,6 +112,7 @@ class Pyd2botServer:
         result = list()
         client = DofusClient(instanceName)
         client.setLoginToken(token)
+        client.sessionId = session_id
         client.start()
         evtsManager = KernelEventsManager.waitThreadRegister(instanceName, 25)
         evtsManager.wait(KernelEvent.ServersList, 60)

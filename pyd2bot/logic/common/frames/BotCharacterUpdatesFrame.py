@@ -56,18 +56,18 @@ class BotCharacterUpdatesFrame(Frame):
         })
         
     def onItemObtained(self, event, iw, qty):
-        if random.random() < 0.1:
+        if random.random() < 0.05:
             data = self.getEventData(3, "Inventory")
             Haapi().send_event(1, Haapi()._session_id, 730, data)
-        elif random.random() < 0.1:
+        if random.random() < 0.05:
             data = self.getEventData(6, "Social")
             Haapi().send_event(1, Haapi()._session_id, 730, data)
-        elif random.random() < 0.1:
+        if random.random() < 0.05:
             data = self.getEventData(4, "Quests")
             Haapi().send_event(1, Haapi()._session_id, 730, data)
             
     def onMapDataProcessed(self, event, map):
-        if random.random() < 0.1:
+        if random.random() < 0.05:
             data = self.getEventData(5, "World Map")
             Haapi().send_event(1, Haapi()._session_id, 730, data)
     

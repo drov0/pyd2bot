@@ -122,7 +122,7 @@ class AccountManager:
         token = cls._haapi_client.getLoginToken(1, certid, certhash)
         srv = Pyd2botServer("test")
         print(f"Fetching characters for token {token}")
-        chars = srv.fetchCharacters(token)
+        chars = srv.fetchCharacters(token, cls._session_id)
         chars_json = [
             {
                 "name": ch.name,
